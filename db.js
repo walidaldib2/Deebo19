@@ -131,18 +131,21 @@ window.DebooDB = (() => {
         tx.onabort=()=>reject(tx.error||new Error("تم إلغاء حفظ السجل."));
       });
     }
+    try{await createAutoBackup();}catch(error){console.warn("DEEB automatic backup:",error);}
     return row;
   }
   async function archive(id,reason="أرشفة سجل") {
     const old=await get("records",id);if(!old)throw new Error("السجل غير موجود.");
     const row={...old,is_archived:true,updated_at:now()},d=await openDB();
     await new Promise((resolve,reject)=>{const tx=d.transaction(["records","audit_logs"],"readwrite");tx.objectStore("records").put(row);tx.objectStore("audit_logs").put(makeAudit("archive",id,old,row,reason));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("فشلت الأرشفة وسجل المراجعة."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء الأرشفة."));});
+    try{await createAutoBackup();}catch(error){console.warn("DEEB automatic backup:",error);}
     return row;
   }
   async function unarchive(id,reason="استعادة سجل من الأرشيف") {
     const old=await get("records",id);if(!old)throw new Error("السجل غير موجود.");
     const row={...old,is_archived:false,updated_at:now()},d=await openDB();
     await new Promise((resolve,reject)=>{const tx=d.transaction(["records","audit_logs"],"readwrite");tx.objectStore("records").put(row);tx.objectStore("audit_logs").put(makeAudit("unarchive",id,old,row,reason));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("فشلت الاستعادة وسجل المراجعة."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء الاستعادة."));});
+    try{await createAutoBackup();}catch(error){console.warn("DEEB automatic backup:",error);}
     return row;
   }
   async function audit(limit=100) {return (await getAll("audit_logs")).sort((a,b)=>b.created_at.localeCompare(a.created_at)).slice(0,limit);}
