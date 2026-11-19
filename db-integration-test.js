@@ -65,7 +65,8 @@ async function main() {
   assert.equal(backups[0].record_count, (await db.all()).length);
   const again = await db.createAutoBackup();
   assert.equal(again.created, false);
-  assert.equal(again.reason, "already-created");
+  assert.equal(again.updated, true);
+  assert.equal((await db.automaticBackups()).length, 1);
 
   // Incident records can own photo/document attachments just like documents.
   const incident = await db.save("incidents", { incident_type: "أمني", description: "اختبار مرفق بلاغ" });
