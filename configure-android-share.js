@@ -42,6 +42,7 @@ const locationPlugin = `package ${packageName};
 
 import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -63,9 +64,18 @@ import com.getcapacitor.annotation.PermissionCallback;
     })
 })
 public class CurrentLocationPlugin extends Plugin {
+    private boolean hasAnyLocationPermission() {
+        return getContext().checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            || getContext().checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private boolean hasPreciseLocationPermission() {
+        return getContext().checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
+
     @PluginMethod
     public void getCurrentLocation(PluginCall call) {
-        if (!hasPermission("location")) {
+        if (!hasAnyLocationPermission()) {
             requestPermissionForAlias("location", call, "locationPermissionCallback");
             return;
         }
@@ -74,8 +84,8 @@ public class CurrentLocationPlugin extends Plugin {
 
     @PermissionCallback
     private void locationPermissionCallback(PluginCall call) {
-        if (!hasPermission("location")) {
-            call.reject("لم يتم منح إذن الوصول إلى الموقع.");
+        if (!hasAnyLocationPermission()) {
+            call.reject("إذن الموقع غير مفعّل. اختر السماح أثناء استخدام التطبيق من إعدادات الأذونات.");
             return;
         }
         locate(call);
@@ -86,8 +96,9 @@ public class CurrentLocationPlugin extends Plugin {
         LocationManager manager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
         String provider = null;
         try {
-            if (manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) provider = LocationManager.GPS_PROVIDER;
+            if (hasPreciseLocationPermission() && manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) provider = LocationManager.GPS_PROVIDER;
             else if (manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) provider = LocationManager.NETWORK_PROVIDER;
+            else if (hasPreciseLocationPermission() && manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) provider = LocationManager.GPS_PROVIDER;
         } catch (Exception ignored) {}
         if (provider == null) {
             call.reject("فعّل خدمة الموقع GPS من إعدادات الجهاز.");
