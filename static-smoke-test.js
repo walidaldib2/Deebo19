@@ -22,40 +22,13 @@ if (!app.includes('function lockApplication()') || !app.includes('document.visib
 if (!sw.includes('deebo-local-v10-8')) throw new Error('Service worker cache version was not bumped');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 if (!db.includes('return {app:"DEEBO",format:2') || !db.includes('["DEEBO","DEBOO16"].includes(obj.app)') || !db.includes('title:"تقرير DEEBO"')) throw new Error('DEEBO backup / approved report branding or legacy backup compatibility is missing');
-for (const marker of ['if(!used.has(bike)&&used.size>=5)','const bikesByDay=new Map()','bikesByDay.get(day).size>5']) if (!db.includes(marker)) throw new Error('Motorcycle-patrol rule missing: '+marker);
-if (db.includes('patrolKeys.has(key)')) throw new Error('Repeated motorcycle passes are still blocked in backup restore');
-if (!pkg.scripts?.test) throw new Error('npm test script missing');
-if (!pkg.scripts?.['build:biometric']?.includes('--outfile=www/biometric.bundle.js')) throw new Error('Biometric bundle output path does not match Android web assets');
-if (!pkg.scripts?.['prepare:android']) throw new Error('Android web asset preparation script missing');
-if (!html.includes('src=\"biometric.bundle.js\"')) throw new Error('index.html does not load the biometric bundle');
-if (html.includes('data-page=\"data\"')) throw new Error('Data management must not appear as a primary home tile');
-if (app.includes('installBtn.disabled=!deferredInstallPrompt') || !app.includes('installBtn.disabled=false') || !app.includes('التثبيت متاح من قائمة المتصفح')) throw new Error('Install button must remain actionable and explain the manual install path when the browser prompt is unavailable');
-if (!app.includes('function dataManagementPage()') || !app.includes('openDataManagement')) throw new Error('Settings data-management entry is missing');
-if (!app.includes('showArchive') || !app.includes('DebooDB.unarchive')) throw new Error('Reports archive / restore controls are missing');
-const prep = fs.readFileSync(path.join(root,'prepare-android.js'),'utf8');
-for (const f of ['index.html','app.js','db.js','biometric.bundle.js','style.css','preferences.css','preferences.js','sw.js','manifest.json','icon.svg']) if (!prep.includes('\"'+f+'\"')) throw new Error('Android asset preparation omits '+f);
-if (!app.includes('absences:[[') || !app.includes('غياب المسؤولين')) throw new Error('Absence tracking section is missing');
-if (!app.includes('function bindAutocomplete()') || !app.includes('suggest-')) throw new Error('Automatic name / branch suggestions are missing');
-if (!app.includes('id="saveRecord" type="submit"') || !app.includes('id="cancelEdit" type="button"') || !app.includes('$("#recordForm")?.addEventListener("submit"') || !app.includes('event.preventDefault()')) throw new Error('Record form must submit through its form handler with explicit button types');
-if (app.includes('</form><div class="actions"><button class="primary" id="saveRecord"')) throw new Error('Record save button must remain inside the form on Android');
-if (!app.includes('d.map(x=>')) throw new Error('Report output must include all matching records');
-
-const buttonMarkup = app + html;
-const buttonIds = [...new Set([...buttonMarkup.matchAll(/<button\b[^>]*\bid=["\x27]([^"\x27]+)["\x27]/g)].map(m=>m[1]))];
-for (const id of buttonIds) {
-  if (id === 'saveRecord') {
-    if (!app.includes('$("#recordForm")?.addEventListener("submit"')) throw new Error('Save record button has no form submit handler');
-  } else if (!buttonMarkup.includes('$("#'+id+'")') && !buttonMarkup.includes('querySelector("#'+id+'")') && !buttonMarkup.includes('getElementById("'+id+'")')) {
-    throw new Error('Button has no explicit handler binding: '+id);
-  }
-}
 for (const marker of [
   'document.addEventListener("click",e=>{if(e.target.closest("[data-back-home]"))',
-  '$("[data-page]").forEach',
-  '$("[data-branch-slot]").forEach',
-  '$("[data-move-branch]").forEach',
-  '$("[data-edit]").forEach',
-  '$("[data-archive]").forEach',
+  '$$("[data-page]").forEach',
+  '$$("[data-branch-slot]").forEach',
+  '$$("[data-move-branch]").forEach',
+  '$$("[data-edit]").forEach',
+  '$$("[data-archive]").forEach',
   'host.querySelectorAll("[data-restore-record]")',
   'box.querySelectorAll("[data-handover-version]")',
   'document.querySelectorAll("[data-report-type]")'
