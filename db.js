@@ -213,7 +213,7 @@ window.DebooDB = (() => {
       const item={...x,blob};delete item.data_url;return item;
     });
     const current=await backup();
-    if(current.records.length||current.attachments.length) downloadBlob(new Blob([JSON.stringify(current,null,2)],{type:"application/json"}),"DEEB-before-restore.json");
+    if(current.records.length||current.attachments.length) await downloadBlob(new Blob([JSON.stringify(current,null,2)],{type:"application/json"}),"DEEB-before-restore.json");
     const d=await openDB();
     await new Promise((resolve,reject)=>{
       const names=["records","audit_logs","approved_reports","handover_versions","attachments"];
@@ -228,10 +228,19 @@ window.DebooDB = (() => {
     });
     await addAudit("restore",null,null,{count:obj.records.length},"استعادة نسخة احتياطية");
   }
-  function downloadBlob(blob,name) {
+  async function downloadBlob(blob,name) {
+    const native=window.Capacitor?.Plugins?.FileExport;
+    if(native?.saveFile&&blob?.arrayBuffer){
+      const bytes=new Uint8Array(await blob.arrayBuffer());
+      let binary="";
+      for(let offset=0;offset<bytes.length;offset+=0x8000)binary+=String.fromCharCode(...bytes.subarray(offset,Math.min(offset+0x8000,bytes.length)));
+      const result=await native.saveFile({name,mimeType:blob.type||"application/octet-stream",base64:btoa(binary)});
+      return result;
+    }
     const a=document.createElement("a"),url=URL.createObjectURL(blob);
     a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1500);
+    return {saved:true,name};
   }
   return {init,configured,list,all,getRecord:(id)=>get("records",id),save,archive,unarchive,audit,approve,backup,restore,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,local:true};
 })();
