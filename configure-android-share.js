@@ -62,13 +62,13 @@ import java.io.OutputStream;
 @CapacitorPlugin(name = "FileExport")
 public class FileExportPlugin extends Plugin {
   @PluginMethod public void saveFile(PluginCall call) {
-    String name=call.getString("name","DEBOO16-export.txt");
+    String name=call.getString("name","DEEBO-export.txt");
     String mime=call.getString("mimeType","application/octet-stream");
     String data=call.getString("base64","");
     try {
       byte[] bytes=Base64.decode(data,Base64.DEFAULT);
       ContentValues values=new ContentValues(); values.put(MediaStore.Downloads.DISPLAY_NAME,name); values.put(MediaStore.Downloads.MIME_TYPE,mime);
-      if(Build.VERSION.SDK_INT>=29) values.put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/DEBOO16");
+      if(Build.VERSION.SDK_INT>=29) values.put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/DEEBO");
       Uri uri=getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
       if(uri==null) throw new Exception("تعذر إنشاء الملف في التنزيلات");
       try(OutputStream out=getContext().getContentResolver().openOutputStream(uri)){ if(out==null) throw new Exception("تعذر فتح الملف للحفظ"); out.write(bytes); out.flush(); }
@@ -82,7 +82,7 @@ public class FileExportPlugin extends Plugin {
       try {
         WebView view=new WebView(getContext()); view.getSettings().setJavaScriptEnabled(false);
         view.setWebViewClient(new WebViewClient(){ @Override public void onPageFinished(WebView v,String url){
-          try { PrintManager pm=(PrintManager)getContext().getSystemService(Context.PRINT_SERVICE); String job="DEBOO16-"+System.currentTimeMillis(); pm.print(job,v.createPrintDocumentAdapter(job),new PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4).setColorMode(PrintAttributes.COLOR_MODE_COLOR).build()); JSObject result=new JSObject();result.put("started",true);call.resolve(result); }
+          try { PrintManager pm=(PrintManager)getContext().getSystemService(Context.PRINT_SERVICE); String job="DEEBO-"+System.currentTimeMillis(); pm.print(job,v.createPrintDocumentAdapter(job),new PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4).setColorMode(PrintAttributes.COLOR_MODE_COLOR).build()); JSObject result=new JSObject();result.put("started",true);call.resolve(result); }
           catch(Exception e){call.reject("تعذرت تهيئة الطباعة: "+e.getMessage(),e);}
         }});
         view.loadDataWithBaseURL(null,html,"text/html","UTF-8",null);
@@ -272,4 +272,4 @@ if (!block.includes('android.intent.action.SEND')) {
   );
 }
 fs.writeFileSync(manifestPath, manifest);
-console.log("Configured DEBOO16 Android WhatsApp sharing and runtime current-location access.");
+console.log("Configured DEEBO Android WhatsApp sharing and runtime current-location access.");
