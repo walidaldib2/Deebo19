@@ -47,3 +47,6 @@ const prepareAt = workflow.indexOf('npm run prepare:android');
 const biometricAt = workflow.indexOf('npm run build:biometric');
 if (prepareAt < 0 || biometricAt < 0 || prepareAt > biometricAt) throw new Error('Android build must prepare www before generating the native biometric bundle; otherwise the bundle is deleted.');
 if (!workflow.includes('grep -q "BiometricAuth" www/biometric.bundle.js')) throw new Error('Android build must verify that the native biometric bundle is present.');
+
+const index = fs.readFileSync(path.join(root,'index.html'),'utf8');
+if (!index.includes('function startupFailure(message)') || !index.includes('unhandledrejection') || !index.includes('startupRetry')) throw new Error('Android startup diagnostics and recovery panel are missing');
