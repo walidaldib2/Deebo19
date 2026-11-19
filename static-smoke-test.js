@@ -21,6 +21,7 @@ if (!app.includes('يمكنك الدخول باستخدام PIN')) throw new Err
 if (!app.includes('function lockApplication()') || !app.includes('document.visibilityState==="hidden"') || !app.includes('window.addEventListener("pagehide",lockApplication)')) throw new Error('Automatic PIN lock hooks are missing');
 if (!sw.includes('deebo-local-v10-8')) throw new Error('Service worker cache version was not bumped');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
+if (!db.includes('return {app:"DEEBO",format:2') || !db.includes('["DEEBO","DEBOO16"].includes(obj.app)') || !db.includes('title:"تقرير DEEBO"')) throw new Error('DEEBO backup / approved report branding or legacy backup compatibility is missing');
 for (const marker of ['if(!used.has(bike)&&used.size>=5)','const bikesByDay=new Map()','bikesByDay.get(day).size>5']) if (!db.includes(marker)) throw new Error('Motorcycle-patrol rule missing: '+marker);
 if (db.includes('patrolKeys.has(key)')) throw new Error('Repeated motorcycle passes are still blocked in backup restore');
 if (!pkg.scripts?.test) throw new Error('npm test script missing');
