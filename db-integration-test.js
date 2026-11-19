@@ -57,7 +57,22 @@ async function main() {
   assert.equal((await db.attachments(branch.id)).some(x => x.id === attachment.id), true);
   assert.ok((await db.audit()).some(x => x.record_id === branch.id && x.action === "attachment"));
 
-  console.log("PASS: IndexedDB integration — branch create/read/edit, archive/restore, bike limits, handover versions, report approval, and attachments.");
+  // Daily automatic snapshots are local, bounded, and include the saved records.
+  const auto = await db.createAutoBackup();
+  assert.equal(auto.created, true);
+  const backups = await db.automaticBackups();
+  assert.equal(backups.length, 1);
+  assert.equal(backups[0].record_count, (await db.all()).length);
+  const again = await db.createAutoBackup();
+  assert.equal(again.created, false);
+  assert.equal(again.reason, "already-created");
+
+  // Incident records can own photo/document attachments just like documents.
+  const incident = await db.save("incidents", { incident_type: "أمني", description: "اختبار مرفق بلاغ" });
+  const incidentAttachment = await db.saveAttachment(incident.id, blob);
+  assert.equal((await db.attachments(incident.id)).some(x => x.id === incidentAttachment.id), true);
+
+  console.log("PASS: IndexedDB integration — branch create/read/edit, archive/restore, bike limits, handover versions, report approval, attachments, and daily automatic backups.");
 }
 
 main().catch(error => {
