@@ -331,7 +331,7 @@ function renderEntity(type){
   }).catch(e=>toast(e.message));
  }
  $("#addRecord").onclick=()=>{currentEdit={id:null,payload:{}};renderEntity(type);};
- $("[data-move-branch]").forEach(button=>button.addEventListener("click",()=>moveBranchOrder(button.dataset.moveBranch,Number(button.dataset.direction)||0)));
+ $$("[data-move-branch]").forEach(button=>button.addEventListener("click",()=>moveBranchOrder(button.dataset.moveBranch,Number(button.dataset.direction)||0)));
  if(type==="branch_patrols"){
   $$(".branch-time-edit").forEach(input=>input.addEventListener("change",async()=>{
    const visitId=input.dataset.visitId,newTime=input.value;
