@@ -38,6 +38,61 @@ public class ShareIntentPlugin extends Plugin {
 `;
 fs.writeFileSync(path.join(javaDir, "ShareIntentPlugin.java"), plugin);
 
+
+const exportPlugin = `package ${packageName};
+
+import android.content.ContentValues;
+import android.content.Context;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.print.PrintAttributes;
+import android.print.PrintManager;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.util.Base64;
+import com.getcapacitor.JSObject;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+import java.io.OutputStream;
+
+@CapacitorPlugin(name = "FileExport")
+public class FileExportPlugin extends Plugin {
+  @PluginMethod public void saveFile(PluginCall call) {
+    String name=call.getString("name","DEBOO16-export.txt");
+    String mime=call.getString("mimeType","application/octet-stream");
+    String data=call.getString("base64","");
+    try {
+      byte[] bytes=Base64.decode(data,Base64.DEFAULT);
+      ContentValues values=new ContentValues(); values.put(MediaStore.Downloads.DISPLAY_NAME,name); values.put(MediaStore.Downloads.MIME_TYPE,mime);
+      if(Build.VERSION.SDK_INT>=29) values.put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/DEBOO16");
+      Uri uri=getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
+      if(uri==null) throw new Exception("تعذر إنشاء الملف في التنزيلات");
+      try(OutputStream out=getContext().getContentResolver().openOutputStream(uri)){ if(out==null) throw new Exception("تعذر فتح الملف للحفظ"); out.write(bytes); out.flush(); }
+      JSObject result=new JSObject(); result.put("saved",true); result.put("name",name); call.resolve(result);
+    } catch(Exception e){call.reject("تعذر حفظ الملف: "+e.getMessage(),e);}
+  }
+  @PluginMethod public void printHtml(PluginCall call) {
+    String html=call.getString("html","");
+    if(html.isEmpty()){call.reject("لا توجد بيانات للطباعة");return;}
+    getActivity().runOnUiThread(()->{
+      try {
+        WebView view=new WebView(getContext()); view.getSettings().setJavaScriptEnabled(false);
+        view.setWebViewClient(new WebViewClient(){ @Override public void onPageFinished(WebView v,String url){
+          try { PrintManager pm=(PrintManager)getContext().getSystemService(Context.PRINT_SERVICE); String job="DEBOO16-"+System.currentTimeMillis(); pm.print(job,v.createPrintDocumentAdapter(job),new PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4).setColorMode(PrintAttributes.COLOR_MODE_COLOR).build()); JSObject result=new JSObject();result.put("started",true);call.resolve(result); }
+          catch(Exception e){call.reject("تعذرت تهيئة الطباعة: "+e.getMessage(),e);}
+        }});
+        view.loadDataWithBaseURL(null,html,"text/html","UTF-8",null);
+      } catch(Exception e){call.reject("تعذرت الطباعة: "+e.getMessage(),e);}
+    });
+  }
+}
+`;
+fs.writeFileSync(path.join(javaDir, "FileExportPlugin.java"), exportPlugin);
+
 const locationPlugin = `package ${packageName};
 
 import android.Manifest;
