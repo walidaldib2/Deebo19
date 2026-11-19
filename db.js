@@ -81,7 +81,7 @@ window.DebooDB = (() => {
     if(id&&!old) throw new Error("السجل المطلوب تعديله غير موجود.");
     const row={id:id||uid(),entity_type:type,payload:{...payload},branch_id:payload.branch_id||null,status:payload.status||"active",is_archived:false,created_at:old?.created_at||now(),updated_at:now(),created_by:"local"};
     if(type==="bike_patrols") {
-      const day=String(payload.patrol_time||now()).slice(0,10);
+      const day=String(payload.patrol_date||payload.patrol_time||now()).slice(0,10);
       const bike=String(payload.bike||"").trim().toLocaleLowerCase("ar");
       if(!bike) throw new Error("يجب تحديد رقم الدراجة.");
       const d=await openDB();
