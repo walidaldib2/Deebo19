@@ -162,7 +162,7 @@ function branchPatrolTable(){
  records.forEach(r=>{const name=String(r.payload?.branch||"").trim(),date=String(r.payload?.patrol_date||today);if(!datesByBranch.has(name))datesByBranch.set(name,new Set([today]));datesByBranch.get(name).add(date);});
  const visible=names.flatMap(name=>[...datesByBranch.get(name)].sort((a,b)=>b.localeCompare(a)).map(date=>({name,date,visits:records.filter(r=>String(r.payload?.branch||"").trim()===name&&String(r.payload?.patrol_date||today)===date).sort((a,b)=>String(a.payload?.patrol_time||"").localeCompare(String(b.payload?.patrol_time||"")))}))).filter(row=>!searchTerm||normalize(row.name).includes(normalize(searchTerm))||row.date.includes(searchTerm));
  if(!visible.length)return '<div class="empty">لا توجد فروع مسجلة. أضف الفروع من إدارة البيانات أولًا.</div>';
- return `<div class="table-wrap"><table class="branch-patrol-grid"><thead><tr><th>الفرع</th><th>تاريخ المرور</th>${[1,2,3,4,5].map(n=>`<th>متابعة ${n}</th>`).join("")}</tr></thead><tbody>${visible.map(row=>`<tr><td><b>${esc(row.name)}</b></td><td>${esc(row.date)}</td>${[0,1,2,3,4].map(slot=>{const visit=row.visits[slot];return `<td>${visit?`<button type="button" class="tiny" data-edit="${visit.id}" data-type="branch_patrols">${esc(visit.payload?.patrol_time||"تم المرور")}</button>`:`<button type="button" class="secondary tiny branch-slot" data-branch-slot="${slot}" data-branch-name="${esc(row.name)}" data-branch-date="${esc(row.date)}">＋ تسجيل</button>`}</td>`;}).join("")}</tr>`).join("")}</tbody></table></div>`;
+ return `<div class="table-wrap"><table class="branch-patrol-grid"><thead><tr><th>الفرع</th><th>تاريخ المرور</th>${[1,2,3,4,5].map(n=>`<th>متابعة ${n}</th>`).join("")}</tr></thead><tbody>${visible.map(row=>`<tr><td><b>${esc(row.name)}</b></td><td>${esc(row.date)}</td>${[0,1,2,3,4].map(slot=>{const visit=row.visits[slot];return `<td>${visit?`<span class="branch-time-cell"><input class="branch-time-edit" type="time" value="${esc(visit.payload?.patrol_time||"")}" data-visit-id="${visit.id}" aria-label="تعديل توقيت المرور"><button type="button" class="tiny" data-edit="${visit.id}" data-type="branch_patrols" title="تعديل بيانات المرور">✎</button></span>`:`<button type="button" class="secondary tiny branch-slot" data-branch-slot="${slot}" data-branch-name="${esc(row.name)}" data-branch-date="${esc(row.date)}">＋ تسجيل</button>`}</td>`;}).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 function table(type){if(type==="branch_patrols")return branchPatrolTable();const list=rows(type),fs=fields[type]||[];if(!list.length)return `<div class="empty">لا توجد سجلات حتى الآن</div>`;
  const cols=fs.slice(0,5);return `<div class="table-wrap"><table><thead><tr><th>م</th>${cols.map(f=>`<th>${f[1]}</th>`).join("")}<th>التاريخ</th><th class="no-print">إجراء</th></tr></thead><tbody>${list.map((r,i)=>`<tr><td>${i+1}</td>${cols.map(f=>`<td>${f[0]==="location_url"&&(String(r.payload?.[f[0]]||"").startsWith("https://")||String(r.payload?.[f[0]]||"").startsWith("http://"))?`<a target="_blank" rel="noopener" href="${esc(r.payload[f[0]])}">فتح الموقع</a>`:esc(r.payload?.[f[0]])}</td>`).join("")}<td>${new Date(["bike_patrols","branch_patrols"].includes(type)&&r.payload?.patrol_date?r.payload.patrol_date+"T"+(r.payload.patrol_time||"00:00"):r.created_at).toLocaleString("ar-EG")}</td><td class="no-print"><button class="tiny" data-edit="${r.id}" data-type="${type}">تعديل</button> <button class="tiny" data-archive="${r.id}">أرشفة</button> ${["branches","patrol_sites","bike_patrols","incidents","emergencies"].includes(type)&&Number.isFinite(Number(r.payload?.lat))&&Number.isFinite(Number(r.payload?.lng))&&Number(r.payload.lat)>=-90&&Number(r.payload.lat)<=90&&Number(r.payload.lng)>=-180&&Number(r.payload.lng)<=180?`<a class="tiny map-link" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=${encodeURIComponent(r.payload.lat)}&mlon=${encodeURIComponent(r.payload.lng)}#map=16/${encodeURIComponent(r.payload.lat)}/${encodeURIComponent(r.payload.lng)}">الخريطة</a>`:""}</td></tr>`).join("")}</tbody></table></div>`}
@@ -312,7 +312,19 @@ function renderEntity(type){
  }
  $("#addRecord").onclick=()=>{currentEdit={id:null,payload:{}};renderEntity(type);};
  if(type==="branch_patrols"){
-  $$("[data-branch-slot]").forEach(button=>button.addEventListener("click",async()=>{
+  $(".branch-time-edit").forEach(input=>input.addEventListener("change",async()=>{
+   const visitId=input.dataset.visitId,newTime=input.value;
+   if(!newTime){toast("اختار توقيت صحيح.");return;}
+   const record=cache.find(item=>item.id===visitId);
+   if(!record||record.entity_type!=="branch_patrols"){toast("سجل المرور غير موجود.");return;}
+   input.disabled=true;
+   try{
+    const payload={...record.payload,patrol_time:newTime};
+    await DebooDB.save("branch_patrols",payload,visitId);
+    await refresh();renderEntity("branch_patrols");toast("تم تعديل توقيت المرور إلى "+newTime);
+   }catch(error){input.disabled=false;toast("تعذر تعديل التوقيت: "+error.message);}
+  }));
+  $("[data-branch-slot]").forEach(button=>button.addEventListener("click",async()=>{
    if(button.disabled)return;
    const branch=button.dataset.branchName,date=button.dataset.branchDate;
    const d=new Date(),time=[String(d.getHours()).padStart(2,"0"),String(d.getMinutes()).padStart(2,"0")].join(":");
