@@ -26,7 +26,7 @@ for (const marker of [
   'document.addEventListener("click",e=>{if(e.target.closest("[data-back-home]"))',
   '$$("[data-page]").forEach',
   '$$("[data-branch-slot]").forEach',
-  '$$("[data-move-branch]").forEach',
+  'moveBranchOrder(button.dataset.moveBranch,Number(button.dataset.direction)||0)',
   "$$(\'[data-edit]\').forEach",
   "$$(\'[data-archive]\').forEach",
   'host.querySelectorAll("[data-restore-record]")',
@@ -36,6 +36,7 @@ for (const marker of [
 
 console.log('PASS: required files, navigation hierarchy, reports archive/restore, script references, refreshed service-worker cache, package.json, Capacitor config, automatic-lock wiring, and repeated motorcycle passes allowed with five distinct bikes/day limit.');
 
+if (!app.includes('id="pdfReport"') || !app.includes('$("#pdfReport").onclick=()=>') || !app.includes('اختر حفظ كملف PDF')) throw new Error('PDF export action is missing');
 if (!app.includes('patrol_sites:[') || !app.includes('المخازن والمعارض ومراكز الخدمة')) throw new Error('Fixed patrol locations registry is missing');
 if (!app.includes('patrol_date') || !app.includes('location_url') || !app.includes('extractSharedCoordinates')) throw new Error('WhatsApp fixed-location patrol flow is incomplete');
 const manifest = JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
