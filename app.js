@@ -24,6 +24,7 @@ documents:[["title","اسم المستند","text",1],["category","التصني�
 const pageGroups={follow:["branch_patrols","bike_patrols","manager_rounds","incidents","tasks","handovers","absences"],data:["branches","patrol_people","emergency_people","bikes","patrol_sites","managers","employees","documents"],emergency:["emergencies","emergency_people"]};
 let cache=[],currentPage="home",currentType=null,currentEdit=null,currentEmployeeDetailId=null,weatherTimer=null,searchTerm="",deferredInstallPrompt=null;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const normalize=v=>String(v||"").trim().toLocaleLowerCase("ar").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي");
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2800)}
 function dateText(){const d=new Date();$("#todayDate").textContent=d.toLocaleDateString("ar-EG",{weekday:"long",day:"numeric",month:"long"})}
 function configured(){return true}
@@ -263,7 +264,7 @@ function bindAutocomplete(){
   employee_no:[["patrol_people","employee_no"]],
   phone:[["patrol_people","phone"],["emergency_people","phone"],["managers","phone"]]
  };
- const normalize=v=>String(v||"").trim().toLocaleLowerCase("ar").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي");
+
  const styleId="deboo-autocomplete-style";
  if(!document.getElementById(styleId)){
   const style=document.createElement("style");style.id=styleId;
