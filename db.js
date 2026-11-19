@@ -2,7 +2,7 @@
 window.DebooDB = (() => {
   "use strict";
   const DB_NAME = "DEBOO16_LOCAL_DB";
-  const DB_VERSION = 2;
+  const DB_VERSION = 3;
   let dbPromise;
   const now = () => new Date().toISOString();
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : "d16-" + Date.now() + "-" + Math.random().toString(16).slice(2));
@@ -28,6 +28,7 @@ window.DebooDB = (() => {
           const a=d.createObjectStore("attachments",{keyPath:"id"});
           a.createIndex("record_id","record_id",{unique:false});
         }
+        if (!d.objectStoreNames.contains("automatic_backups")) d.createObjectStore("automatic_backups",{keyPath:"id"});
       };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error || new Error("تعذر فتح قاعدة البيانات المحلية."));
@@ -174,6 +175,36 @@ window.DebooDB = (() => {
     for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
     return new Blob([bytes],{type:mime});
   }
+  async function createAutoBackup() {
+    const existing=await getAll("automatic_backups");
+    const today=now().slice(0,10);
+    const sameDay=existing.find(x=>x.date===today);
+    if(sameDay)return {created:false,id:sameDay.id,date:today,reason:"already-created"};
+    const [records,audit_logs,approved_reports,handover_versions,attachments]=await Promise.all([getAll("records"),getAll("audit_logs"),getAll("approved_reports"),getAll("handover_versions"),getAll("attachments")]);
+    const attachmentBytes=attachments.reduce((sum,x)=>sum+Number(x.size||0),0);
+    if(attachmentBytes>30*1024*1024)return {created:false,date:today,reason:"attachments-over-limit"};
+    const snapshot={app:"DEEB",format:2,mode:"local",created_at:now(),records,audit_logs,approved_reports,handover_versions,attachments};
+    const item={id:uid(),date:today,created_at:now(),record_count:records.length,attachment_count:attachments.length,snapshot};
+    const d=await openDB();
+    await new Promise((resolve,reject)=>{
+      const tx=d.transaction("automatic_backups","readwrite"),store=tx.objectStore("automatic_backups");
+      store.put(item);
+      const keep=[...existing,item].sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).slice(0,3);
+      const keepIds=new Set(keep.map(x=>x.id));
+      existing.filter(x=>!keepIds.has(x.id)).forEach(x=>store.delete(x.id));
+      tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("تعذر حفظ النسخة التلقائية."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء النسخة التلقائية."));
+    });
+    return {created:true,id:item.id,date:today,record_count:records.length,attachment_count:attachments.length};
+  }
+  async function automaticBackups() {
+    return (await getAll("automatic_backups")).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).map(({snapshot,...meta})=>meta);
+  }
+  async function restoreAutoBackup(id) {
+    const item=await get("automatic_backups",id);
+    if(!item?.snapshot)throw new Error("النسخة التلقائية غير موجودة أو تالفة.");
+    await restore(item.snapshot);
+    return {date:item.date,record_count:item.record_count};
+  }
   async function backup() {
     const [records,audit_logs,approved_reports,handover_versions,rawAttachments]=await Promise.all([
       getAll("records"),getAll("audit_logs"),getAll("approved_reports"),getAll("handover_versions"),getAll("attachments")]);
@@ -242,5 +273,5 @@ window.DebooDB = (() => {
     setTimeout(()=>URL.revokeObjectURL(url),1500);
     return {saved:true,name};
   }
-  return {init,configured,list,all,getRecord:(id)=>get("records",id),save,archive,unarchive,audit,approve,backup,restore,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,local:true};
+  return {init,configured,list,all,getRecord:(id)=>get("records",id),save,archive,unarchive,audit,approve,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,local:true};
 })();
