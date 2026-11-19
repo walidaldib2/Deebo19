@@ -361,15 +361,28 @@ function renderEntity(type){
  $("#cancelEdit")?.addEventListener("click",()=>{currentEdit=null;renderEntity(type);});
  $("#recordForm")?.addEventListener("submit",async(event)=>{
   event.preventDefault();
-  const form=$("#recordForm");if(!form.reportValidity()){toast("راجع الحقول المطلوبة قبل الحفظ.");return;}
+  const form=$("#recordForm"),saveButton=$("#saveRecord"),status=$("#saveStatus");
+  if(!form)return;
+  if(!form.reportValidity()){toast("راجع الحقول المطلوبة قبل الحفظ.");if(status)status.textContent="راجع الحقول المطلوبة قبل الحفظ.";return;}
   const payload=Object.fromEntries(new FormData(form).entries());
-  const files=[...($("#documentFiles")?.files||[])];
-  const editId=currentEdit?.id||null;
+  Object.keys(payload).forEach(key=>{if(typeof payload[key]==="string")payload[key]=payload[key].trim();});
+  if(type==="branches"&&!payload.name){if(status)status.textContent="اكتب اسم الفرع أولًا.";toast("اسم الفرع مطلوب.");form.elements.namedItem("name")?.focus();return;}
+  const files=[...($("#documentFiles")?.files||[])],editId=currentEdit?.id||null;
+  if(saveButton){saveButton.disabled=true;saveButton.textContent="جارٍ الحفظ...";}
+  if(status)status.textContent="جارٍ حفظ البيانات على هذا الجهاز...";
   try{
    const saved=await DebooDB.save(type,payload,editId);
    if(type==="documents")for(const file of files)await DebooDB.saveAttachment(saved.id,file);
-   currentEdit=null;if(type==="employees")currentEmployeeDetailId=saved.id;await refresh();renderEntity(type);toast("تم حفظ السجل وتسجيل العملية");
-  }catch(e){toast("فشل الحفظ: "+e.message);}
+   const persisted=(await DebooDB.all()).some(item=>item.id===saved.id&&item.entity_type===type);
+   if(!persisted)throw new Error("لم يتم العثور على السجل بعد الحفظ. أعد المحاولة وتحقق من مساحة التخزين.");
+   currentEdit=null;if(type==="employees")currentEmployeeDetailId=saved.id;
+   await refresh();renderEntity(type);toast("تم حفظ السجل والتحقق من وجوده في قاعدة البيانات.");
+  }catch(e){
+   const message=e?.message||"سبب غير معروف";
+   if(status)status.textContent="فشل الحفظ: "+message;
+   toast("فشل الحفظ: "+message);
+   if(saveButton){saveButton.disabled=false;saveButton.textContent="إعادة محاولة الحفظ";}
+  }
  });
  $("#localFilter")?.addEventListener("input",e=>{const value=e.target.value,caret=e.target.selectionStart;searchTerm=value;renderEntity(type);const next=$("#localFilter");if(next){next.focus();next.setSelectionRange(caret,caret);}});
  $$('[data-edit]').forEach(b=>b.onclick=()=>{const found=cache.find(x=>x.id===b.dataset.edit);if(found){currentEdit=found;renderEntity(type);$("#editor")?.scrollIntoView({behavior:"smooth"});}});
