@@ -17,7 +17,7 @@ if (!app.includes('$(\"#enableBiometric\").onclick=async()=>') || !app.includes(
 if (!app.includes('localStorage.removeItem(BIOMETRIC_KEY)') || !app.includes('سيفتح التطبيق مباشرة دون PIN أو بصمة')) throw new Error('Direct unlock / biometric reset flow is missing');
 if (!app.includes('يمكنك الدخول باستخدام PIN')) throw new Error('Biometric PIN fallback message is missing');
 if (!app.includes('function lockApplication()') || !app.includes('document.visibilityState==="hidden"') || !app.includes('window.addEventListener("pagehide",lockApplication)')) throw new Error('Automatic PIN lock hooks are missing');
-if (!sw.includes('deboo16-local-v10-6')) throw new Error('Service worker cache version was not bumped');
+if (!sw.includes('deboo16-local-v10-7')) throw new Error('Service worker cache version was not bumped');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 for (const marker of ['if(!used.has(bike)&&used.size>=5)','const bikesByDay=new Map()','bikesByDay.get(day).size>5']) if (!db.includes(marker)) throw new Error('Motorcycle-patrol rule missing: '+marker);
 if (db.includes('patrolKeys.has(key)')) throw new Error('Repeated motorcycle passes are still blocked in backup restore');
@@ -34,3 +34,9 @@ if (!app.includes('absences:[[') || !app.includes('غياب المسؤولين')
 if (!app.includes('function bindAutocomplete()') || !app.includes('suggest-')) throw new Error('Automatic name / branch suggestions are missing');
 if (!app.includes('d.map(x=>')) throw new Error('Report output must include all matching records');
 console.log('PASS: required files, navigation hierarchy, reports archive/restore, script references, refreshed service-worker cache, package.json, Capacitor config, automatic-lock wiring, and repeated motorcycle passes allowed with five distinct bikes/day limit.');
+
+if (!app.includes('patrol_sites:[') || !app.includes('المخازن والمعارض ومراكز الخدمة')) throw new Error('Fixed patrol locations registry is missing');
+if (!app.includes('patrol_date') || !app.includes('location_url') || !app.includes('extractSharedCoordinates')) throw new Error('WhatsApp fixed-location patrol flow is incomplete');
+const manifest = JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
+if (!manifest.share_target || manifest.share_target.action !== './?share=location') throw new Error('PWA WhatsApp share target is missing');
+if (!app.includes('consumeSharedLocation()')) throw new Error('Shared location intake handler is missing');
