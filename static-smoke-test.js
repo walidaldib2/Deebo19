@@ -41,7 +41,7 @@ if (app.includes('</form><div class="actions"><button class="primary" id="saveRe
 if (!app.includes('d.map(x=>')) throw new Error('Report output must include all matching records');
 
 const buttonMarkup = app + html;
-const buttonIds = [...new Set([...buttonMarkup.matchAll(/<button\\b[^>]*\\bid=["']([^"']+)["']/g)].map(m=>m[1]))];
+const buttonIds = [...new Set([...buttonMarkup.matchAll(/<button\b[^>]*\bid=["\x27]([^"\x27]+)["\x27]/g)].map(m=>m[1]))];
 for (const id of buttonIds) {
   if (id === 'saveRecord') {
     if (!app.includes('$("#recordForm")?.addEventListener("submit"')) throw new Error('Save record button has no form submit handler');
