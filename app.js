@@ -247,6 +247,7 @@ function bindAutocomplete(){
   branch:[["branches","name"],["patrol_sites","name"]],
   site:[["patrol_sites","name"],["branches","name"]],
   person:[["patrol_people","name"],["emergency_people","name"],["branches","manager"]],
+  supervisor:[["employees","name"],["managers","name"],["patrol_people","name"]],
   responsible:[["managers","name"],["patrol_people","name"],["emergency_people","name"],["branches","manager"],["branch_patrols","responsible"]],
   manager:[["managers","name"],["branches","manager"]],
   bike:[["bikes","number"]],
