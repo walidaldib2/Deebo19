@@ -57,6 +57,21 @@ if (!index.includes('function startupFailure(message)') || !index.includes('unha
 
 if (!app.includes('$$(".tile").forEach') || !app.includes('$$("[data-page]").forEach')) throw new Error('Navigation must iterate NodeLists, not querySelector single elements');
 
+const employeeChecks = [
+  ['employees:"سجل الموظفين"', 'Employee registry label is missing'],
+  ['employees:["name","اسم الموظف","text",1]', 'Employee name field is missing'],
+  ['["sap_no","رقم ساب","text"]', 'Employee SAP number field is missing'],
+  ['["phone","رقم الهاتف","tel"]', 'Employee phone field is missing'],
+  ['["branch","الفرع","text"]', 'Employee branch field is missing'],
+  ['مدير إدارة|مدير قسم|مشرف|مسؤول أمن', 'Employee role options are incomplete'],
+  ['data-employee-detail', 'Employee name list does not open details'],
+  ['data-employee-edit', 'Employee detail edit action is missing'],
+  ['employeeListBack', 'Employee detail return action is missing']
+];
+for (const [needle,message] of employeeChecks) if (!app.includes(needle)) throw new Error(message);
+const employeeCss = fs.readFileSync(path.join(root,'style.css'),'utf8');
+if (!employeeCss.includes('.employee-list{') || !employeeCss.includes('.employee-fields{')) throw new Error('Employee registry styles are missing');
+
 const nativeShare = fs.readFileSync(path.join(root,'configure-android-share.js'),'utf8');
 if (!nativeShare.includes('CurrentLocationPlugin.java') || !nativeShare.includes('ACCESS_FINE_LOCATION') || !nativeShare.includes('requestPermissionForAlias("location"')) throw new Error('Native Android location permission / GPS plugin is missing');
 if (!nativeShare.includes('ShareIntentPlugin.java') || !nativeShare.includes('android.intent.action.SEND') || !nativeShare.includes('Intent.EXTRA_TEXT')) throw new Error('Native Android text-share receiver configuration is incomplete');
