@@ -10,6 +10,10 @@ async function main() {
   const db = global.DebooDB;
   assert.ok(db, "Database API should initialize");
 
+  // Backup restore must validate bike patrol_date, not the time-only patrol_time field.
+  await db.restore({app:"DEEB",format:2,records:[{id:"bike-restore-check",entity_type:"bike_patrols",payload:{bike:"دراجة اختبار",patrol_date:"2026-11-19",patrol_time:"09:35"},created_at:"2026-11-19T09:35:00.000Z"}],audit_logs:[]});
+  assert.ok((await db.all()).some(x=>x.id==="bike-restore-check"), "A valid HH:mm motorcycle visit should restore successfully");
+
   // Branch create, primary-key read-back, and audit are one committed operation.
   const branch = await db.save("branches", { name: "فرع اختبار آلي", code: "QA-01" });
   const storedBranch = await db.getRecord(branch.id);
