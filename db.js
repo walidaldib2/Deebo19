@@ -170,10 +170,10 @@ window.DebooDB = (() => {
     const [records,audit_logs,approved_reports,handover_versions,rawAttachments]=await Promise.all([
       getAll("records"),getAll("audit_logs"),getAll("approved_reports"),getAll("handover_versions"),getAll("attachments")]);
     const attachments=await Promise.all(rawAttachments.map(async a=>({...a,blob:undefined,data_url:await blobToDataURL(a.blob)})));
-    return {app:"DEEBO",format:2,mode:"local",created_at:now(),records,audit_logs,approved_reports,handover_versions,attachments};
+    return {app:"DEEB",format:2,mode:"local",created_at:now(),records,audit_logs,approved_reports,handover_versions,attachments};
   }
   async function restore(obj) {
-    if(!obj||!["DEEBO","DEBOO16"].includes(obj.app)||![1,2].includes(obj.format)||!Array.isArray(obj.records)||!Array.isArray(obj.audit_logs)) throw new Error("ملف النسخة غير صالح أو غير متوافق.");
+    if(!obj||!["DEEB","DEEBO","DEBOO16"].includes(obj.app)||![1,2].includes(obj.format)||!Array.isArray(obj.records)||!Array.isArray(obj.audit_logs)) throw new Error("ملف النسخة غير صالح أو غير متوافق.");
     const optionalArrays=["approved_reports","handover_versions","attachments"];
     for(const key of optionalArrays) if(obj[key]!==undefined&&!Array.isArray(obj[key])) throw new Error("قسم "+key+" في النسخة غير صالح.");
     const validRows=(rows,key)=>rows.every(x=>x&&typeof x==="object"&&typeof x.id==="string"&&x.id.length>0);
@@ -205,7 +205,7 @@ window.DebooDB = (() => {
       const item={...x,blob};delete item.data_url;return item;
     });
     const current=await backup();
-    if(current.records.length||current.attachments.length) downloadBlob(new Blob([JSON.stringify(current,null,2)],{type:"application/json"}),"DEEBO-before-restore.json");
+    if(current.records.length||current.attachments.length) downloadBlob(new Blob([JSON.stringify(current,null,2)],{type:"application/json"}),"DEEB-before-restore.json");
     const d=await openDB();
     await new Promise((resolve,reject)=>{
       const names=["records","audit_logs","approved_reports","handover_versions","attachments"];
