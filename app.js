@@ -114,7 +114,7 @@ function consumeSharedLocation(sharedText=""){
  if(raw&&raw===lastSharedLocationPayload)return;
  if(raw)lastSharedLocationPayload=raw;
  if(queryShare)history.replaceState({},document.title,location.pathname+location.hash);
- const extracted=(raw.match(/https?:\\/\\/[^\\s<>"']+/i)||[])[0]||"";
+ const extracted=(raw.match(/https?:\/\/[^\s<>"']+/i)||[])[0]||"";
  const locationUrl=(sharedUrlParam||extracted||raw).trim().replace(/[),.;]+$/,"");
  render("follow");
  const tab=document.querySelector('.subnav [data-type="bike_patrols"]');if(tab)tab.click();
