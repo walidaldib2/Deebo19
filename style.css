@@ -16,3 +16,16 @@
 
 /* Offline QR generator */
 .qr-output{margin-top:14px;padding:14px;border:1px solid rgba(181,138,54,.35);border-radius:14px;text-align:center;background:#fff}.qr-output canvas{display:block;width:min(100%,320px);height:auto;margin:0 auto 10px;image-rendering:pixelated}.qr-output .muted{color:#344054}
+
+
+@media print {
+  @page { size: A4; margin: 12mm; }
+  html,body { background:#fff!important; color:#111!important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .table-wrap { overflow:visible!important; }
+  table { width:100%!important; border-collapse:collapse!important; page-break-inside:auto!important; }
+  thead { display:table-header-group!important; }
+  tfoot { display:table-footer-group!important; }
+  tr { break-inside:avoid!important; page-break-inside:avoid!important; }
+  td,th { break-inside:avoid!important; page-break-inside:avoid!important; }
+  .stats { break-inside:avoid!important; }
+}
