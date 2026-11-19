@@ -141,7 +141,7 @@ async function consumeNativeShare(){
  try{const result=await plugin.getInitialShare();if(result?.text)consumeSharedLocation(result.text);}
  catch(error){console.warn("DEBOO16 share intake:",error);}
 }
-window.addEventListener("deboo-share-intent",event=>consumeSharedLocation(event.detail?.text||""));
+window.addEventListener("deboo-share-intent",event=>{consumeSharedLocation(event.detail?.text||"");const plugin=window.Capacitor?.Plugins?.ShareIntent;plugin?.getInitialShare?.().catch(()=>{});});
 
 const toB64=b=>btoa(String.fromCharCode(...new Uint8Array(b)));
 const fromB64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
