@@ -40,7 +40,7 @@ const buttonBindingChecks = [
   ['function bindLocationCapture(type)', 'Current-location capture binder is missing'],
   ['button.onclick=async()=>{', 'Current-location capture action is missing'],
   ['$("#clearSignature")?.addEventListener("click"', 'Clear-signature button is not wired'],
-  ['qrDownload.onclick=()=>', 'QR download button is not wired'],
+  ['qrDownload.onclick=async()=>', 'QR download button is not wired'],
   ['$("#employeeListBack")?.addEventListener("click"', 'Employee-list back button is not wired'],
   ['installBtn.onclick=async()=>', 'Install-app button is not wired'],
   ['$("#printReport").onclick=async()=>', 'Print-report button is not wired'],
