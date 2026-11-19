@@ -1,4 +1,4 @@
-# DEBOO16 v10
+# DEEB v10
 
 Arabic RTL field-operations PWA using local IndexedDB storage.
 
@@ -19,9 +19,9 @@ node --check prepare-android.js
 The repository includes a GitHub Actions workflow at `.github/workflows/android-apk.yml`.
 
 1. Open the **Actions** tab in this repository.
-2. Select **Build DEBOO16 Android APK**.
+2. Select **Build DEEB Android APK**.
 3. Select **Run workflow** and choose `feature/deboo-pro-upgrade` (or push a commit to that branch).
-4. When the run succeeds, open the run and download the `DEBOO16-Android-APK` artifact. It contains `app-debug.apk`.
+4. When the run succeeds, open the run and download the `DEEB-Android-APK` artifact. It contains `app-debug.apk`.
 
 The workflow installs Node dependencies, runs the project's static checks, builds the biometric web bundle, stages the web assets, generates and syncs the Capacitor Android project, builds the debug APK, and uploads it as an artifact.
 
