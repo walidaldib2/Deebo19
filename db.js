@@ -179,22 +179,21 @@ window.DebooDB = (() => {
     const existing=await getAll("automatic_backups");
     const today=now().slice(0,10);
     const sameDay=existing.find(x=>x.date===today);
-    if(sameDay)return {created:false,id:sameDay.id,date:today,reason:"already-created"};
     const [records,audit_logs,approved_reports,handover_versions,attachments]=await Promise.all([getAll("records"),getAll("audit_logs"),getAll("approved_reports"),getAll("handover_versions"),getAll("attachments")]);
     const attachmentBytes=attachments.reduce((sum,x)=>sum+Number(x.size||0),0);
     if(attachmentBytes>30*1024*1024)return {created:false,date:today,reason:"attachments-over-limit"};
     const snapshot={app:"DEEB",format:2,mode:"local",created_at:now(),records,audit_logs,approved_reports,handover_versions,attachments};
-    const item={id:uid(),date:today,created_at:now(),record_count:records.length,attachment_count:attachments.length,snapshot};
+    const item={id:sameDay?.id||uid(),date:today,created_at:now(),record_count:records.length,attachment_count:attachments.length,snapshot};
     const d=await openDB();
     await new Promise((resolve,reject)=>{
       const tx=d.transaction("automatic_backups","readwrite"),store=tx.objectStore("automatic_backups");
       store.put(item);
-      const keep=[...existing,item].sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).slice(0,3);
+      const keep=[...existing.filter(x=>x.id!==item.id),item].sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).slice(0,3);
       const keepIds=new Set(keep.map(x=>x.id));
       existing.filter(x=>!keepIds.has(x.id)).forEach(x=>store.delete(x.id));
       tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("تعذر حفظ النسخة التلقائية."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء النسخة التلقائية."));
     });
-    return {created:true,id:item.id,date:today,record_count:records.length,attachment_count:attachments.length};
+    return {created:!sameDay,updated:!!sameDay,id:item.id,date:today,record_count:records.length,attachment_count:attachments.length};
   }
   async function automaticBackups() {
     return (await getAll("automatic_backups")).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).map(({snapshot,...meta})=>meta);
