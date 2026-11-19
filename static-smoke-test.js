@@ -50,7 +50,7 @@ const buttonBindingChecks = [
   ['$("#saveReportImage").onclick=async()=>', 'Save-report-image button is not wired']
 ];
 for (const [needle,message] of buttonBindingChecks) if (!app.includes(needle)) throw new Error(message);
-if (/\\bwolf\\b|ذئب/i.test(app)) throw new Error('Printed DEEB reports must not contain a wolf icon or wolf branding');
+if (/\bwolf\b|ذئب/i.test(app)) throw new Error('Printed DEEB reports must not contain a wolf icon or wolf branding');
 if ((app.match(/تقرير DEEB/g)||[]).length < 2) throw new Error('Both printed report templates must retain DEEB branding');
 
 console.log('PASS: required files, navigation hierarchy, reports archive/restore, script references, refreshed service-worker cache, package.json, Capacitor config, automatic-lock wiring, and repeated motorcycle passes allowed with five distinct bikes/day limit.');
