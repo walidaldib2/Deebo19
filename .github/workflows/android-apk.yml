@@ -70,11 +70,12 @@ jobs:
         run: npm run configure:android:share
 
       - name: Build debug APK
+        timeout-minutes: 20
         working-directory: android
         run: |
           chmod +x gradlew
           for attempt in 1 2 3; do
-            if ./gradlew assembleDebug --no-daemon --max-workers=2; then
+            if ./gradlew assembleDebug --no-daemon --no-configuration-cache --max-workers=2 --console=plain --stacktrace; then
               exit 0
             fi
             if [ "$attempt" -lt 3 ]; then
