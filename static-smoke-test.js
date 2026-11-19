@@ -76,6 +76,7 @@ if (!index.includes('function startupFailure(message)') || !index.includes('unha
 
 if (!app.includes('$$(".tile").forEach') || !app.includes('$$("[data-page]").forEach')) throw new Error('Navigation must iterate NodeLists, not querySelector single elements');
 
+if (!app.includes('id="saveStatus"') || !app.includes('const persisted=(await DebooDB.all()).some(item=>item.id===saved.id&&item.entity_type===type)') || !app.includes('type==="branches"&&!payload.name')) throw new Error('Branch save validation, visible feedback, or persistence verification is missing');
 const employeeChecks = [
   ['employees:"سجل الموظفين"', 'Employee registry label is missing'],
   ['employees:[["name","اسم الموظف","text",1]', 'Employee name field is missing'],
