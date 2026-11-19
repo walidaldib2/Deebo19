@@ -12,7 +12,7 @@ const pkg = JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
 const cap = JSON.parse(fs.readFileSync(path.join(root,'capacitor.config.json'),'utf8'));
 if (!pkg.dependencies?.['@capacitor/android'] || !pkg.dependencies?.['@capacitor/core']) throw new Error('Capacitor dependencies missing');
 if (cap.appName !== 'DEEB') throw new Error('Android display name must be DEEB');
-if (pkg.name !== 'deebo-field-operations') throw new Error('Project package name must be deebo-field-operations');
+if (pkg.name !== 'deeb-field-operations') throw new Error('Project package name must be deebo-field-operations');
 if (cap.webDir !== 'www') throw new Error('Capacitor webDir must be the staged www directory');
 const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
 if (!app.includes('$(\"#enableBiometric\").onclick=async()=>') || !app.includes('$(\"#disableBiometric\").onclick=()=>')) throw new Error('Biometric settings handlers are missing');
@@ -21,7 +21,7 @@ if (!app.includes('يمكنك الدخول باستخدام PIN')) throw new Err
 if (!app.includes('function lockApplication()') || !app.includes('document.visibilityState==="hidden"') || !app.includes('window.addEventListener("pagehide",lockApplication)')) throw new Error('Automatic PIN lock hooks are missing');
 if (!sw.includes('deebo-local-v10-8')) throw new Error('Service worker cache version was not bumped');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
-if (!db.includes('return {app:"DEEB",format:2') || !db.includes('["DEEB","DEBOO16"].includes(obj.app)') || !db.includes('title:"تقرير DEEB"')) throw new Error('DEEB backup / approved report branding or legacy backup compatibility is missing');
+if (!db.includes('return {app:"DEEB",format:2') || !db.includes('["DEEB","DEEBO","DEBOO16"].includes(obj.app)') || !db.includes('title:"تقرير DEEB"')) throw new Error('DEEB backup / approved report branding or legacy backup compatibility is missing');
 for (const marker of [
   'document.addEventListener("click",e=>{if(e.target.closest("[data-back-home]"))',
   '$$("[data-page]").forEach',
@@ -41,7 +41,7 @@ if (!app.includes('patrol_sites:[') || !app.includes('المخازن والمع�
 if (!app.includes('patrol_date') || !app.includes('location_url') || !app.includes('extractSharedCoordinates')) throw new Error('WhatsApp fixed-location patrol flow is incomplete');
 const manifest = JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
 if (manifest.name !== 'DEEB' || manifest.short_name !== 'DEEB') throw new Error('PWA display name must be DEEB');
-if (!html.includes('<title>DEEB |') || !html.includes('class="wordmark">DEEB</div>')) throw new Error('Visible application branding must be DEEB');
+if (!html.includes('<title>DEEB |') || !html.includes('class="wordmark">DEEB</div>') || !html.includes('<img class="wolf-mark" src="icon.svg"')) throw new Error('Visible DEEB branding or wolf logo is missing');
 if (!manifest.share_target || manifest.share_target.action !== './?share=location') throw new Error('PWA WhatsApp share target is missing');
 if (!app.includes('consumeSharedLocation()')) throw new Error('Shared location intake handler is missing');
 if (!app.includes("function bindPatrolLocationInput") || !app.includes("bindPatrolLocationInput(type)")) throw new Error("Manual WhatsApp location-link parsing is missing");
