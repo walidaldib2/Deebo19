@@ -379,6 +379,7 @@ function renderEntity(type){
   try{
    const saved=await DebooDB.save(type,payload,editId);
    if(["documents","incidents"].includes(type))for(const file of files)await DebooDB.saveAttachment(saved.id,file);
+   await DebooDB.createAutoBackup();
    const persisted=await DebooDB.getRecord(saved.id);
    if(!persisted||persisted.entity_type!==type)throw new Error("لم يتم تأكيد وجود السجل في قاعدة البيانات بعد الحفظ. أعد المحاولة.");
    currentEdit=null;if(type==="employees")currentEmployeeDetailId=saved.id;
@@ -392,7 +393,7 @@ function renderEntity(type){
  });
  $("#localFilter")?.addEventListener("input",e=>{const value=e.target.value,caret=e.target.selectionStart;searchTerm=value;renderEntity(type);const next=$("#localFilter");if(next){next.focus();next.setSelectionRange(caret,caret);}});
  $$('[data-edit]').forEach(b=>b.onclick=()=>{const found=cache.find(x=>x.id===b.dataset.edit);if(found){currentEdit=found;renderEntity(type);$("#editor")?.scrollIntoView({behavior:"smooth"});}});
- $$('[data-archive]').forEach(b=>b.onclick=async()=>{if(!confirm("تأكيد أرشفة السجل؟ لن يتم حذفه نهائيًا."))return;try{await DebooDB.archive(b.dataset.archive);await refresh();renderEntity(type);toast("تمت الأرشفة");}catch(e){toast(e.message);}});
+ $$('[data-archive]').forEach(b=>b.onclick=async()=>{if(!confirm("تأكيد أرشفة السجل؟ لن يتم حذفه نهائيًا."))return;try{await DebooDB.archive(b.dataset.archive);await DebooDB.createAutoBackup();await refresh();renderEntity(type);toast("تمت الأرشفة");}catch(e){toast(e.message);}});
 }
 function home(){if(localStorage.getItem("deboo_weather_city")==="Shibin El Kom")localStorage.setItem("deboo_weather_city","Cairo");const count=t=>rows(t).length;const openInc=rows("incidents").filter(x=>x.payload.status!=="مغلق").length;const openTasks=rows("tasks").filter(x=>!["مكتملة"].includes(x.payload.status)).length;const late=rows("tasks").filter(x=>x.payload.due_date&&new Date(x.payload.due_date)<new Date()&&x.payload.status!=="مكتملة").length;
  area.innerHTML=`${pageHead("لوحة التحكم",`<button class="secondary" id="refreshBtn">تحديث البيانات</button> <button class="secondary" id="logoutBtn">تسجيل الخروج</button>`)}
