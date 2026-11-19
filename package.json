@@ -1,8 +1,8 @@
 {
-  "name": "deboo16-field-operations",
+  "name": "deebo-field-operations",
   "version": "10.0.2",
   "private": true,
-  "description": "DEBOO16 field operations PWA prepared for Capacitor Android packaging",
+  "description": "DEEBO field operations PWA prepared for Capacitor Android packaging",
   "scripts": {
     "test": "node static-smoke-test.js",
     "android:add": "cap add android",
