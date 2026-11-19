@@ -43,11 +43,17 @@ jobs:
           node --check sw.js
           node --check prepare-android.js
 
+      - name: Prepare web assets
+        run: npm run prepare:android
+
       - name: Build biometric web bundle
         run: npm run build:biometric
 
-      - name: Prepare web assets
-        run: npm run prepare:android
+      - name: Verify Android web assets
+        run: |
+          test -s www/index.html
+          test -s www/biometric.bundle.js
+          grep -q "BiometricAuth" www/biometric.bundle.js
 
       - name: Generate Android project
         run: npx cap add android
