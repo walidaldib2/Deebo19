@@ -158,6 +158,7 @@ window.DebooDB = (() => {
     const item={id:uid(),record_id:recordId,name:file.name,type:file.type||"application/octet-stream",size:file.size,blob:file,created_at:now()};
     const d=await openDB();
     await new Promise((resolve,reject)=>{const tx=d.transaction(["attachments","audit_logs"],"readwrite");tx.objectStore("attachments").put(item);tx.objectStore("audit_logs").put(makeAudit("attachment",recordId,null,{name:item.name,size:item.size},"إضافة مرفق"));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("فشل حفظ المرفق وسجل المراجعة."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء حفظ المرفق."));});
+    try{await createAutoBackup();}catch(error){console.warn("DEEB automatic backup:",error);}
     return item;
   }
   async function attachments(recordId) {return (await getAll("attachments")).filter(a=>a.record_id===recordId);}
