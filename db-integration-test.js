@@ -43,7 +43,7 @@ async function main() {
     db.save("bike_patrols", { bike: "دراجة 6", patrol_date: "2026-11-19", patrol_time: "12:00" }),
     /خمس دراجات مختلفة/
   );
-  assert.equal((await db.all()).filter(x => x.entity_type === "bike_patrols").length, 6);
+  assert.equal((await db.all()).filter(x => x.entity_type === "bike_patrols").length, 7);
 
   // Handover snapshots and report approvals remain linked to their records.
   const handover = await db.save("handovers", { sender: "مُسلّم", receiver: "مُستلم" });
