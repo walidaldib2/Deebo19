@@ -29,6 +29,7 @@ if (!pkg.scripts?.['build:biometric']?.includes('--outfile=www/biometric.bundle.
 if (!pkg.scripts?.['prepare:android']) throw new Error('Android web asset preparation script missing');
 if (!html.includes('src=\"biometric.bundle.js\"')) throw new Error('index.html does not load the biometric bundle');
 if (html.includes('data-page=\"data\"')) throw new Error('Data management must not appear as a primary home tile');
+if (app.includes('installBtn.disabled=!deferredInstallPrompt') || !app.includes('installBtn.disabled=false') || !app.includes('التثبيت متاح من قائمة المتصفح')) throw new Error('Install button must remain actionable and explain the manual install path when the browser prompt is unavailable');
 if (!app.includes('function dataManagementPage()') || !app.includes('openDataManagement')) throw new Error('Settings data-management entry is missing');
 if (!app.includes('showArchive') || !app.includes('DebooDB.unarchive')) throw new Error('Reports archive / restore controls are missing');
 const prep = fs.readFileSync(path.join(root,'prepare-android.js'),'utf8');
