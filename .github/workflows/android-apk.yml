@@ -46,6 +46,7 @@ jobs:
           node --check qrcode.js
           node --check sw.js
           node --check prepare-android.js
+          node --check configure-android-share.js
 
       - name: Prepare web assets
         run: npm run prepare:android
@@ -64,6 +65,9 @@ jobs:
 
       - name: Sync Android project
         run: npx cap sync android
+
+      - name: Configure native WhatsApp share receiver
+        run: npm run configure:android:share
 
       - name: Build debug APK
         working-directory: android
