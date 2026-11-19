@@ -34,6 +34,25 @@ for (const marker of [
   'document.querySelectorAll("[data-report-type]")'
 ]) if (!app.includes(marker)) throw new Error('Interactive button action binding is missing: '+marker);
 
+const buttonBindingChecks = [
+  ['$("#recordForm")?.addEventListener("submit"', 'Save-record form submission is not wired'],
+  ['$("#cancelEdit")?.addEventListener("click"', 'Cancel-edit button is not wired'],
+  ['function bindLocationCapture(type)', 'Current-location capture binder is missing'],
+  ['button.onclick=async()=>{', 'Current-location capture action is missing'],
+  ['$("#clearSignature")?.addEventListener("click"', 'Clear-signature button is not wired'],
+  ['qrDownload.onclick=()=>', 'QR download button is not wired'],
+  ['$("#employeeListBack")?.addEventListener("click"', 'Employee-list back button is not wired'],
+  ['installBtn.onclick=async()=>', 'Install-app button is not wired'],
+  ['$("#printReport").onclick=async()=>', 'Print-report button is not wired'],
+  ['$("#pdfReport").onclick=()=>', 'PDF-report button is not wired'],
+  ['$("#excelReport").onclick=()=>', 'Excel-report button is not wired'],
+  ['$("#csvReport").onclick=()=>', 'CSV-report button is not wired'],
+  ['$("#saveReportImage").onclick=async()=>', 'Save-report-image button is not wired']
+];
+for (const [needle,message] of buttonBindingChecks) if (!app.includes(needle)) throw new Error(message);
+if (/\\bwolf\\b|ذئب/i.test(app)) throw new Error('Printed DEEB reports must not contain a wolf icon or wolf branding');
+if ((app.match(/تقرير DEEB/g)||[]).length < 2) throw new Error('Both printed report templates must retain DEEB branding');
+
 console.log('PASS: required files, navigation hierarchy, reports archive/restore, script references, refreshed service-worker cache, package.json, Capacitor config, automatic-lock wiring, and repeated motorcycle passes allowed with five distinct bikes/day limit.');
 
 if (!app.includes('id="pdfReport"') || !app.includes('$("#pdfReport").onclick=()=>') || !app.includes('اختر حفظ كملف PDF')) throw new Error('PDF export action is missing');
