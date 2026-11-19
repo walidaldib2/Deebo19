@@ -10,7 +10,7 @@ emergency_people:[["name","اسم فرد الطوارئ","text",1],["specialty",
 bikes:[["number","رقم الدراجة","text",1],["code","كود الدراجة","text"],["type","نوع الدراجة","text"],["description","الوصف","text"],["person","الفرد المسؤول","text"],["status","الحالة","select","جاهزة|بالمرور|صيانة|متوقفة"]],
 patrol_sites:[["name","اسم المكان","text",1],["site_type","نوع المكان","select","مخزن|معرض|مركز خدمة",1],["address","العنوان / الوصف","text"],["lat","خط العرض","number"],["lng","خط الطول","number"],["notes","ملاحظات","textarea"]],
 managers:[["name","اسم المدير","text",1],["department","القسم","text"],["phone","رقم التواصل","tel"],["branches","الفروع التابعة","text"]],
-branch_patrols:[["branch","الفرع","text",1],["responsible","المسؤول","text"],["patrol_date","تاريخ المرور","date",1],["patrol_time","ساعة المرور","time",1],["condition","حالة الفرع","select","جيد|ملاحظات|مخالفة|مغلق"],["notes","الملاحظات","textarea"]],
+branch_patrols:[["branch","الفرع","text",1],["supervisor","المشرف","text",1],["responsible","المسؤول","text"],["patrol_date","تاريخ المرور","date",1],["patrol_time","ساعة المرور","time",1],["condition","حالة الفرع","select","جيد|ملاحظات|مخالفة|مغلق"],["notes","الملاحظات","textarea"]],
 bike_patrols:[["bike","الدراجة","text",1],["site","المخزن / المعرض / مركز الخدمة","text"],["patrol_date","تاريخ الوصول","date",1],["patrol_time","توقيت الوصول","time",1],["location_url","رابط موقع واتساب","url"],["lat","خط العرض","number"],["lng","خط الطول","number"],["notes","ملاحظات","textarea"]],
 manager_rounds:[["manager","مدير القسم","text",1],["department","القسم","text"],["branches","الفروع التي تمت زيارتها","text"],["result","نتيجة المرور","textarea"]],
 incidents:[["incident_type","نوع البلاغ","select","أمني|تشغيلي|فني|إداري|حادث|أخرى",1],["incident_date","تاريخ البلاغ","date",1],["incident_time","وقت البلاغ","time",1],["branch","الفرع / الموقع","text"],["responsible","المسؤول","text"],["priority","الأولوية","select","عاجل|مرتفع|متوسط|منخفض"],["status","الحالة","select","جديد|قيد المعالجة|بانتظار إجراء|مغلق"],["description","وصف البلاغ","textarea",1],["lat","خط العرض","number"],["lng","خط الطول","number"],["action_taken","الإجراءات المتخذة","textarea"]],
@@ -464,11 +464,29 @@ function reports(){
    return {date:g.date,bike:g.bike,person:bp.person||g.visits[0]?.payload?.person||g.visits[0]?.payload?.responsible||"—",code:bp.code||"—",type:bp.type||bp.description||"—",sites:[...sites.entries()].map(([site,times])=>({site,times}))};
   });
  };
+ const branchGroupsFor=d=>{
+  const groups=new Map();
+  d.filter(x=>x.entity_type==="branch_patrols").forEach(x=>{
+   const p=x.payload||{},date=dayOf(x),branch=String(p.branch||"غير محدد").trim(),key=date+"|"+branch;
+   if(!groups.has(key))groups.set(key,{date,branch,visits:[]});
+   groups.get(key).visits.push(x);
+  });
+  return [...groups.values()].map(g=>{
+   g.visits.sort((a,b)=>String(a.payload?.patrol_time||"").localeCompare(String(b.payload?.patrol_time||"")));
+   const latest=[...g.visits].reverse().find(v=>String(v.payload?.supervisor||"").trim());
+   return {...g,supervisor:String(latest?.payload?.supervisor||"—")};
+  }).sort((a,b)=>(a.date+"|"+a.branch).localeCompare(b.date+"|"+b.branch,"ar"));
+ };
  const refreshReport=()=>{
   const d=get(),counts={};d.forEach(x=>counts[x.entity_type]=(counts[x.entity_type]||0)+1);
   if($("#reportType").value==="bike_patrols"){
    const groups=bikeGroupsFor(d),visitCount=d.length;
    $("#reportSummary").innerHTML="<h3>تقرير مرور الدراجات</h3><p>الفترة: "+esc($("#fromDate").value)+" إلى "+esc($("#toDate").value)+" • إجمالي مرات المرور: "+visitCount+" • عدد الدراجات: "+groups.length+"</p>"+groups.map((g,gi)=>"<section class='card bike-report-preview'><h3>بيانات القائم بالمرور والدراجة — "+(gi+1)+"</h3><div class='stats'><div class='stat'><span>اسم القائم بالمرور</span><b>"+esc(g.person)+"</b></div><div class='stat'><span>رقم الدراجة</span><b>"+esc(g.bike)+"</b></div><div class='stat'><span>كود الدراجة</span><b>"+esc(g.code)+"</b></div><div class='stat'><span>نوع الدراجة</span><b>"+esc(g.type)+"</b></div><div class='stat'><span>تاريخ المرور</span><b>"+esc(g.date)+"</b></div></div><div class='table-wrap'><table><thead><tr><th>الفرع / المخزن / مركز الخدمة</th><th>مرور 1</th><th>مرور 2</th><th>مرور 3</th><th>مرور 4</th><th>مرور 5</th></tr></thead><tbody>"+g.sites.map(r=>"<tr><td>"+esc(r.site)+"</td>"+Array.from({length:5},(_,i)=>"<td>"+esc(r.times[i]||"—")+"</td>").join("")+"</tr>"+(r.times.length>5?"<tr><td>"+esc(r.site)+" — استكمال</td>"+Array.from({length:5},(_,i)=>"<td>"+esc(r.times[i+5]||"—")+"</td>").join("")+"</tr>":"")).join("")+"</tbody></table></div></section>").join("")||"<div class='empty'>لا توجد سجلات مرور دراجات في الفترة المحددة</div>";
+   return;
+  }
+  if($("#reportType").value==="branch_patrols"){
+   const groups=branchGroupsFor(d),slots=Math.max(6,...groups.map(g=>g.visits.length));
+   $("#reportSummary").innerHTML="<h3>تقرير متابعة الفروع</h3><p>الفترة: "+esc($("#fromDate").value)+" إلى "+esc($("#toDate").value)+" • عدد الفروع/الأيام: "+groups.length+" • إجمالي المتابعات: "+d.length+"</p><div class='table-wrap'><table><thead><tr><th>الفرع</th><th>المشرف</th>"+Array.from({length:slots},(_,i)=>"<th>متابعة "+(i+1)+"</th>").join("")+"</tr></thead><tbody>"+groups.map(g=>"<tr><td>"+esc(g.branch)+"</td><td>"+esc(g.supervisor)+"</td>"+Array.from({length:slots},(_,i)=>"<td>"+esc(g.visits[i]?.payload?.patrol_time||"—")+"</td>").join("")+"</tr>").join("")+"</tbody></table></div><p class='muted'>المُعد: DEEB • التوقيع والاعتماد: __________________</p>";
    return;
   }
   const rows=rowsFor(d);
@@ -479,6 +497,10 @@ function reports(){
  $("#monthlyReport").onclick=()=>{$("#fromDate").value=monthStart;$("#toDate").value=today;$("#reportType").value="";refreshReport();};
  refreshReport();
  const rowsForExport=d=>{
+  if($("#reportType").value==="branch_patrols"){
+   const groups=branchGroupsFor(d),slots=Math.max(6,...groups.map(g=>g.visits.length));
+   return [["الفرع","المشرف",...Array.from({length:slots},(_,i)=>"متابعة "+(i+1))],...groups.map(g=>[g.branch,g.supervisor,...Array.from({length:slots},(_,i)=>g.visits[i]?.payload?.patrol_time||"")])];
+  }
   if($("#reportType").value==="bike_patrols"){
    const out=[["التاريخ","اسم القائم بالمرور","رقم الدراجة","كود الدراجة","نوع الدراجة","الفرع / المخزن / مركز الخدمة","مرور 1","مرور 2","مرور 3","مرور 4","مرور 5"]];
    bikeGroupsFor(d).forEach(g=>g.sites.forEach(r=>{
@@ -491,6 +513,10 @@ function reports(){
  };
  const saveFile=async(name,mime,content)=>{try{const native=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.FileExport;if(native&&native.saveFile){const bytes=new TextEncoder().encode(content);let binary="";for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);await native.saveFile({name:name,mimeType:mime,base64:btoa(binary)});toast("تم حفظ الملف داخل Downloads/DEEB");}else{DebooDB.downloadBlob(new Blob([content],{type:mime}),name);toast("تم تجهيز الملف للتنزيل");}}catch(e){toast("تعذر حفظ الملف: "+(e.message||e));}};
  const printHtml=d=>{
+  if($("#reportType").value==="branch_patrols"){
+   const groups=branchGroupsFor(d),slots=Math.max(6,...groups.map(g=>g.visits.length)),title="تقرير متابعة الفروع",period=$("#fromDate").value+" — "+$("#toDate").value;
+   return '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DEEB | '+title+'</title><style>*{box-sizing:border-box}body{margin:0;background:#eef1f5;color:#172438;font:13px/1.7 Tahoma,Arial,sans-serif}.sheet{max-width:1100px;margin:20px auto;padding:28px;background:#fff;border:1px solid #dce2ea}.brand{display:flex;justify-content:space-between;border-bottom:3px solid #b99753;padding-bottom:12px;margin-bottom:18px}.brand-name{font-size:27px;font-weight:900;color:#14253d}.brand-tag{font-size:11px;color:#69778a}h1{text-align:center;color:#172b49;margin:8px 0}.period{text-align:center;color:#68778a;margin:0 0 20px}.branch-table{width:100%;border-collapse:collapse;table-layout:auto}.branch-table th{background:#172b49;color:#fff;padding:9px 6px;border:1px solid #172b49}.branch-table td{padding:9px 6px;border:1px solid #cfd7e2;text-align:center}.branch-table td:first-child{font-weight:bold;text-align:right}.branch-table tbody tr:nth-child(even){background:#f6f8fa}.foot{display:flex;justify-content:space-between;margin-top:24px;padding-top:12px;border-top:1px solid #dce2ea;color:#68778a}@page{size:A4 landscape;margin:12mm}@media print{body{background:#fff}.sheet{max-width:none;margin:0;padding:0;border:0}.branch-table thead{display:table-header-group}.branch-table tr{break-inside:avoid;page-break-inside:avoid}}</style></head><body><main class="sheet"><div class="brand"><div><div class="brand-name">DEEB</div><div class="brand-tag">نظام متابعة التشغيل والدوريات</div></div><div class="brand-tag">تقرير رسمي</div></div><h1>'+title+'</h1><p class="period">الفترة: '+esc(period)+' • تاريخ الإصدار: '+esc(new Date().toLocaleDateString("ar-EG"))+' • إجمالي المتابعات: '+d.length+'</p><table class="branch-table"><thead><tr><th>الفرع</th><th>المشرف</th>'+Array.from({length:slots},(_,i)=>'<th>متابعة '+(i+1)+'</th>').join('')+'</tr></thead><tbody>'+groups.map(g=>'<tr><td>'+esc(g.branch)+'</td><td>'+esc(g.supervisor)+'</td>'+Array.from({length:slots},(_,i)=>'<td>'+esc(g.visits[i]?.payload?.patrol_time||'—')+'</td>').join('')+'</tr>').join('')+'</tbody></table><div class="foot"><span>تم إنشاء التقرير بواسطة DEEB</span><span>اعتماد المسؤول: __________________</span></div></main></body></html>';
+  }
   if($("#reportType").value==="bike_patrols"){
    const groups=bikeGroupsFor(d),title="تقرير مرور الدراجات",period=$("#fromDate").value+" — "+$("#toDate").value;
    const sections=groups.map((g,gi)=>'<section class="bike-sheet-section"><h2 class="bike-section-title">بيانات القائم بالمرور والدراجة</h2><div class="bike-meta"><div><span>اسم القائم بالمرور</span><b>'+esc(g.person)+'</b></div><div><span>رقم الدراجة</span><b>'+esc(g.bike)+'</b></div><div><span>كود الدراجة</span><b>'+esc(g.code)+'</b></div><div><span>نوع الدراجة</span><b>'+esc(g.type)+'</b></div><div><span>تاريخ المرور</span><b>'+esc(g.date)+'</b></div></div><h2 class="bike-section-title">الأماكن التي تم المرور عليها</h2><table class="bike-table"><thead><tr><th>الفرع / المخزن / مركز الخدمة</th><th>مرور 1</th><th>مرور 2</th><th>مرور 3</th><th>مرور 4</th><th>مرور 5</th></tr></thead><tbody>'+g.sites.map(r=>'<tr><td>'+esc(r.site)+'</td>'+Array.from({length:5},(_,i)=>'<td>'+esc(r.times[i]||'—')+'</td>').join('')+'</tr>'+(r.times.length>5?'<tr><td>'+esc(r.site)+' — استكمال</td>'+Array.from({length:5},(_,i)=>'<td>'+esc(r.times[i+5]||'—')+'</td>').join('')+'</tr>':'')).join('')+'</tbody></table></section>').join('');
