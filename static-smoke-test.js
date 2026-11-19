@@ -19,7 +19,7 @@ if (!app.includes('$(\"#enableBiometric\").onclick=async()=>') || !app.includes(
 if (!app.includes('localStorage.removeItem(BIOMETRIC_KEY)') || !app.includes('سيفتح التطبيق مباشرة دون PIN أو بصمة')) throw new Error('Direct unlock / biometric reset flow is missing');
 if (!app.includes('يمكنك الدخول باستخدام PIN')) throw new Error('Biometric PIN fallback message is missing');
 if (!app.includes('function lockApplication()') || !app.includes('document.visibilityState==="hidden"') || !app.includes('window.addEventListener("pagehide",lockApplication)')) throw new Error('Automatic PIN lock hooks are missing');
-if (!sw.includes('deebo-local-v10-8')) throw new Error('Service worker cache version was not bumped');
+if (!sw.includes('deebo-local-v10-9')) throw new Error('Service worker cache version was not bumped');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 if (!db.includes('return {app:"DEEB",format:2') || !db.includes('["DEEB","DEEBO","DEBOO16"].includes(obj.app)') || !db.includes('title:"تقرير DEEB"')) throw new Error('DEEB backup / approved report branding or legacy backup compatibility is missing');
 for (const marker of [
@@ -76,7 +76,7 @@ if (!index.includes('function startupFailure(message)') || !index.includes('unha
 
 if (!app.includes('$$(".tile").forEach') || !app.includes('$$("[data-page]").forEach')) throw new Error('Navigation must iterate NodeLists, not querySelector single elements');
 
-if (!app.includes('id="saveStatus"') || !app.includes('const persisted=(await DebooDB.all()).some(item=>item.id===saved.id&&item.entity_type===type)') || !app.includes('type==="branches"&&!payload.name')) throw new Error('Branch save validation, visible feedback, or persistence verification is missing');
+if (!app.includes('id="saveStatus"') || !app.includes('const persisted=await DebooDB.getRecord(saved.id)') || !app.includes('type==="branches"&&!payload.name')) throw new Error('Branch save validation, visible feedback, or persistence verification is missing');
 const employeeChecks = [
   ['employees:"سجل الموظفين"', 'Employee registry label is missing'],
   ['employees:[["name","اسم الموظف","text",1]', 'Employee name field is missing'],
