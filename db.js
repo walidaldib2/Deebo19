@@ -167,6 +167,7 @@ window.DebooDB = (() => {
     const item={id:uid(),title:"تقرير DEEB",snapshot,created_at:now(),actor:"مستخدم الجهاز"};
     const d=await openDB();
     await new Promise((resolve,reject)=>{const tx=d.transaction(["approved_reports","audit_logs"],"readwrite");tx.objectStore("approved_reports").put(item);tx.objectStore("audit_logs").put(makeAudit("approve",item.id,null,item,"اعتماد نسخة تقرير"));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("فشل اعتماد التقرير وسجل المراجعة."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء اعتماد التقرير."));});
+    try{await createAutoBackup();}catch(error){console.warn("DEEB automatic backup:",error);}
     return item;
   }
   function blobToDataURL(blob) {
@@ -261,6 +262,7 @@ window.DebooDB = (() => {
       tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error("تعذرت الاستعادة."));
     });
     await addAudit("restore",null,null,{count:obj.records.length},"استعادة نسخة احتياطية");
+    try{await createAutoBackup();}catch(error){console.warn("DEEB automatic backup:",error);}
   }
   async function downloadBlob(blob,name) {
     const native=window.Capacitor?.Plugins?.FileExport;
