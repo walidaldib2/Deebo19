@@ -186,7 +186,7 @@ fs.writeFileSync(path.join(javaDir, "MainActivity.java"), activity);
 let manifest = fs.readFileSync(manifestPath, "utf8");
 for (const permission of ['android.permission.ACCESS_COARSE_LOCATION','android.permission.ACCESS_FINE_LOCATION']) {
   if (!manifest.includes('android:name="' + permission + '"')) {
-    manifest = manifest.replace(/(<manifest\\b[^>]*>)/, '$1\\n    <uses-permission android:name="' + permission + '" />');
+    manifest = manifest.replace(/(<manifest\b[^>]*>)/, '$1\n    <uses-permission android:name="' + permission + '" />');
   }
 }
 
