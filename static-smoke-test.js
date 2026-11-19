@@ -45,7 +45,7 @@ const buttonIds = [...new Set([...buttonMarkup.matchAll(/<button\\b[^>]*\\bid=["
 for (const id of buttonIds) {
   if (id === 'saveRecord') {
     if (!app.includes('$("#recordForm")?.addEventListener("submit"')) throw new Error('Save record button has no form submit handler');
-  } else if (!app.includes('$("#'+id+'")') && !app.includes('document.querySelector("#'+id+'")') && !app.includes('getElementById("'+id+'")')) {
+  } else if (!buttonMarkup.includes('$("#'+id+'")') && !buttonMarkup.includes('querySelector("#'+id+'")') && !buttonMarkup.includes('getElementById("'+id+'")')) {
     throw new Error('Button has no explicit handler binding: '+id);
   }
 }
