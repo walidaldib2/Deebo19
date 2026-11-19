@@ -162,6 +162,19 @@ function bindLocationCapture(type){
  };
 }
 function bindHandoverSignature(){const canvas=$("#handoverSignature");if(!canvas)return;const ctx=canvas.getContext("2d"),hidden=$('input[name="signature_data"]');ctx.lineWidth=4;ctx.lineCap="round";ctx.lineJoin="round";ctx.strokeStyle="#101a2c";let drawing=false;const point=e=>{const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)*canvas.width/r.width,y:(e.clientY-r.top)*canvas.height/r.height}};canvas.addEventListener("pointerdown",e=>{drawing=true;canvas.setPointerCapture(e.pointerId);const p=point(e);ctx.beginPath();ctx.moveTo(p.x,p.y)});canvas.addEventListener("pointermove",e=>{if(!drawing)return;const p=point(e);ctx.lineTo(p.x,p.y);ctx.stroke();hidden.value=canvas.toDataURL("image/png")});const finish=()=>{if(drawing){drawing=false;hidden.value=canvas.toDataURL("image/png")}};canvas.addEventListener("pointerup",finish);canvas.addEventListener("pointercancel",finish);$("#clearSignature")?.addEventListener("click",()=>{ctx.clearRect(0,0,canvas.width,canvas.height);hidden.value=""});const saved=hidden.value;if(saved){const img=new Image();img.onload=()=>ctx.drawImage(img,0,0,canvas.width,canvas.height);img.src=saved}}
+function bindPatrolLocationInput(type){
+ if(type!=="bike_patrols")return;
+ const input=document.querySelector('#recordForm [name="location_url"]');if(!input)return;
+ input.addEventListener("input",()=>{
+  const coords=extractSharedCoordinates(input.value);
+  if(!coords)return;
+  const form=$("#recordForm");
+  form.elements.namedItem("lat").value=coords.lat.toFixed(6);
+  form.elements.namedItem("lng").value=coords.lng.toFixed(6);
+  const site=nearestPatrolSite(coords);
+  if(site&&form.elements.namedItem("site"))form.elements.namedItem("site").value=site.payload.name;
+ });
+}
 function bindAutocomplete(){
  const sourceKeys={branch:[["branches","name"],["patrol_sites","name"]],site:[["patrol_sites","name"]],person:[["patrol_people","name"],["emergency_people","name"]],responsible:[["managers","name"],["patrol_people","name"],["emergency_people","name"]],manager:[["managers","name"]],bike:[["bikes","number"]],sender:[["patrol_people","name"],["managers","name"]],receiver:[["patrol_people","name"],["managers","name"]],replacement:[["patrol_people","name"],["emergency_people","name"],["managers","name"]]};
  Object.entries(sourceKeys).forEach(([field,sources])=>{const input=document.querySelector(`#recordForm [name="${field}"]`);if(!input||input.tagName==="TEXTAREA")return;const id=`suggest-${field}`;let list=document.getElementById(id);if(!list){list=document.createElement("datalist");list.id=id;input.insertAdjacentElement("afterend",list);}input.setAttribute("list",id);const values=[];sources.forEach(([type,key])=>cache.filter(x=>x.entity_type===type).forEach(row=>{const v=row.payload?.[key];if(v&&String(v).trim())values.push(String(v).trim());}));list.innerHTML=[...new Set(values)].sort((a,b)=>a.localeCompare(b,"ar")).map(v=>`<option value="${esc(v)}"></option>`).join("");});
@@ -172,6 +185,7 @@ function renderEntity(type){
  const host=$("#groupContent")||area;
  host.innerHTML=`${host===area?pageHead(labels[type],`<button class="primary" id="addRecord">+ إضافة سجل</button>`):`<div class="page-head"><h2>${labels[type]}</h2><button class="primary" id="addRecord">+ إضافة سجل</button></div>`}<div class="card"><div class="inline"><span class="pill">${rows(type).length} سجل</span><input id="localFilter" placeholder="تصفية النتائج..." value="${esc(searchTerm)}"></div></div>${editing?.id||editing?formHTML(type,editing):""}<div class="card">${table(type)}</div>`;
  bindAutocomplete();
+ bindPatrolLocationInput(type);
  bindLocationCapture(type);
  if(type==="handovers"&&editing)bindHandoverSignature();
  if(type==="documents"&&editing?.id){
