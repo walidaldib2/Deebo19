@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#050c19">
-<meta name="description" content="DEEBO نظام متابعة وإدارة ميدانية">
+<meta name="description" content="DEEB نظام متابعة وإدارة ميدانية">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="preferences.css">
-<title>DEEBO | نظام المتابعة الميدانية</title>
+<title>DEEB | نظام المتابعة الميدانية</title>
 </head>
 <body>
 <div class="app-shell">
@@ -19,7 +19,7 @@
   <div class="identity">
     <img class="wolf-mark" src="icon.svg" alt="شعار الذئب">
     <div>
-      <div class="wordmark">DEEBO</div>
+      <div class="wordmark">DEEB</div>
       <div class="subtitle">نظام المتابعة والإدارة الميدانية</div>
     </div>
   </div>
@@ -28,7 +28,7 @@
 <div id="authPanel" class="auth-panel hidden">
   <div class="auth-brand">
     <img src="icon.svg" alt="">
-    <div><b>DEEBO</b><small>قفل محلي للجهاز</small></div>
+    <div><b>DEEB</b><small>قفل محلي للجهاز</small></div>
   </div>
   <p class="muted">أدخل رمز PIN لفتح التطبيق على هذا الجهاز.</p>
   <div class="form">
@@ -55,7 +55,7 @@
   <button class="tile" data-page="settings"><span>⚙️</span><b>الإعدادات</b></button>
 </section>
 <section class="stories">
-  <div class="section-title"><span></span><h2>DEEBO Stories</h2><span></span></div>
+  <div class="section-title"><span></span><h2>DEEB Stories</h2><span></span></div>
   <div class="story-grid">
     <button class="story-card" data-page="follow">
       <span class="story-number" id="followCount">0</span>
@@ -70,7 +70,7 @@
 <section id="contentArea" class="content-area"></section>
 </div>
 </main>
-<footer class="footer"><span>DEEBO</span> • FIELD OPERATIONS MANAGEMENT</footer>
+<footer class="footer"><span>DEEB</span> • FIELD OPERATIONS MANAGEMENT</footer>
 </div>
 <div id="toast" class="toast"></div>
 <script>
@@ -86,7 +86,7 @@
     if (root) root.classList.add("hidden");
     if (panel) {
       panel.classList.remove("hidden");
-      panel.innerHTML = '<div class="auth-brand"><img src="icon.svg" alt=""><div><b>DEEBO</b><small>تعذر تشغيل التطبيق</small></div></div><p class="muted" style="white-space:pre-wrap;overflow-wrap:anywhere"></p><button class="primary" type="button" id="startupRetry">إعادة المحاولة</button>';
+      panel.innerHTML = '<div class="auth-brand"><img src="icon.svg" alt=""><div><b>DEEB</b><small>تعذر تشغيل التطبيق</small></div></div><p class="muted" style="white-space:pre-wrap;overflow-wrap:anywhere"></p><button class="primary" type="button" id="startupRetry">إعادة المحاولة</button>';
       panel.querySelector("p").textContent = message;
       panel.querySelector("#startupRetry").addEventListener("click", () => location.reload());
     }
