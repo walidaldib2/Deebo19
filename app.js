@@ -312,19 +312,13 @@ function renderEntity(type){
  }
  $("#addRecord").onclick=()=>{currentEdit={id:null,payload:{}};renderEntity(type);};
  if(type==="branch_patrols"){
-  $("[data-branch-slot]").forEach(button=>button.addEventListener("click",async()=>{
+  $$("[data-branch-slot]").forEach(button=>button.addEventListener("click",async()=>{
    if(button.disabled)return;
    const branch=button.dataset.branchName,date=button.dataset.branchDate;
    const d=new Date(),time=[String(d.getHours()).padStart(2,"0"),String(d.getMinutes()).padStart(2,"0")].join(":");
    button.disabled=true;button.textContent="جارٍ الحفظ...";
    try{await DebooDB.save("branch_patrols",{branch,patrol_date:date,patrol_time:time,responsible:"",condition:"",notes:""},null);await refresh();renderEntity("branch_patrols");toast("تم تسجيل المرور الساعة "+time);}
    catch(error){button.disabled=false;button.textContent="＋ تسجيل";toast("تعذر تسجيل المرور: "+error.message);}
-  }));
-  $("[data-branch-date]").forEach(input=>input.addEventListener("change",async()=>{
-   const branch=input.dataset.branchDate,date=input.value;if(!date)return;
-   const d=new Date(),time=[String(d.getHours()).padStart(2,"0"),String(d.getMinutes()).padStart(2,"0")].join(":");
-   try{await DebooDB.save("branch_patrols",{branch,patrol_date:date,patrol_time:time,responsible:"",condition:"",notes:""},null);await refresh();renderEntity("branch_patrols");toast("تم تسجيل المرور بتاريخ "+date+" الساعة "+time);}
-   catch(error){toast("تعذر تسجيل المرور: "+error.message);}
   }));
  }
  $("#cancelEdit")?.addEventListener("click",()=>{currentEdit=null;renderEntity(type);});
