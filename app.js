@@ -86,7 +86,7 @@ async function authState(){
   $("#authMessage").textContent="تعذر بدء قاعدة البيانات المحلية: "+e.message;
  }
 }
-async function openApplication(){$("#authPanel").classList.add("hidden");$("#appRoot").classList.remove("hidden");await refresh();render("home");consumeSharedLocation()}
+async function openApplication(){$("#authPanel").classList.add("hidden");$("#appRoot").classList.remove("hidden");await refresh();render("home");consumeSharedLocation();consumeNativeShare()}
 function extractSharedCoordinates(value){
  const s=String(value||"");
  const patterns=[
@@ -103,21 +103,26 @@ function nearestPatrolSite(coords){
  const distance=(a,b)=>{const dLat=rad(b.lat-a.lat),dLng=rad(b.lng-a.lng),v=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLng/2)**2;return 6371000*2*Math.atan2(Math.sqrt(v),Math.sqrt(1-v));};
  return cache.filter(x=>x.entity_type==="patrol_sites"&&!x.is_archived&&Number.isFinite(Number(x.payload?.lat))&&Number.isFinite(Number(x.payload?.lng))).map(x=>({row:x,meters:distance(coords,{lat:Number(x.payload.lat),lng:Number(x.payload.lng)})})).filter(x=>x.meters<=500).sort((x,y)=>x.meters-y.meters)[0]?.row||null;
 }
-function consumeSharedLocation(){
+let lastSharedLocationPayload="";
+function consumeSharedLocation(sharedText=""){
  const params=new URLSearchParams(location.search);
- if(params.get("share")!=="location")return;
- const sharedUrl=params.get("url")||"";
- const sharedText=params.get("text")||"";
- const raw=[sharedText,sharedUrl].filter(Boolean).join(" ");
- history.replaceState({},document.title,location.pathname+location.hash);
+ const queryShare=params.get("share")==="location";
+ const sharedUrlParam=params.get("url")||"";
+ const sharedTextParam=params.get("text")||"";
+ const raw=String(sharedText||[sharedTextParam,sharedUrlParam].filter(Boolean).join(" ")).trim();
+ if(!queryShare&&!raw)return;
+ if(raw&&raw===lastSharedLocationPayload)return;
+ if(raw)lastSharedLocationPayload=raw;
+ if(queryShare)history.replaceState({},document.title,location.pathname+location.hash);
+ const extracted=(raw.match(/https?:\\/\\/[^\\s<>"']+/i)||[])[0]||"";
+ const locationUrl=(sharedUrlParam||extracted||raw).trim().replace(/[),.;]+$/,"");
  render("follow");
  const tab=document.querySelector('.subnav [data-type="bike_patrols"]');if(tab)tab.click();
  $("#addRecord")?.click();
  const form=$("#recordForm");if(!form)return;
  const linkField=form.elements.namedItem("location_url");
- const extracted=(sharedText.match(/https?:\/\/\S+/)||[])[0]||"";
- if(linkField)linkField.value=(sharedUrl||extracted).trim();
- const coords=extractSharedCoordinates(raw);
+ if(linkField)linkField.value=locationUrl;
+ const coords=extractSharedCoordinates(raw+" "+locationUrl);
  if(coords){
   form.elements.namedItem("lat").value=coords.lat.toFixed(6);
   form.elements.namedItem("lng").value=coords.lng.toFixed(6);
@@ -130,6 +135,13 @@ function consumeSharedLocation(){
  toast(coords?"تم استلام نقطة الموقع. اختر الدراجة وسجّل توقيت الوصول.":"تم استلام مشاركة واتساب. اختر الدراجة والمكان وسجّل توقيت الوصول.");
  form.elements.namedItem("patrol_time")?.focus();
 }
+async function consumeNativeShare(){
+ const plugin=window.Capacitor?.Plugins?.ShareIntent;
+ if(!plugin?.getInitialShare)return;
+ try{const result=await plugin.getInitialShare();if(result?.text)consumeSharedLocation(result.text);}
+ catch(error){console.warn("DEBOO16 share intake:",error);}
+}
+window.addEventListener("deboo-share-intent",event=>consumeSharedLocation(event.detail?.text||""));
 
 const toB64=b=>btoa(String.fromCharCode(...new Uint8Array(b)));
 const fromB64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
