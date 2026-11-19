@@ -73,6 +73,44 @@
 <footer class="footer"><span>DEBOO16</span> • FIELD OPERATIONS MANAGEMENT</footer>
 </div>
 <div id="toast" class="toast"></div>
+<script>
+(() => {
+  "use strict";
+  let shown = false;
+  function startupFailure(message) {
+    if (shown) return;
+    const root = document.getElementById("appRoot");
+    const panel = document.getElementById("authPanel");
+    if (root && !root.classList.contains("hidden")) return;
+    shown = true;
+    if (root) root.classList.add("hidden");
+    if (panel) {
+      panel.classList.remove("hidden");
+      panel.innerHTML = '<div class="auth-brand"><img src="icon.svg" alt=""><div><b>DEBOO16</b><small>تعذر تشغيل التطبيق</small></div></div><p class="muted" style="white-space:pre-wrap;overflow-wrap:anywhere"></p><button class="primary" type="button" id="startupRetry">إعادة المحاولة</button>';
+      panel.querySelector("p").textContent = message;
+      panel.querySelector("#startupRetry").addEventListener("click", () => location.reload());
+    }
+  }
+  window.addEventListener("error", event => {
+    const target = event.target;
+    if (target && target.tagName === "SCRIPT") {
+      startupFailure("تعذر تحميل ملف التطبيق: " + (target.src || "ملف JavaScript"));
+    } else if (event.message) {
+      startupFailure("خطأ أثناء تشغيل التطبيق: " + event.message);
+    }
+  }, true);
+  window.addEventListener("unhandledrejection", event => {
+    startupFailure("تعذر بدء التطبيق: " + String(event.reason?.message || event.reason || "خطأ غير معروف"));
+  });
+  window.setTimeout(() => {
+    const root = document.getElementById("appRoot");
+    const panel = document.getElementById("authPanel");
+    if (root?.classList.contains("hidden") && panel?.classList.contains("hidden")) {
+      startupFailure("لم تكتمل تهيئة التطبيق. أعد المحاولة، وإذا استمرت المشكلة أرسل صورة هذه الرسالة.");
+    }
+  }, 15000);
+})();
+</script>
 <script src="qrcode.js"></script>
 <script src="db.js"></script>
 <script src="biometric.bundle.js"></script>
