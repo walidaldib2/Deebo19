@@ -17,7 +17,7 @@ if (!app.includes('$(\"#enableBiometric\").onclick=async()=>') || !app.includes(
 if (!app.includes('localStorage.removeItem(BIOMETRIC_KEY)') || !app.includes('سيفتح التطبيق مباشرة دون PIN أو بصمة')) throw new Error('Direct unlock / biometric reset flow is missing');
 if (!app.includes('يمكنك الدخول باستخدام PIN')) throw new Error('Biometric PIN fallback message is missing');
 if (!app.includes('function lockApplication()') || !app.includes('document.visibilityState==="hidden"') || !app.includes('window.addEventListener("pagehide",lockApplication)')) throw new Error('Automatic PIN lock hooks are missing');
-if (!sw.includes('deboo16-local-v10-5')) throw new Error('Service worker cache version was not bumped');
+if (!sw.includes('deboo16-local-v10-6')) throw new Error('Service worker cache version was not bumped');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 for (const marker of ['if(!used.has(bike)&&used.size>=5)','const bikesByDay=new Map()','bikesByDay.get(day).size>5']) if (!db.includes(marker)) throw new Error('Motorcycle-patrol rule missing: '+marker);
 if (db.includes('patrolKeys.has(key)')) throw new Error('Repeated motorcycle passes are still blocked in backup restore');
