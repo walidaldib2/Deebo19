@@ -40,3 +40,4 @@ if (!app.includes('patrol_date') || !app.includes('location_url') || !app.includ
 const manifest = JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
 if (!manifest.share_target || manifest.share_target.action !== './?share=location') throw new Error('PWA WhatsApp share target is missing');
 if (!app.includes('consumeSharedLocation()')) throw new Error('Shared location intake handler is missing');
+if (!app.includes("function bindPatrolLocationInput") || !app.includes("bindPatrolLocationInput(type)")) throw new Error("Manual WhatsApp location-link parsing is missing");
