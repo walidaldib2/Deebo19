@@ -226,7 +226,7 @@ function bindPatrolLocationInput(type){
 function bindAutocomplete(){
  const sourceKeys={
   branch:[["branches","name"],["patrol_sites","name"]],
-  site:[["patrol_sites","name"]],
+  site:[["patrol_sites","name"],["branches","name"]],
   person:[["patrol_people","name"],["emergency_people","name"]],
   responsible:[["managers","name"],["patrol_people","name"],["emergency_people","name"]],
   manager:[["managers","name"]],
@@ -241,7 +241,14 @@ function bindAutocomplete(){
   branch_name:[["branches","name"]],
   site_name:[["patrol_sites","name"]],
   bike_number:[["bikes","number"]],
-  department_manager:[["managers","name"]]
+  department_manager:[["managers","name"]],
+  team:[["patrol_people","name"],["emergency_people","name"]],
+  location:[["patrol_sites","name"],["branches","name"]],
+  department:[["managers","department"]],
+  branches:[["branches","name"],["managers","branches"]],
+  patrol_site:[["patrol_sites","name"]],
+  employee_no:[["patrol_people","employee_no"]],
+  phone:[["patrol_people","phone"],["emergency_people","phone"],["managers","phone"]]
  };
  const normalize=v=>String(v||"").trim().toLocaleLowerCase("ar").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي");
  const styleId="deboo-autocomplete-style";
@@ -263,7 +270,7 @@ function bindAutocomplete(){
   const close=()=>{list.classList.remove("open");list.innerHTML="";};
   const show=()=>{
    const query=normalize(input.value);
-   const matches=values.filter(v=>!query||normalize(v).includes(query)).slice(0,10);
+   const matches=values.filter(v=>!query||normalize(v).startsWith(query)).concat(values.filter(v=>query&&!normalize(v).startsWith(query)&&normalize(v).includes(query))).slice(0,10);
    list.innerHTML="";
    if(!matches.length){close();return;}
    matches.forEach(value=>{
