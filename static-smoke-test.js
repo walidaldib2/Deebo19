@@ -41,3 +41,9 @@ const manifest = JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf
 if (!manifest.share_target || manifest.share_target.action !== './?share=location') throw new Error('PWA WhatsApp share target is missing');
 if (!app.includes('consumeSharedLocation()')) throw new Error('Shared location intake handler is missing');
 if (!app.includes("function bindPatrolLocationInput") || !app.includes("bindPatrolLocationInput(type)")) throw new Error("Manual WhatsApp location-link parsing is missing");
+
+const workflow = fs.readFileSync(path.join(root,'.github/workflows/android-apk.yml'),'utf8');
+const prepareAt = workflow.indexOf('npm run prepare:android');
+const biometricAt = workflow.indexOf('npm run build:biometric');
+if (prepareAt < 0 || biometricAt < 0 || prepareAt > biometricAt) throw new Error('Android build must prepare www before generating the native biometric bundle; otherwise the bundle is deleted.');
+if (!workflow.includes('grep -q "BiometricAuth" www/biometric.bundle.js')) throw new Error('Android build must verify that the native biometric bundle is present.');
