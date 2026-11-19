@@ -75,67 +75,74 @@ window.DebooDB = (() => {
     let data=await all({archived:opts.archived,limit:opts.limit||500});
     return data.filter(x=>x.entity_type===type&&(!opts.branch_id||x.branch_id===opts.branch_id)&&(!opts.status||x.status===opts.status));
   }
+  function makeAudit(action,recordId,oldData,newData,reason) {
+    return {id:uid(),action,record_id:recordId||null,old_data:oldData||null,new_data:newData||null,reason:reason||"",created_at:now(),actor:"مستخدم الجهاز"};
+  }
   async function save(type,payload,id=null) {
-    if(!type||!payload||typeof payload!=="object") throw new Error("بيانات السجل غير صالحة.");
+    if(!type||!payload||typeof payload!=="object"||Array.isArray(payload)) throw new Error("بيانات السجل غير صالحة.");
     const old=id?await get("records",id):null;
     if(id&&!old) throw new Error("السجل المطلوب تعديله غير موجود.");
     const row={id:id||uid(),entity_type:type,payload:{...payload},branch_id:payload.branch_id||null,status:payload.status||"active",is_archived:false,created_at:old?.created_at||now(),updated_at:now(),created_by:"local"};
+    const auditItem=makeAudit(id?"update":"create",row.id,old,row,id?(payload.edit_reason||"تعديل سجل"):"إضافة سجل");
+    const d=await openDB();
     if(type==="bike_patrols") {
       const day=String(payload.patrol_date||payload.patrol_time||now()).slice(0,10);
       const bike=String(payload.bike||"").trim().toLocaleLowerCase("ar");
       if(!bike) throw new Error("يجب تحديد رقم الدراجة.");
-      const d=await openDB();
       await new Promise((resolve,reject)=>{
-        const tx=d.transaction("records","readwrite"),store=tx.objectStore("records"),req=store.getAll();
+        const tx=d.transaction(["records","audit_logs"],"readwrite");
+        const store=tx.objectStore("records"),req=store.getAll();
+        let validationError=null;
         req.onsuccess=()=>{
-          const sameDay=req.result.filter(x=>x.entity_type==="bike_patrols"&&x.id!==row.id&&!x.is_archived&&String(x.payload?.patrol_time||x.created_at).slice(0,10)===day);
+          const sameDay=req.result.filter(x=>x.entity_type==="bike_patrols"&&x.id!==row.id&&!x.is_archived&&String(x.payload?.patrol_date||x.payload?.patrol_time||x.created_at).slice(0,10)===day);
           const used=new Set(sameDay.map(x=>String(x.payload?.bike||"").trim().toLocaleLowerCase("ar")).filter(Boolean));
           // تكرار مرور نفس الدراجة مسموح؛ الحد يخص خمس دراجات مختلفة فقط في اليوم.
-          if(!used.has(bike)&&used.size>=5){try{tx.abort()}catch{};return;}
+          if(!used.has(bike)&&used.size>=5){validationError=new Error("تعذر حفظ المرور: تم بلوغ حد خمس دراجات مختلفة في هذا اليوم.");try{tx.abort()}catch{};return;}
           store.put(row);
+          tx.objectStore("audit_logs").put(auditItem);
         };
-        req.onerror=()=>{try{tx.abort()}catch{}};
+        req.onerror=()=>{validationError=req.error||new Error("تعذر قراءة سجلات مرور الدراجات.");try{tx.abort()}catch{}};
         tx.oncomplete=resolve;
-        tx.onerror=()=>reject(tx.error||new Error("فشل حفظ مرور الدراجة."));
-        tx.onabort=()=>{
-          const allError= req.error;
-          if(allError) reject(allError);
-          else reject(new Error("تعذر حفظ المرور: تم بلوغ حد خمس دراجات مختلفة في هذا اليوم."));
-        };
+        tx.onerror=()=>reject(validationError||tx.error||new Error("فشل حفظ مرور الدراجة وسجل المراجعة."));
+        tx.onabort=()=>reject(validationError||tx.error||new Error("تم إلغاء حفظ مرور الدراجة."));
       });
     } else if(type==="handovers") {
       const versionNumber=(old?.payload?._version||0)+1;
       row.payload._version=versionNumber;
-      const version={id:uid(),record_id:row.id,version:versionNumber,
-        snapshot:JSON.parse(JSON.stringify(row)),created_at:now(),reason:payload.edit_reason|| (id?"تحديث تسليم الشفت":"إنشاء تسليم الشفت")};
-      const auditItem={id:uid(),action:id?"update":"create",record_id:row.id,old_data:old||null,new_data:row,reason:id?(payload.edit_reason||"تعديل سجل"):"إضافة سجل",created_at:now(),actor:"مستخدم الجهاز"};
-      const d=await openDB();
+      const version={id:uid(),record_id:row.id,version:versionNumber,snapshot:JSON.parse(JSON.stringify(row)),created_at:now(),reason:payload.edit_reason||(id?"تحديث تسليم الشفت":"إنشاء تسليم الشفت")};
+      auditItem.new_data=row;
       await new Promise((resolve,reject)=>{
         const tx=d.transaction(["records","handover_versions","audit_logs"],"readwrite");
         tx.objectStore("records").put(row);
         tx.objectStore("handover_versions").put(version);
         tx.objectStore("audit_logs").put(auditItem);
         tx.oncomplete=resolve;
-        tx.onerror=()=>reject(tx.error||new Error("فشل حفظ تسليم الشفت وإصداره."));
+        tx.onerror=()=>reject(tx.error||new Error("فشل حفظ تسليم الشفت وإصداره وسجل المراجعة."));
         tx.onabort=()=>reject(tx.error||new Error("تم إلغاء حفظ تسليم الشفت."));
       });
     } else {
-      await txStore("records","readwrite",s=>s.put(row));
-      await addAudit(id?"update":"create",row.id,old,row,id?(payload.edit_reason||"تعديل سجل"):"إضافة سجل");
+      await new Promise((resolve,reject)=>{
+        const tx=d.transaction(["records","audit_logs"],"readwrite");
+        tx.objectStore("records").put(row);
+        tx.objectStore("audit_logs").put(auditItem);
+        tx.oncomplete=resolve;
+        tx.onerror=()=>reject(tx.error||new Error("فشل حفظ السجل وسجل المراجعة."));
+        tx.onabort=()=>reject(tx.error||new Error("تم إلغاء حفظ السجل."));
+      });
     }
     return row;
   }
   async function archive(id,reason="أرشفة سجل") {
     const old=await get("records",id);if(!old)throw new Error("السجل غير موجود.");
-    const row={...old,is_archived:true,updated_at:now()};
-    await txStore("records","readwrite",s=>s.put(row));
-    await addAudit("archive",id,old,row,reason);return row;
+    const row={...old,is_archived:true,updated_at:now()},d=await openDB();
+    await new Promise((resolve,reject)=>{const tx=d.transaction(["records","audit_logs"],"readwrite");tx.objectStore("records").put(row);tx.objectStore("audit_logs").put(makeAudit("archive",id,old,row,reason));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("فشلت الأرشفة وسجل المراجعة."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء الأرشفة."));});
+    return row;
   }
   async function unarchive(id,reason="استعادة سجل من الأرشيف") {
     const old=await get("records",id);if(!old)throw new Error("السجل غير موجود.");
-    const row={...old,is_archived:false,updated_at:now()};
-    await txStore("records","readwrite",s=>s.put(row));
-    await addAudit("unarchive",id,old,row,reason);return row;
+    const row={...old,is_archived:false,updated_at:now()},d=await openDB();
+    await new Promise((resolve,reject)=>{const tx=d.transaction(["records","audit_logs"],"readwrite");tx.objectStore("records").put(row);tx.objectStore("audit_logs").put(makeAudit("unarchive",id,old,row,reason));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("فشلت الاستعادة وسجل المراجعة."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء الاستعادة."));});
+    return row;
   }
   async function audit(limit=100) {return (await getAll("audit_logs")).sort((a,b)=>b.created_at.localeCompare(a.created_at)).slice(0,limit);}
   async function handoverHistory(recordId) {
@@ -145,16 +152,17 @@ window.DebooDB = (() => {
     if(!recordId||!file) throw new Error("بيانات المرفق غير مكتملة.");
     if(file.size>15*1024*1024) throw new Error("حجم المرفق يتجاوز 15 ميجابايت.");
     const item={id:uid(),record_id:recordId,name:file.name,type:file.type||"application/octet-stream",size:file.size,blob:file,created_at:now()};
-    await txStore("attachments","readwrite",s=>s.put(item));
-    await addAudit("attachment",recordId,null,{name:item.name,size:item.size},"إضافة مرفق");
+    const d=await openDB();
+    await new Promise((resolve,reject)=>{const tx=d.transaction(["attachments","audit_logs"],"readwrite");tx.objectStore("attachments").put(item);tx.objectStore("audit_logs").put(makeAudit("attachment",recordId,null,{name:item.name,size:item.size},"إضافة مرفق"));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("فشل حفظ المرفق وسجل المراجعة."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء حفظ المرفق."));});
     return item;
   }
   async function attachments(recordId) {return (await getAll("attachments")).filter(a=>a.record_id===recordId);}
   async function getAttachment(id) {return get("attachments",id);}
   async function approve(snapshot) {
     const item={id:uid(),title:"تقرير DEEB",snapshot,created_at:now(),actor:"مستخدم الجهاز"};
-    await txStore("approved_reports","readwrite",s=>s.put(item));
-    await addAudit("approve",item.id,null,item,"اعتماد نسخة تقرير");return item;
+    const d=await openDB();
+    await new Promise((resolve,reject)=>{const tx=d.transaction(["approved_reports","audit_logs"],"readwrite");tx.objectStore("approved_reports").put(item);tx.objectStore("audit_logs").put(makeAudit("approve",item.id,null,item,"اعتماد نسخة تقرير"));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("فشل اعتماد التقرير وسجل المراجعة."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء اعتماد التقرير."));});
+    return item;
   }
   function blobToDataURL(blob) {
     return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(reader.error);reader.readAsDataURL(blob);});
@@ -225,5 +233,5 @@ window.DebooDB = (() => {
     a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1500);
   }
-  return {init,configured,list,all,save,archive,unarchive,audit,approve,backup,restore,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,local:true};
+  return {init,configured,list,all,getRecord:(id)=>get("records",id),save,archive,unarchive,audit,approve,backup,restore,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,local:true};
 })();
