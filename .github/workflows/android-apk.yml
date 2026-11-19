@@ -1,0 +1,68 @@
+name: Build DEBOO16 Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/deboo-pro-upgrade
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run project checks
+        run: |
+          npm test
+          node --check app.js
+          node --check db.js
+          node --check qrcode.js
+          node --check sw.js
+          node --check prepare-android.js
+
+      - name: Build biometric web bundle
+        run: npm run build:biometric
+
+      - name: Prepare web assets
+        run: npm run prepare:android
+
+      - name: Generate Android project
+        run: npx cap add android
+
+      - name: Sync Android project
+        run: npx cap sync android
+
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DEBOO16-Android-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
