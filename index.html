@@ -17,7 +17,6 @@
 <header class="masthead">
   <div class="date-box" id="todayDate">...</div>
   <div class="identity">
-    <img class="wolf-mark" src="icon.svg" alt="شعار الذئب DEEB">
     <div>
       <div class="wordmark">DEEB</div>
       <div class="subtitle">نظام المتابعة والإدارة الميدانية</div>
@@ -27,7 +26,6 @@
 <main>
 <div id="authPanel" class="auth-panel hidden">
   <div class="auth-brand">
-    <img src="icon.svg" alt="">
     <div><b>DEEB</b><small>قفل محلي للجهاز</small></div>
   </div>
   <p class="muted">أدخل رمز PIN لفتح التطبيق على هذا الجهاز.</p>
@@ -87,7 +85,7 @@
     if (root) root.classList.add("hidden");
     if (panel) {
       panel.classList.remove("hidden");
-      panel.innerHTML = '<div class="auth-brand"><img src="icon.svg" alt=""><div><b>DEEB</b><small>تعذر تشغيل التطبيق</small></div></div><p class="muted" style="white-space:pre-wrap;overflow-wrap:anywhere"></p><button class="primary" type="button" id="startupRetry">إعادة المحاولة</button>';
+      panel.innerHTML = '<div class="auth-brand"><div><b>DEEB</b><small>تعذر تشغيل التطبيق</small></div></div><p class="muted" style="white-space:pre-wrap;overflow-wrap:anywhere"></p><button class="primary" type="button" id="startupRetry">إعادة المحاولة</button>';
       panel.querySelector("p").textContent = message;
       panel.querySelector("#startupRetry").addEventListener("click", () => location.reload());
     }
