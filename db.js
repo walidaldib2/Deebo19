@@ -231,8 +231,9 @@ window.DebooDB = (() => {
     const bikesByDay=new Map();
     for(const row of patrols){
       const bike=String(row.payload?.bike||"").trim().toLocaleLowerCase("ar");
-      const stamp=String(row.payload?.patrol_time||row.created_at||"");
-      const day=stamp.slice(0,10);
+      const patrolDate=String(row.payload?.patrol_date||"").trim();
+      const stamp=String(row.created_at||"");
+      const day=/^\\d{4}-\\d{2}-\\d{2}$/.test(patrolDate)?patrolDate:stamp.slice(0,10);
       if(!bike||!/^\d{4}-\d{2}-\d{2}$/.test(day)||Number.isNaN(Date.parse(day+"T00:00:00Z")))
         throw new Error("يوجد مرور دراجة ببيانات ناقصة أو تاريخ غير صالح في النسخة؛ لم يتم تغيير بياناتك.");
       if(!bikesByDay.has(day)) bikesByDay.set(day,new Set());
