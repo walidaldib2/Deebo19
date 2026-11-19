@@ -29,3 +29,8 @@
   td,th { break-inside:avoid!important; page-break-inside:avoid!important; }
   .stats { break-inside:avoid!important; }
 }
+
+/* Nested pages: keep the home screen uncluttered while a section is open. */
+.app-shell.page-open #mainTiles,.app-shell.page-open .stories,.app-shell.page-open .search-panel{display:none!important}
+.app-shell.page-open .content-area{margin-top:12px}
+.gps-field{grid-column:1/-1}
