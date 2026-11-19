@@ -59,7 +59,8 @@ async function main() {
 
   // Daily automatic snapshots are local, bounded, and include the saved records.
   const auto = await db.createAutoBackup();
-  assert.equal(auto.created, true);
+  assert.equal(auto.created, false);
+  assert.equal(auto.updated, true);
   const backups = await db.automaticBackups();
   assert.equal(backups.length, 1);
   assert.equal(backups[0].record_count, (await db.all()).length);
