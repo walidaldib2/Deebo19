@@ -56,6 +56,9 @@ if (!app.includes('$$(".tile").forEach') || !app.includes('$$("[data-page]").for
 const nativeShare = fs.readFileSync(path.join(root,'configure-android-share.js'),'utf8');
 if (!nativeShare.includes('ShareIntentPlugin.java') || !nativeShare.includes('android.intent.action.SEND') || !nativeShare.includes('Intent.EXTRA_TEXT')) throw new Error('Native Android text-share receiver configuration is incomplete');
 if (!app.includes('deboo-share-intent') || !app.includes('consumeNativeShare()') || !app.includes('getInitialShare')) throw new Error('App does not consume native Android shared text/location payloads');
+if (!app.includes('function currentCoordinates()') || !app.includes('window.Capacitor?.Plugins?.CurrentLocation') || !app.includes('"bike_patrols"].includes(type)')) throw new Error('Current-location button is not wired for native Android and motorcycle patrol forms');
+if (!script.includes('CurrentLocationPlugin.java') || !script.includes('ACCESS_FINE_LOCATION') || !script.includes('requestPermissionForAlias("location"')) throw new Error('Native Android location permission / GPS plugin is missing');
+
 if (!pkg.scripts?.['configure:android:share']) throw new Error('Native Android share configuration script is missing');
 const nativeShareStep = workflow.indexOf('npm run configure:android:share');
 const syncStep = workflow.indexOf('npx cap sync android');
