@@ -62,13 +62,13 @@ import java.io.OutputStream;
 @CapacitorPlugin(name = "FileExport")
 public class FileExportPlugin extends Plugin {
   @PluginMethod public void saveFile(PluginCall call) {
-    String name=call.getString("name","DEEBO-export.txt");
+    String name=call.getString("name","DEEB-export.txt");
     String mime=call.getString("mimeType","application/octet-stream");
     String data=call.getString("base64","");
     try {
       byte[] bytes=Base64.decode(data,Base64.DEFAULT);
       ContentValues values=new ContentValues(); values.put(MediaStore.Downloads.DISPLAY_NAME,name); values.put(MediaStore.Downloads.MIME_TYPE,mime);
-      if(Build.VERSION.SDK_INT>=29) values.put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/DEEBO");
+      if(Build.VERSION.SDK_INT>=29) values.put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/DEEB");
       Uri uri=getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
       if(uri==null) throw new Exception("تعذر إنشاء الملف في التنزيلات");
       try(OutputStream out=getContext().getContentResolver().openOutputStream(uri)){ if(out==null) throw new Exception("تعذر فتح الملف للحفظ"); out.write(bytes); out.flush(); }
