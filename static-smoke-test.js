@@ -50,3 +50,5 @@ if (!workflow.includes('grep -q "BiometricAuth" www/biometric.bundle.js')) throw
 
 const index = fs.readFileSync(path.join(root,'index.html'),'utf8');
 if (!index.includes('function startupFailure(message)') || !index.includes('unhandledrejection') || !index.includes('startupRetry')) throw new Error('Android startup diagnostics and recovery panel are missing');
+
+if (!app.includes('$$(".tile").forEach') || !app.includes('$$("[data-page]").forEach')) throw new Error('Navigation must iterate NodeLists, not querySelector single elements');
