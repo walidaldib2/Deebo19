@@ -1,0 +1,50 @@
+/* DEBOO16 appearance preferences — v1 */
+:root { --deboo-font-size: 16px; }
+#appRoot { font-size: var(--deboo-font-size); }
+#appRoot p, #appRoot label, #appRoot input, #appRoot select, #appRoot textarea,
+#appRoot td, #appRoot th, #appRoot button, #appRoot small { font-size: 1em; }
+#appRoot h1 { font-size: 1.55em; }
+#appRoot h2 { font-size: 1.35em; }
+#appRoot h3 { font-size: 1.18em; }
+.deboo-appearance-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+.deboo-appearance-controls label { display: grid; gap: 8px; font-weight: bold; }
+.deboo-appearance-controls select, .deboo-appearance-controls input { width: 100%; min-height: 42px; }
+
+html[data-theme="light"] body { background: #f3f5f8; color: #172033; }
+html[data-theme="light"] .app-shell { color: #172033; }
+html[data-theme="light"] .search-panel,
+html[data-theme="light"] .card,
+html[data-theme="light"] .auth-panel {
+  background: #fff; color: #172033; border-color: #c6a45b;
+  box-shadow: 0 2px 10px #18243a12;
+}
+html[data-theme="light"] .tile,
+html[data-theme="light"] .story-card,
+html[data-theme="light"] .stat { background: #fff; color: #172033; border-color: #c6a45b; }
+html[data-theme="light"] .tile.active { background: #f4e7c7; color: #172033; }
+html[data-theme="light"] .search-panel input,
+html[data-theme="light"] .field input,
+html[data-theme="light"] .field select,
+html[data-theme="light"] .field textarea,
+html[data-theme="light"] .inline input,
+html[data-theme="light"] .inline select {
+  background: #fff; color: #172033; border-color: #aab4c2;
+}
+html[data-theme="light"] table { background: #fff; color: #172033; }
+html[data-theme="light"] th { background: #eee6d5; color: #4a3919; }
+html[data-theme="light"] td { border-bottom-color: #d7dce4; }
+html[data-theme="light"] .secondary,
+html[data-theme="light"] .tiny,
+html[data-theme="light"] .subnav button { background: #edf1f6; color: #172033; border-color: #b8c1ce; }
+html[data-theme="light"] .notice { background: #f2f5f9; color: #172033; }
+html[data-theme="light"] .muted,
+html[data-theme="light"] .story-card small,
+html[data-theme="light"] .footer { color: #536174; }
+html[data-theme="light"] .field label,
+html[data-theme="light"] .search-panel label { color: #344054; }
+html[data-theme="light"] .subnav button.active { background: #e8d6ad; color: #172033; }

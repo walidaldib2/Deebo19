@@ -1,0 +1,23 @@
+{
+  "name": "deboo16-field-operations",
+  "version": "10.0.2",
+  "private": true,
+  "description": "DEBOO16 field operations PWA prepared for Capacitor Android packaging",
+  "scripts": {
+    "test": "node static-smoke-test.js",
+    "android:add": "cap add android",
+    "android:sync": "cap sync android",
+    "android:open": "cap open android",
+    "build:biometric": "esbuild biometric-entry.js --bundle --format=iife --outfile=www/biometric.bundle.js",
+    "prepare:android": "node prepare-android.js"
+  },
+  "dependencies": {
+    "@aparajita/capacitor-biometric-auth": "9.1.2",
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/core": "^7.4.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.3",
+    "esbuild": "^0.25.12"
+  }
+}
