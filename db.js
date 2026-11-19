@@ -152,7 +152,7 @@ window.DebooDB = (() => {
   async function attachments(recordId) {return (await getAll("attachments")).filter(a=>a.record_id===recordId);}
   async function getAttachment(id) {return get("attachments",id);}
   async function approve(snapshot) {
-    const item={id:uid(),title:"تقرير DEBOO16",snapshot,created_at:now(),actor:"مستخدم الجهاز"};
+    const item={id:uid(),title:"تقرير DEEBO",snapshot,created_at:now(),actor:"مستخدم الجهاز"};
     await txStore("approved_reports","readwrite",s=>s.put(item));
     await addAudit("approve",item.id,null,item,"اعتماد نسخة تقرير");return item;
   }
@@ -170,10 +170,10 @@ window.DebooDB = (() => {
     const [records,audit_logs,approved_reports,handover_versions,rawAttachments]=await Promise.all([
       getAll("records"),getAll("audit_logs"),getAll("approved_reports"),getAll("handover_versions"),getAll("attachments")]);
     const attachments=await Promise.all(rawAttachments.map(async a=>({...a,blob:undefined,data_url:await blobToDataURL(a.blob)})));
-    return {app:"DEBOO16",format:2,mode:"local",created_at:now(),records,audit_logs,approved_reports,handover_versions,attachments};
+    return {app:"DEEBO",format:2,mode:"local",created_at:now(),records,audit_logs,approved_reports,handover_versions,attachments};
   }
   async function restore(obj) {
-    if(!obj||obj.app!=="DEBOO16"||![1,2].includes(obj.format)||!Array.isArray(obj.records)||!Array.isArray(obj.audit_logs)) throw new Error("ملف النسخة غير صالح أو غير متوافق.");
+    if(!obj||!["DEEBO","DEBOO16"].includes(obj.app)||![1,2].includes(obj.format)||!Array.isArray(obj.records)||!Array.isArray(obj.audit_logs)) throw new Error("ملف النسخة غير صالح أو غير متوافق.");
     const optionalArrays=["approved_reports","handover_versions","attachments"];
     for(const key of optionalArrays) if(obj[key]!==undefined&&!Array.isArray(obj[key])) throw new Error("قسم "+key+" في النسخة غير صالح.");
     const validRows=(rows,key)=>rows.every(x=>x&&typeof x==="object"&&typeof x.id==="string"&&x.id.length>0);
@@ -205,7 +205,7 @@ window.DebooDB = (() => {
       const item={...x,blob};delete item.data_url;return item;
     });
     const current=await backup();
-    if(current.records.length||current.attachments.length) downloadBlob(new Blob([JSON.stringify(current,null,2)],{type:"application/json"}),"DEBOO16-before-restore.json");
+    if(current.records.length||current.attachments.length) downloadBlob(new Blob([JSON.stringify(current,null,2)],{type:"application/json"}),"DEEBO-before-restore.json");
     const d=await openDB();
     await new Promise((resolve,reject)=>{
       const names=["records","audit_logs","approved_reports","handover_versions","attachments"];
