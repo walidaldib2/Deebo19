@@ -373,8 +373,8 @@ function renderEntity(type){
   try{
    const saved=await DebooDB.save(type,payload,editId);
    if(type==="documents")for(const file of files)await DebooDB.saveAttachment(saved.id,file);
-   const persisted=(await DebooDB.all()).some(item=>item.id===saved.id&&item.entity_type===type);
-   if(!persisted)throw new Error("لم يتم العثور على السجل بعد الحفظ. أعد المحاولة وتحقق من مساحة التخزين.");
+   const persisted=await DebooDB.getRecord(saved.id);
+   if(!persisted||persisted.entity_type!==type)throw new Error("لم يتم تأكيد وجود السجل في قاعدة البيانات بعد الحفظ. أعد المحاولة.");
    currentEdit=null;if(type==="employees")currentEmployeeDetailId=saved.id;
    await refresh();renderEntity(type);toast("تم حفظ السجل والتحقق من وجوده في قاعدة البيانات.");
   }catch(e){
