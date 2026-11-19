@@ -152,7 +152,7 @@ window.DebooDB = (() => {
   async function attachments(recordId) {return (await getAll("attachments")).filter(a=>a.record_id===recordId);}
   async function getAttachment(id) {return get("attachments",id);}
   async function approve(snapshot) {
-    const item={id:uid(),title:"تقرير DEEBO",snapshot,created_at:now(),actor:"مستخدم الجهاز"};
+    const item={id:uid(),title:"تقرير DEEB",snapshot,created_at:now(),actor:"مستخدم الجهاز"};
     await txStore("approved_reports","readwrite",s=>s.put(item));
     await addAudit("approve",item.id,null,item,"اعتماد نسخة تقرير");return item;
   }
