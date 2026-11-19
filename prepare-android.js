@@ -24,4 +24,4 @@ for (const name of assets) {
   if (!fs.existsSync(source)) throw new Error("Missing Android web asset: " + name);
   fs.copyFileSync(source, path.join(output, name));
 }
-console.log("Prepared " + assets.length + " DEBOO16 web assets in www/.");
+console.log("Prepared " + assets.length + " DEEBO web assets in www/.");
