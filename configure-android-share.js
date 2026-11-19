@@ -82,7 +82,6 @@ public class MainActivity extends BridgeActivity {
             String js = "window.dispatchEvent(new CustomEvent('deboo-share-intent',{detail:{text:"
                 + JSONObject.quote(text) + "}}));";
             getBridge().getWebView().evaluateJavascript(js, null);
-            prefs.edit().remove("pending_text").apply();
         }
     }
 }
