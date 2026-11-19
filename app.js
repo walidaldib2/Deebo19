@@ -318,7 +318,7 @@ function renderEntity(type){
   DebooDB.attachments(editing.id).then(items=>{
    const box=$("#documentAttachments");if(!box)return;
    box.innerHTML=items.length?items.map(a=>`<div class="notice"><span>${esc(a.name)} (${Math.ceil(a.size/1024)} KB)</span> <button class="tiny" data-download-attachment="${a.id}">تنزيل</button></div>`).join(""):"لا توجد مرفقات محفوظة لهذا المستند.";
-   $('[data-download-attachment]').forEach(b=>b.onclick=async()=>{try{const item=await DebooDB.getAttachment(b.dataset.downloadAttachment);if(!item){toast("المرفق غير موجود");return;}await DebooDB.downloadBlob(item.blob,item.name);toast("تم حفظ المرفق في التنزيلات.");}catch(error){toast("تعذر تنزيل المرفق: "+(error.message||error));}});
+   $$('[data-download-attachment]').forEach(b=>b.onclick=async()=>{try{const item=await DebooDB.getAttachment(b.dataset.downloadAttachment);if(!item){toast("المرفق غير موجود");return;}await DebooDB.downloadBlob(item.blob,item.name);toast("تم حفظ المرفق في التنزيلات.");}catch(error){toast("تعذر تنزيل المرفق: "+(error.message||error));}});
   }).catch(e=>toast(e.message));
  }
  if(type==="handovers"&&editing?.id){
@@ -338,9 +338,9 @@ function renderEntity(type){
   }).catch(e=>toast(e.message));
  }
  $("#addRecord").onclick=()=>{currentEmployeeDetailId=null;currentEdit={id:null,payload:{}};renderEntity(type);};
- $("[data-employee-detail]").forEach(button=>button.addEventListener("click",()=>{currentEmployeeDetailId=button.dataset.employeeDetail;currentEdit=null;renderEntity(type);}));
+ $$("[data-employee-detail]").forEach(button=>button.addEventListener("click",()=>{currentEmployeeDetailId=button.dataset.employeeDetail;currentEdit=null;renderEntity(type);}));
  $("#employeeListBack")?.addEventListener("click",()=>{currentEmployeeDetailId=null;renderEntity(type);});
- $("[data-employee-edit]").forEach(button=>button.addEventListener("click",()=>{const found=cache.find(x=>x.id===button.dataset.employeeEdit);if(found){currentEmployeeDetailId=found.id;currentEdit=found;renderEntity(type);$("#editor")?.scrollIntoView({behavior:"smooth"});}}));
+ $$("[data-employee-edit]").forEach(button=>button.addEventListener("click",()=>{const found=cache.find(x=>x.id===button.dataset.employeeEdit);if(found){currentEmployeeDetailId=found.id;currentEdit=found;renderEntity(type);$("#editor")?.scrollIntoView({behavior:"smooth"});}}));
  $$("[data-move-branch]").forEach(button=>button.addEventListener("click",()=>moveBranchOrder(button.dataset.moveBranch,Number(button.dataset.direction)||0)));
  if(type==="branch_patrols"){
   $$(".branch-time-edit").forEach(input=>input.addEventListener("change",async()=>{
