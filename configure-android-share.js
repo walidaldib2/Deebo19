@@ -212,6 +212,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(ShareIntentPlugin.class);
         registerPlugin(CurrentLocationPlugin.class);
+        registerPlugin(FileExportPlugin.class);
         super.onCreate(savedInstanceState);
         captureSharedText(getIntent(), false);
     }
