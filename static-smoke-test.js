@@ -32,6 +32,8 @@ const prep = fs.readFileSync(path.join(root,'prepare-android.js'),'utf8');
 for (const f of ['index.html','app.js','db.js','biometric.bundle.js','style.css','preferences.css','preferences.js','sw.js','manifest.json','icon.svg']) if (!prep.includes('\"'+f+'\"')) throw new Error('Android asset preparation omits '+f);
 if (!app.includes('absences:[[') || !app.includes('غياب المسؤولين')) throw new Error('Absence tracking section is missing');
 if (!app.includes('function bindAutocomplete()') || !app.includes('suggest-')) throw new Error('Automatic name / branch suggestions are missing');
+if (!app.includes('id="saveRecord" type="submit"') || !app.includes('id="cancelEdit" type="button"') || !app.includes('$("#recordForm")?.addEventListener("submit"') || !app.includes('event.preventDefault()')) throw new Error('Record form must submit through its form handler with explicit button types');
+if (app.includes('</form><div class="actions"><button class="primary" id="saveRecord"')) throw new Error('Record save button must remain inside the form on Android');
 if (!app.includes('d.map(x=>')) throw new Error('Report output must include all matching records');
 console.log('PASS: required files, navigation hierarchy, reports archive/restore, script references, refreshed service-worker cache, package.json, Capacitor config, automatic-lock wiring, and repeated motorcycle passes allowed with five distinct bikes/day limit.');
 
