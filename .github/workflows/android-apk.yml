@@ -69,6 +69,22 @@ jobs:
       - name: Configure native WhatsApp share receiver
         run: npm run configure:android:share
 
+      - name: Configure Maven Central mirrors
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for path in Path("android").rglob("*.gradle"):
+              source = path.read_text(encoding="utf-8")
+              marker = 'maven { url "https://maven-central.storage-download.googleapis.com/maven2" }'
+              if marker in source:
+                  continue
+              source = source.replace(
+                  "repositories {",
+                  'repositories {\\n        maven { url "https://maven-central.storage-download.googleapis.com/maven2" }\\n        maven { url "https://repo1.maven.org/maven2" }',
+              )
+              path.write_text(source, encoding="utf-8")
+          PY
+
       - name: Build debug APK
         timeout-minutes: 20
         working-directory: android
