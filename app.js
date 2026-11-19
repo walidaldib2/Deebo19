@@ -157,17 +157,29 @@ function table(type){const list=rows(type),fs=fields[type]||[];if(!list.length)r
  const cols=fs.slice(0,5);return `<div class="table-wrap"><table><thead><tr><th>م</th>${cols.map(f=>`<th>${f[1]}</th>`).join("")}<th>التاريخ</th><th class="no-print">إجراء</th></tr></thead><tbody>${list.map((r,i)=>`<tr><td>${i+1}</td>${cols.map(f=>`<td>${f[0]==="location_url"&&(String(r.payload?.[f[0]]||"").startsWith("https://")||String(r.payload?.[f[0]]||"").startsWith("http://"))?`<a target="_blank" rel="noopener" href="${esc(r.payload[f[0]])}">فتح الموقع</a>`:esc(r.payload?.[f[0]])}</td>`).join("")}<td>${new Date(type==="bike_patrols"&&r.payload?.patrol_date?r.payload.patrol_date+"T"+(r.payload.patrol_time||"00:00"):r.created_at).toLocaleString("ar-EG")}</td><td class="no-print"><button class="tiny" data-edit="${r.id}" data-type="${type}">تعديل</button> <button class="tiny" data-archive="${r.id}">أرشفة</button> ${["branches","patrol_sites","bike_patrols","incidents","emergencies"].includes(type)&&Number.isFinite(Number(r.payload?.lat))&&Number.isFinite(Number(r.payload?.lng))&&Number(r.payload.lat)>=-90&&Number(r.payload.lat)<=90&&Number(r.payload.lng)>=-180&&Number(r.payload.lng)<=180?`<a class="tiny map-link" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=${encodeURIComponent(r.payload.lat)}&mlon=${encodeURIComponent(r.payload.lng)}#map=16/${encodeURIComponent(r.payload.lat)}/${encodeURIComponent(r.payload.lng)}">الخريطة</a>`:""}</td></tr>`).join("")}</tbody></table></div>`}
 function formHTML(type,r=null){const isEditing=!!r?.id;const fs=fields[type]||[];const gpsButton=["branches","patrol_sites","incidents","emergencies","bike_patrols"].includes(type)?`<div class="field gps-field"><button type="button" class="secondary" id="captureCurrentLocation">📍 تحديد موقعي الحالي</button><small class="muted" id="gpsStatus">احصل على إحداثيات الموقع لإرفاقها بالسجل.</small></div>`:"";return `<div class="card" id="editor"><h3>${isEditing?"تعديل":"إضافة"} ${labels[type]}</h3><form id="recordForm" class="form">${gpsButton}${fs.map(f=>{let val=r?.payload?.[f[0]]??"";if(type==="bike_patrols"&&!isEditing&&f[0]==="patrol_date"){const d=new Date();val=[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");}if(type==="bike_patrols"&&isEditing&&r?.payload){const legacy=String(r.payload.patrol_time||"");if(f[0]==="site"&&!val)val=r.payload.branch||"";if(f[0]==="patrol_date"&&!val)val=legacy.slice(0,10);if(f[0]==="patrol_time"&&legacy.includes("T"))val=legacy.slice(11,16);}let input=f[2]==="textarea"?`<textarea name="${f[0]}">${esc(val)}</textarea>`:f[2]==="select"?`<select name="${f[0]}">${f[3].split("|").map(v=>`<option ${v===val?"selected":""}>${v}</option>`).join("")}</select>`:`<input name="${f[0]}" type="${f[2]}" value="${esc(val)}" ${((f[2]==="select" ? f[4] : f[3])===1)?"required":""}>`;return `<div class="field"><label>${f[1]}</label>${input}</div>`}).join("")}${isEditing?`<div class="field"><label>سبب التعديل (مطلوب للتوثيق)</label><input name="edit_reason" required placeholder="اكتب سبب تعديل السجل"></div>`:""}${type==="documents"?`<div class="field"><label>إرفاق ملفات (حتى 15 ميجابايت للملف)</label><input id="documentFiles" type="file" multiple></div><div id="documentAttachments" class="muted">${r?"جارٍ تحميل المرفقات...":"يمكنك إرفاق الملفات بعد الحفظ."}</div>`:""}${type==="handovers"?`<div class="field signature-field"><label>توقيع المستلم (توقيع مرسوم محليًا)</label><canvas id="handoverSignature" width="900" height="240" aria-label="مساحة التوقيع"></canvas><input type="hidden" name="signature_data" value="${esc(r?.payload?.signature_data||"")}"><button type="button" class="secondary" id="clearSignature">مسح التوقيع</button><small class="muted">التوقيع صورة محفوظة ضمن سجل التسليم، وليس توقيعًا إلكترونيًا موثقًا.</small></div>`:""}</form><div class="actions"><button class="primary" id="saveRecord">حفظ السجل</button><button class="secondary" id="cancelEdit">إلغاء</button></div></div>`}
 async function currentCoordinates(){
+ let nativeError=null;
  const native=window.Capacitor?.Plugins?.CurrentLocation;
  if(native?.getCurrentLocation){
-  const result=await native.getCurrentLocation();
-  if(Number.isFinite(Number(result?.latitude))&&Number.isFinite(Number(result?.longitude)))return {latitude:Number(result.latitude),longitude:Number(result.longitude),accuracy:Number(result.accuracy||0)};
+  try{
+   const result=await native.getCurrentLocation();
+   if(Number.isFinite(Number(result?.latitude))&&Number.isFinite(Number(result?.longitude)))return {latitude:Number(result.latitude),longitude:Number(result.longitude),accuracy:Number(result.accuracy||0)};
+   nativeError=new Error("لم يرجع مكوّن أندرويد إحداثيات صحيحة.");
+  }catch(error){nativeError=error;}
  }
- if(!navigator.geolocation)throw new Error("تحديد الموقع غير مدعوم على هذا الجهاز.");
- return await new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(
-  p=>resolve({latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy||0}),
-  e=>reject(new Error(e.code===1?"لم تسمح للتطبيق باستخدام موقعك. فعّل إذن الموقع من إعدادات الجهاز.":e.code===2?"تعذر تحديد الموقع؛ تأكد من تشغيل GPS.":"انتهت مهلة تحديد الموقع، حاول مرة أخرى.")),
-  {enableHighAccuracy:true,timeout:20000,maximumAge:30000}
- ));
+ if(navigator.geolocation){
+  try{
+   return await new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(
+    p=>resolve({latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy||0}),
+    e=>reject(new Error(e.code===1?"لم تسمح للتطبيق باستخدام موقعك. افتح أذونات DEBOO16 واختر السماح أثناء استخدام التطبيق.":e.code===2?"تعذر تحديد الموقع؛ تأكد من تشغيل خدمة الموقع GPS.":"انتهت مهلة تحديد الموقع، حاول مرة أخرى.")),
+    {enableHighAccuracy:false,timeout:25000,maximumAge:60000}
+   ));
+  }catch(error){
+   if(nativeError)throw new Error((error.message||"تعذر تحديد الموقع.")+" (مكوّن أندرويد: "+(nativeError.message||"تعذر الوصول للموقع")+")");
+   throw error;
+  }
+ }
+ if(nativeError)throw new Error(nativeError.message||"تعذر الوصول إلى خدمة الموقع.");
+ throw new Error("تحديد الموقع غير مدعوم على هذا الجهاز.");
 }
 function bindLocationCapture(type){
  const button=$("#captureCurrentLocation");if(!button)return;
