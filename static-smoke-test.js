@@ -27,8 +27,8 @@ for (const marker of [
   '$$("[data-page]").forEach',
   '$$("[data-branch-slot]").forEach',
   '$("[data-move-branch]").forEach',
-  '$$("[data-edit]").forEach',
-  '$$("[data-archive]").forEach',
+  "$('[data-edit]').forEach",
+  "$('[data-archive]').forEach",
   'host.querySelectorAll("[data-restore-record]")',
   'box.querySelectorAll("[data-handover-version]")',
   'document.querySelectorAll("[data-report-type]")'
