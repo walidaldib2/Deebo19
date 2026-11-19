@@ -34,3 +34,20 @@
 .app-shell.page-open #mainTiles,.app-shell.page-open .stories,.app-shell.page-open .search-panel{display:none!important}
 .app-shell.page-open .content-area{margin-top:12px}
 .gps-field{grid-column:1/-1}
+
+/* Employee registry: clean vertical directory and readable detail card */
+.employee-list{display:flex;flex-direction:column;gap:9px}
+.employee-list-item{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;padding:13px 15px;border:1px solid var(--border,#e5e7eb);border-radius:13px;background:var(--surface,#fff);color:inherit;text-align:right;cursor:pointer}
+.employee-list-item:active{transform:scale(.995)}
+.employee-list-name{font-weight:800;flex:1}
+.employee-list-job{font-size:.88rem;color:var(--muted,#667085)}
+.employee-list-arrow{font-size:1.5rem;color:var(--gold,#b58a36);line-height:1}
+.employee-detail{padding:4px 0}
+.employee-profile{padding:18px;border-radius:14px;background:linear-gradient(135deg,rgba(181,138,54,.13),rgba(20,43,72,.06));margin:12px 0}
+.employee-name{font-size:1.25rem;font-weight:900;color:var(--navy,#142b48)}
+.employee-meta{margin-top:5px;color:var(--muted,#667085)}
+.employee-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0}
+.employee-fields>div{padding:12px;border:1px solid var(--border,#e5e7eb);border-radius:11px;min-width:0}
+.employee-fields dt{font-size:.82rem;color:var(--muted,#667085);margin-bottom:5px}
+.employee-fields dd{margin:0;font-weight:750;overflow-wrap:anywhere}
+@media(max-width:520px){.employee-fields{grid-template-columns:1fr}.employee-list-item{flex-wrap:wrap}.employee-list-job{margin-inline-start:auto}}
