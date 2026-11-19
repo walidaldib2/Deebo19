@@ -212,8 +212,60 @@ function bindPatrolLocationInput(type){
  });
 }
 function bindAutocomplete(){
- const sourceKeys={branch:[["branches","name"],["patrol_sites","name"]],site:[["patrol_sites","name"]],person:[["patrol_people","name"],["emergency_people","name"]],responsible:[["managers","name"],["patrol_people","name"],["emergency_people","name"]],manager:[["managers","name"]],bike:[["bikes","number"]],sender:[["patrol_people","name"],["managers","name"]],receiver:[["patrol_people","name"],["managers","name"]],replacement:[["patrol_people","name"],["emergency_people","name"],["managers","name"]]};
- Object.entries(sourceKeys).forEach(([field,sources])=>{const input=document.querySelector(`#recordForm [name="${field}"]`);if(!input||input.tagName==="TEXTAREA")return;const id=`suggest-${field}`;let list=document.getElementById(id);if(!list){list=document.createElement("datalist");list.id=id;input.insertAdjacentElement("afterend",list);}input.setAttribute("list",id);const values=[];sources.forEach(([type,key])=>cache.filter(x=>x.entity_type===type).forEach(row=>{const v=row.payload?.[key];if(v&&String(v).trim())values.push(String(v).trim());}));list.innerHTML=[...new Set(values)].sort((a,b)=>a.localeCompare(b,"ar")).map(v=>`<option value="${esc(v)}"></option>`).join("");});
+ const sourceKeys={
+  branch:[["branches","name"],["patrol_sites","name"]],
+  site:[["patrol_sites","name"]],
+  person:[["patrol_people","name"],["emergency_people","name"]],
+  responsible:[["managers","name"],["patrol_people","name"],["emergency_people","name"]],
+  manager:[["managers","name"]],
+  bike:[["bikes","number"]],
+  sender:[["patrol_people","name"],["managers","name"]],
+  receiver:[["patrol_people","name"],["managers","name"]],
+  replacement:[["patrol_people","name"],["emergency_people","name"],["managers","name"]],
+  employee:[["patrol_people","name"],["emergency_people","name"]],
+  employee_name:[["patrol_people","name"],["emergency_people","name"]],
+  patrol_person:[["patrol_people","name"]],
+  emergency_person:[["emergency_people","name"]],
+  branch_name:[["branches","name"]],
+  site_name:[["patrol_sites","name"]],
+  bike_number:[["bikes","number"]],
+  department_manager:[["managers","name"]]
+ };
+ const normalize=v=>String(v||"").trim().toLocaleLowerCase("ar").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي");
+ const styleId="deboo-autocomplete-style";
+ if(!document.getElementById(styleId)){
+  const style=document.createElement("style");style.id=styleId;
+  style.textContent=".deboo-suggest{position:absolute;z-index:10050;top:calc(100% + 4px);right:0;left:0;max-height:220px;overflow:auto;background:var(--card,#fff);color:var(--text,#172033);border:1px solid var(--border,#d8dee8);border-radius:12px;box-shadow:0 8px 24px #0002;padding:5px;display:none}.deboo-suggest.open{display:block}.deboo-suggest button{display:block;width:100%;text-align:right;background:transparent;color:inherit;border:0;border-radius:8px;padding:11px 12px;font:inherit;min-height:42px}.deboo-suggest button:active,.deboo-suggest button:hover{background:var(--soft,#edf2f7)}.field.deboo-autocomplete-field{position:relative;overflow:visible}.deboo-suggest-empty{padding:10px 12px;color:var(--muted,#687386);font-size:13px}";
+  document.head.appendChild(style);
+ }
+ Object.entries(sourceKeys).forEach(([field,sources])=>{
+  const input=document.querySelector('#recordForm [name="'+field+'"]');
+  if(!input||input.tagName==="TEXTAREA"||input.tagName==="SELECT"||input.type==="hidden")return;
+  const wrapper=input.closest(".field")||input.parentElement;
+  if(!wrapper)return;
+  wrapper.classList.add("deboo-autocomplete-field");
+  let list=wrapper.querySelector(".deboo-suggest");
+  if(!list){list=document.createElement("div");list.className="deboo-suggest";list.setAttribute("role","listbox");wrapper.appendChild(list);}
+  input.removeAttribute("list");
+  const values=[...new Set(sources.flatMap(([type,key])=>cache.filter(row=>row.entity_type===type&&!row.is_archived).map(row=>String(row.payload?.[key]||"").trim()).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,"ar"));
+  const close=()=>{list.classList.remove("open");list.innerHTML="";};
+  const show=()=>{
+   const query=normalize(input.value);
+   const matches=values.filter(v=>!query||normalize(v).includes(query)).slice(0,10);
+   list.innerHTML="";
+   if(!matches.length){close();return;}
+   matches.forEach(value=>{
+    const option=document.createElement("button");option.type="button";option.textContent=value;option.setAttribute("role","option");
+    option.addEventListener("pointerdown",event=>{event.preventDefault();input.value=value;input.dispatchEvent(new Event("change",{bubbles:true}));close();});
+    list.appendChild(option);
+   });
+   list.classList.add("open");
+  };
+  input.addEventListener("focus",show);
+  input.addEventListener("input",show);
+  input.addEventListener("keydown",event=>{if(event.key==="Escape")close();if(event.key==="ArrowDown"&&list.classList.contains("open")){event.preventDefault();list.querySelector("button")?.focus();}});
+  input.addEventListener("blur",()=>setTimeout(close,180));
+ });
 }
 function renderEntity(type){
  currentType=type;
