@@ -2,15 +2,16 @@
 "use strict";
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const area=$("#contentArea");
-const labels={branches:"الفروع",patrol_people:"أفراد الدوريات",emergency_people:"أفراد الطوارئ",bikes:"الدراجات",managers:"مديرو الأقسام",branch_patrols:"متابعة الفروع",bike_patrols:"مرور الدراجات",manager_rounds:"مرور مديري الأقسام",incidents:"البلاغات والحوادث",tasks:"المهام اليومية",handovers:"تسليم واستلام الشفت",absences:"غياب المسؤولين",emergencies:"حالات الطوارئ",documents:"خزنة المستندات"};
+const labels={branches:"الفروع",patrol_people:"أفراد الدوريات",emergency_people:"أفراد الطوارئ",bikes:"الدراجات",managers:"مديرو الأقسام",branch_patrols:"متابعة الفروع",bike_patrols:"مرور الدراجات",manager_rounds:"مرور مديري الأقسام",incidents:"البلاغات والحوادث",tasks:"المهام اليومية",handovers:"تسليم واستلام الشفت",absences:"غياب المسؤولين",emergencies:"حالات الطوارئ",documents:"خزنة المستندات",patrol_sites:"المخازن والمعارض ومراكز الخدمة"};
 const fields={
 branches:[["name","اسم الفرع","text",1],["code","كود الفرع","text"],["address","العنوان","text"],["manager","المسؤول","text"],["phone","رقم التواصل","tel"],["lat","خط العرض","number"],["lng","خط الطول","number"],["status","الحالة","select","نشط|متوقف"]],
 patrol_people:[["name","اسم فرد الدورية","text",1],["employee_no","الرقم الوظيفي","text"],["phone","رقم الهاتف","tel"],["branch","الفرع","text"],["job","الوظيفة","text"],["status","الحالة","select","متاح|إجازة|موقوف"]],
 emergency_people:[["name","اسم فرد الطوارئ","text",1],["specialty","التخصص","text"],["phone","رقم الهاتف","tel"],["branch","الفرع","text"],["availability","التوفر","select","متاح|مشغول|إجازة"]],
 bikes:[["number","رقم الدراجة","text",1],["description","الوصف","text"],["person","الفرد المسؤول","text"],["status","الحالة","select","جاهزة|بالمرور|صيانة|متوقفة"]],
+patrol_sites:[["name","اسم المكان","text",1],["site_type","نوع المكان","select","مخزن|معرض|مركز خدمة",1],["address","العنوان / الوصف","text"],["lat","خط العرض","number"],["lng","خط الطول","number"],["notes","ملاحظات","textarea"]],
 managers:[["name","اسم المدير","text",1],["department","القسم","text"],["phone","رقم التواصل","tel"],["branches","الفروع التابعة","text"]],
 branch_patrols:[["branch","الفرع","text",1],["responsible","المسؤول","text"],["condition","حالة الفرع","select","جيد|ملاحظات|مخالفة|مغلق"],["notes","الملاحظات","textarea"]],
-bike_patrols:[["bike","رقم الدراجة","text",1],["person","فرد المرور","text",1],["branch","الفرع / الموقع","text"],["patrol_time","وقت المرور","datetime-local",1],["lat","خط العرض","number"],["lng","خط الطول","number"],["notes","الملاحظات","textarea"]],
+bike_patrols:[["bike","الدراجة","text",1],["site","المخزن / المعرض / مركز الخدمة","text",1],["patrol_date","تاريخ الوصول","date",1],["patrol_time","توقيت الوصول","time",1],["location_url","رابط موقع واتساب","url"],["lat","خط العرض","number"],["lng","خط الطول","number"],["notes","ملاحظات","textarea"]],
 manager_rounds:[["manager","مدير القسم","text",1],["department","القسم","text"],["branches","الفروع التي تمت زيارتها","text"],["result","نتيجة المرور","textarea"]],
 incidents:[["incident_type","نوع البلاغ","select","أمني|تشغيلي|فني|إداري|حادث|أخرى",1],["branch","الفرع / الموقع","text"],["responsible","المسؤول","text"],["priority","الأولوية","select","عاجل|مرتفع|متوسط|منخفض"],["status","الحالة","select","جديد|قيد المعالجة|بانتظار إجراء|مغلق"],["description","وصف البلاغ","textarea",1],["lat","خط العرض","number"],["lng","خط الطول","number"],["action_taken","الإجراءات المتخذة","textarea"]],
 tasks:[["title","عنوان المهمة","text",1],["responsible","المسؤول","text"],["branch","الفرع","text"],["start_date","تاريخ البداية","date"],["due_date","تاريخ النهاية","date"],["priority","الأولوية","select","عاجل|مرتفع|متوسط|منخفض"],["status","الحالة","select","جديدة|جارية|مكتملة|متأخرة"],["progress","نسبة الإنجاز %","number"],["notes","ملاحظات","textarea"]],
@@ -19,7 +20,7 @@ absences:[["person","اسم المسؤول الغائب","text",1],["role","ال
 emergencies:[["case_type","تصنيف الحالة","text",1],["location","الموقع","text",1],["lat","خط العرض","number"],["lng","خط الطول","number"],["severity","درجة الخطورة","select","حرجة|مرتفعة|متوسطة|منخفضة"],["responsible","المسؤول","text"],["team","أفراد الاستجابة","text"],["status","الحالة","select","مفتوحة|قيد التعامل|منتهية"],["actions","الإجراءات","textarea"]],
 documents:[["title","اسم المستند","text",1],["category","التصنيف","text"],["reference","رقم / مرجع المستند","text"],["notes","ملاحظات","textarea"]]
 };
-const pageGroups={follow:["branch_patrols","bike_patrols","manager_rounds","incidents","tasks","handovers","absences"],data:["branches","patrol_people","emergency_people","bikes","managers","documents"],emergency:["emergencies","emergency_people"]};
+const pageGroups={follow:["branch_patrols","bike_patrols","manager_rounds","incidents","tasks","handovers","absences"],data:["branches","patrol_people","emergency_people","bikes","patrol_sites","managers","documents"],emergency:["emergencies","emergency_people"]};
 let cache=[],currentPage="home",currentType=null,currentEdit=null,weatherTimer=null,searchTerm="",deferredInstallPrompt=null;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2800)}
@@ -85,7 +86,51 @@ async function authState(){
   $("#authMessage").textContent="تعذر بدء قاعدة البيانات المحلية: "+e.message;
  }
 }
-async function openApplication(){$("#authPanel").classList.add("hidden");$("#appRoot").classList.remove("hidden");await refresh();render("home")}
+async function openApplication(){$("#authPanel").classList.add("hidden");$("#appRoot").classList.remove("hidden");await refresh();render("home");consumeSharedLocation()}
+function extractSharedCoordinates(value){
+ const s=String(value||"");
+ const patterns=[
+  /geo:([-+]?\d{1,2}\.\d+)\s*[,;]\s*([-+]?\d{1,3}\.\d+)/i,
+  /@([-+]?\d{1,2}\.\d+),\s*([-+]?\d{1,3}\.\d+)/,
+  /[?&](?:q|query|ll|center)=([-+]?\d{1,2}\.\d+)(?:%2C|,|%252C)([-+]?\d{1,3}\.\d+)/i
+ ];
+ for(const re of patterns){const m=s.match(re);if(m){const lat=Number(m[1]),lng=Number(m[2]);if(lat>=-90&&lat<=90&&lng>=-180&&lng<=180)return {lat,lng};}}
+ return null;
+}
+function nearestPatrolSite(coords){
+ if(!coords)return null;
+ const rad=x=>x*Math.PI/180;
+ const distance=(a,b)=>{const dLat=rad(b.lat-a.lat),dLng=rad(b.lng-a.lng),v=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLng/2)**2;return 6371000*2*Math.atan2(Math.sqrt(v),Math.sqrt(1-v));};
+ return cache.filter(x=>x.entity_type==="patrol_sites"&&!x.is_archived&&Number.isFinite(Number(x.payload?.lat))&&Number.isFinite(Number(x.payload?.lng))).map(x=>({row:x,meters:distance(coords,{lat:Number(x.payload.lat),lng:Number(x.payload.lng)})})).filter(x=>x.meters<=500).sort((x,y)=>x.meters-y.meters)[0]?.row||null;
+}
+function consumeSharedLocation(){
+ const params=new URLSearchParams(location.search);
+ if(params.get("share")!=="location")return;
+ const sharedUrl=params.get("url")||"";
+ const sharedText=params.get("text")||"";
+ const raw=[sharedText,sharedUrl].filter(Boolean).join(" ");
+ history.replaceState({},document.title,location.pathname+location.hash);
+ render("follow");
+ const tab=document.querySelector('.subnav [data-type="bike_patrols"]');if(tab)tab.click();
+ $("#addRecord")?.click();
+ const form=$("#recordForm");if(!form)return;
+ const linkField=form.elements.namedItem("location_url");
+ const extracted=(sharedText.match(/https?:\/\/\S+/)||[])[0]||"";
+ if(linkField)linkField.value=(sharedUrl||extracted).trim();
+ const coords=extractSharedCoordinates(raw);
+ if(coords){
+  form.elements.namedItem("lat").value=coords.lat.toFixed(6);
+  form.elements.namedItem("lng").value=coords.lng.toFixed(6);
+  const site=nearestPatrolSite(coords);
+  if(site&&form.elements.namedItem("site"))form.elements.namedItem("site").value=site.payload.name;
+ }else{
+  const match=cache.find(x=>x.entity_type==="patrol_sites"&&!x.is_archived&&raw.toLocaleLowerCase("ar").includes(String(x.payload?.name||"").toLocaleLowerCase("ar")));
+  if(match&&form.elements.namedItem("site"))form.elements.namedItem("site").value=match.payload.name;
+ }
+ toast(coords?"تم استلام نقطة الموقع. اختر الدراجة وسجّل توقيت الوصول.":"تم استلام مشاركة واتساب. اختر الدراجة والمكان وسجّل توقيت الوصول.");
+ form.elements.namedItem("patrol_time")?.focus();
+}
+
 const toB64=b=>btoa(String.fromCharCode(...new Uint8Array(b)));
 const fromB64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 async function derivePin(pin,salt){const material=await crypto.subtle.importKey("raw",new TextEncoder().encode(pin),"PBKDF2",false,["deriveBits"]);return crypto.subtle.deriveBits({name:"PBKDF2",salt,iterations:210000,hash:"SHA-256"},material,256)}
@@ -97,8 +142,8 @@ function pageHead(title,actions=""){const back=currentPage!=="home"?`<button cla
 function stats(items){return `<div class="stats">${items.map(x=>`<div class="stat"><strong>${x[1]}</strong><span>${x[0]}</span></div>`).join("")}</div>`}
 function rows(type){return cache.filter(r=>r.entity_type===type&&!r.is_archived).filter(r=>!searchTerm||JSON.stringify(r.payload).toLowerCase().includes(searchTerm.toLowerCase()))}
 function table(type){const list=rows(type),fs=fields[type]||[];if(!list.length)return `<div class="empty">لا توجد سجلات حتى الآن</div>`;
- const cols=fs.slice(0,5);return `<div class="table-wrap"><table><thead><tr><th>م</th>${cols.map(f=>`<th>${f[1]}</th>`).join("")}<th>التاريخ</th><th class="no-print">إجراء</th></tr></thead><tbody>${list.map((r,i)=>`<tr><td>${i+1}</td>${cols.map(f=>`<td>${esc(r.payload?.[f[0]])}</td>`).join("")}<td>${new Date(r.created_at).toLocaleString("ar-EG")}</td><td class="no-print"><button class="tiny" data-edit="${r.id}" data-type="${type}">تعديل</button> <button class="tiny" data-archive="${r.id}">أرشفة</button> ${type==="branches"&&Number.isFinite(Number(r.payload?.lat))&&Number.isFinite(Number(r.payload?.lng))&&Number(r.payload.lat)>=-90&&Number(r.payload.lat)<=90&&Number(r.payload.lng)>=-180&&Number(r.payload.lng)<=180?`<a class="tiny map-link" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=${encodeURIComponent(r.payload.lat)}&mlon=${encodeURIComponent(r.payload.lng)}#map=16/${encodeURIComponent(r.payload.lat)}/${encodeURIComponent(r.payload.lng)}">الخريطة</a>`:""}</td></tr>`).join("")}</tbody></table></div>`}
-function formHTML(type,r=null){const fs=fields[type]||[];const gpsButton=["branches","bike_patrols","incidents","emergencies"].includes(type)?`<div class="field gps-field"><button type="button" class="secondary" id="captureCurrentLocation">📍 تحديد موقعي الحالي</button><small class="muted" id="gpsStatus">احصل على إحداثيات الموقع لإرفاقها بالسجل.</small></div>`:"";return `<div class="card" id="editor"><h3>${r?"تعديل":"إضافة"} ${labels[type]}</h3><form id="recordForm" class="form">${gpsButton}${fs.map(f=>{let val=r?.payload?.[f[0]]??"";let input=f[2]==="textarea"?`<textarea name="${f[0]}">${esc(val)}</textarea>`:f[2]==="select"?`<select name="${f[0]}">${f[3].split("|").map(v=>`<option ${v===val?"selected":""}>${v}</option>`).join("")}</select>`:`<input name="${f[0]}" type="${f[2]}" value="${esc(val)}" ${((f[2]==="select" ? f[4] : f[3])===1)?"required":""}>`;return `<div class="field"><label>${f[1]}</label>${input}</div>`}).join("")}${r?`<div class="field"><label>سبب التعديل (مطلوب للتوثيق)</label><input name="edit_reason" required placeholder="اكتب سبب تعديل السجل"></div>`:""}${type==="documents"?`<div class="field"><label>إرفاق ملفات (حتى 15 ميجابايت للملف)</label><input id="documentFiles" type="file" multiple></div><div id="documentAttachments" class="muted">${r?"جارٍ تحميل المرفقات...":"يمكنك إرفاق الملفات بعد الحفظ."}</div>`:""}${type==="handovers"?`<div class="field signature-field"><label>توقيع المستلم (توقيع مرسوم محليًا)</label><canvas id="handoverSignature" width="900" height="240" aria-label="مساحة التوقيع"></canvas><input type="hidden" name="signature_data" value="${esc(r?.payload?.signature_data||"")}"><button type="button" class="secondary" id="clearSignature">مسح التوقيع</button><small class="muted">التوقيع صورة محفوظة ضمن سجل التسليم، وليس توقيعًا إلكترونيًا موثقًا.</small></div>`:""}</form><div class="actions"><button class="primary" id="saveRecord">حفظ السجل</button><button class="secondary" id="cancelEdit">إلغاء</button></div></div>`}
+ const cols=type==="bike_patrols"?fs.slice(0,8):fs.slice(0,5);return `<div class="table-wrap"><table><thead><tr><th>م</th>${cols.map(f=>`<th>${f[1]}</th>`).join("")}<th>التاريخ</th><th class="no-print">إجراء</th></tr></thead><tbody>${list.map((r,i)=>`<tr><td>${i+1}</td>${cols.map(f=>`<td>${esc(r.payload?.[f[0]])}</td>`).join("")}<td>${new Date(type==="bike_patrols"&&r.payload?.patrol_date?r.payload.patrol_date+"T"+(r.payload.patrol_time||"00:00"):r.created_at).toLocaleString("ar-EG")}</td><td class="no-print"><button class="tiny" data-edit="${r.id}" data-type="${type}">تعديل</button> <button class="tiny" data-archive="${r.id}">أرشفة</button> ${type==="branches"&&Number.isFinite(Number(r.payload?.lat))&&Number.isFinite(Number(r.payload?.lng))&&Number(r.payload.lat)>=-90&&Number(r.payload.lat)<=90&&Number(r.payload.lng)>=-180&&Number(r.payload.lng)<=180?`<a class="tiny map-link" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=${encodeURIComponent(r.payload.lat)}&mlon=${encodeURIComponent(r.payload.lng)}#map=16/${encodeURIComponent(r.payload.lat)}/${encodeURIComponent(r.payload.lng)}">الخريطة</a>`:""}</td></tr>`).join("")}</tbody></table></div>`}
+function formHTML(type,r=null){const fs=fields[type]||[];const gpsButton=["branches","patrol_sites","incidents","emergencies"].includes(type)?`<div class="field gps-field"><button type="button" class="secondary" id="captureCurrentLocation">📍 تحديد موقعي الحالي</button><small class="muted" id="gpsStatus">احصل على إحداثيات الموقع لإرفاقها بالسجل.</small></div>`:"";return `<div class="card" id="editor"><h3>${r?"تعديل":"إضافة"} ${labels[type]}</h3><form id="recordForm" class="form">${gpsButton}${fs.map(f=>{let val=r?.payload?.[f[0]]??"";let input=f[2]==="textarea"?`<textarea name="${f[0]}">${esc(val)}</textarea>`:f[2]==="select"?`<select name="${f[0]}">${f[3].split("|").map(v=>`<option ${v===val?"selected":""}>${v}</option>`).join("")}</select>`:`<input name="${f[0]}" type="${f[2]}" value="${esc(val)}" ${((f[2]==="select" ? f[4] : f[3])===1)?"required":""}>`;return `<div class="field"><label>${f[1]}</label>${input}</div>`}).join("")}${r?`<div class="field"><label>سبب التعديل (مطلوب للتوثيق)</label><input name="edit_reason" required placeholder="اكتب سبب تعديل السجل"></div>`:""}${type==="documents"?`<div class="field"><label>إرفاق ملفات (حتى 15 ميجابايت للملف)</label><input id="documentFiles" type="file" multiple></div><div id="documentAttachments" class="muted">${r?"جارٍ تحميل المرفقات...":"يمكنك إرفاق الملفات بعد الحفظ."}</div>`:""}${type==="handovers"?`<div class="field signature-field"><label>توقيع المستلم (توقيع مرسوم محليًا)</label><canvas id="handoverSignature" width="900" height="240" aria-label="مساحة التوقيع"></canvas><input type="hidden" name="signature_data" value="${esc(r?.payload?.signature_data||"")}"><button type="button" class="secondary" id="clearSignature">مسح التوقيع</button><small class="muted">التوقيع صورة محفوظة ضمن سجل التسليم، وليس توقيعًا إلكترونيًا موثقًا.</small></div>`:""}</form><div class="actions"><button class="primary" id="saveRecord">حفظ السجل</button><button class="secondary" id="cancelEdit">إلغاء</button></div></div>`}
 function bindLocationCapture(type){
  const button=$("#captureCurrentLocation");if(!button)return;
  button.onclick=()=>{
@@ -118,7 +163,7 @@ function bindLocationCapture(type){
 }
 function bindHandoverSignature(){const canvas=$("#handoverSignature");if(!canvas)return;const ctx=canvas.getContext("2d"),hidden=$('input[name="signature_data"]');ctx.lineWidth=4;ctx.lineCap="round";ctx.lineJoin="round";ctx.strokeStyle="#101a2c";let drawing=false;const point=e=>{const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)*canvas.width/r.width,y:(e.clientY-r.top)*canvas.height/r.height}};canvas.addEventListener("pointerdown",e=>{drawing=true;canvas.setPointerCapture(e.pointerId);const p=point(e);ctx.beginPath();ctx.moveTo(p.x,p.y)});canvas.addEventListener("pointermove",e=>{if(!drawing)return;const p=point(e);ctx.lineTo(p.x,p.y);ctx.stroke();hidden.value=canvas.toDataURL("image/png")});const finish=()=>{if(drawing){drawing=false;hidden.value=canvas.toDataURL("image/png")}};canvas.addEventListener("pointerup",finish);canvas.addEventListener("pointercancel",finish);$("#clearSignature")?.addEventListener("click",()=>{ctx.clearRect(0,0,canvas.width,canvas.height);hidden.value=""});const saved=hidden.value;if(saved){const img=new Image();img.onload=()=>ctx.drawImage(img,0,0,canvas.width,canvas.height);img.src=saved}}
 function bindAutocomplete(){
- const sourceKeys={branch:[["branches","name"]],person:[["patrol_people","name"],["emergency_people","name"]],responsible:[["managers","name"],["patrol_people","name"],["emergency_people","name"]],manager:[["managers","name"]],bike:[["bikes","number"]],sender:[["patrol_people","name"],["managers","name"]],receiver:[["patrol_people","name"],["managers","name"]],replacement:[["patrol_people","name"],["emergency_people","name"],["managers","name"]]};
+ const sourceKeys={branch:[["branches","name"],["patrol_sites","name"]],site:[["patrol_sites","name"]],person:[["patrol_people","name"],["emergency_people","name"]],responsible:[["managers","name"],["patrol_people","name"],["emergency_people","name"]],manager:[["managers","name"]],bike:[["bikes","number"]],sender:[["patrol_people","name"],["managers","name"]],receiver:[["patrol_people","name"],["managers","name"]],replacement:[["patrol_people","name"],["emergency_people","name"],["managers","name"]]};
  Object.entries(sourceKeys).forEach(([field,sources])=>{const input=document.querySelector(`#recordForm [name="${field}"]`);if(!input||input.tagName==="TEXTAREA")return;const id=`suggest-${field}`;let list=document.getElementById(id);if(!list){list=document.createElement("datalist");list.id=id;input.insertAdjacentElement("afterend",list);}input.setAttribute("list",id);const values=[];sources.forEach(([type,key])=>cache.filter(x=>x.entity_type===type).forEach(row=>{const v=row.payload?.[key];if(v&&String(v).trim())values.push(String(v).trim());}));list.innerHTML=[...new Set(values)].sort((a,b)=>a.localeCompare(b,"ar")).map(v=>`<option value="${esc(v)}"></option>`).join("");});
 }
 function renderEntity(type){
