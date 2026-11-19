@@ -39,6 +39,28 @@ if (!app.includes('function bindAutocomplete()') || !app.includes('suggest-')) t
 if (!app.includes('id="saveRecord" type="submit"') || !app.includes('id="cancelEdit" type="button"') || !app.includes('$("#recordForm")?.addEventListener("submit"') || !app.includes('event.preventDefault()')) throw new Error('Record form must submit through its form handler with explicit button types');
 if (app.includes('</form><div class="actions"><button class="primary" id="saveRecord"')) throw new Error('Record save button must remain inside the form on Android');
 if (!app.includes('d.map(x=>')) throw new Error('Report output must include all matching records');
+
+const buttonMarkup = app + html;
+const buttonIds = [...new Set([...buttonMarkup.matchAll(/<button\\b[^>]*\\bid=["']([^"']+)["']/g)].map(m=>m[1]))];
+for (const id of buttonIds) {
+  if (id === 'saveRecord') {
+    if (!app.includes('$("#recordForm")?.addEventListener("submit"')) throw new Error('Save record button has no form submit handler');
+  } else if (!app.includes('$("#'+id+'")') && !app.includes('document.querySelector("#'+id+'")') && !app.includes('getElementById("'+id+'")')) {
+    throw new Error('Button has no explicit handler binding: '+id);
+  }
+}
+for (const marker of [
+  'document.addEventListener("click",e=>{if(e.target.closest("[data-back-home]"))',
+  '$("[data-page]").forEach',
+  '$("[data-branch-slot]").forEach',
+  '$("[data-move-branch]").forEach',
+  '$("[data-edit]").forEach',
+  '$("[data-archive]").forEach',
+  'host.querySelectorAll("[data-restore-record]")',
+  'box.querySelectorAll("[data-handover-version]")',
+  'document.querySelectorAll("[data-report-type]")'
+]) if (!app.includes(marker)) throw new Error('Interactive button action binding is missing: '+marker);
+
 console.log('PASS: required files, navigation hierarchy, reports archive/restore, script references, refreshed service-worker cache, package.json, Capacitor config, automatic-lock wiring, and repeated motorcycle passes allowed with five distinct bikes/day limit.');
 
 if (!app.includes('patrol_sites:[') || !app.includes('المخازن والمعارض ومراكز الخدمة')) throw new Error('Fixed patrol locations registry is missing');
