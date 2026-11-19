@@ -7,7 +7,7 @@ const fields={
 branches:[["name","اسم الفرع","text",1],["code","كود الفرع","text"],["address","العنوان","text"],["manager","المسؤول","text"],["phone","رقم التواصل","tel"],["lat","خط العرض","number"],["lng","خط الطول","number"],["status","الحالة","select","نشط|متوقف"]],
 patrol_people:[["name","اسم فرد الدورية","text",1],["employee_no","الرقم الوظيفي","text"],["phone","رقم الهاتف","tel"],["branch","الفرع","text"],["job","الوظيفة","text"],["status","الحالة","select","متاح|إجازة|موقوف"]],
 emergency_people:[["name","اسم فرد الطوارئ","text",1],["specialty","التخصص","text"],["phone","رقم الهاتف","tel"],["branch","الفرع","text"],["availability","التوفر","select","متاح|مشغول|إجازة"]],
-bikes:[["number","رقم الدراجة","text",1],["description","الوصف","text"],["person","الفرد المسؤول","text"],["status","الحالة","select","جاهزة|بالمرور|صيانة|متوقفة"]],
+bikes:[["number","رقم الدراجة","text",1],["code","كود الدراجة","text"],["type","نوع الدراجة","text"],["description","الوصف","text"],["person","الفرد المسؤول","text"],["status","الحالة","select","جاهزة|بالمرور|صيانة|متوقفة"]],
 patrol_sites:[["name","اسم المكان","text",1],["site_type","نوع المكان","select","مخزن|معرض|مركز خدمة",1],["address","العنوان / الوصف","text"],["lat","خط العرض","number"],["lng","خط الطول","number"],["notes","ملاحظات","textarea"]],
 managers:[["name","اسم المدير","text",1],["department","القسم","text"],["phone","رقم التواصل","tel"],["branches","الفروع التابعة","text"]],
 branch_patrols:[["branch","الفرع","text",1],["responsible","المسؤول","text"],["patrol_date","تاريخ المرور","date",1],["patrol_time","ساعة المرور","time",1],["condition","حالة الفرع","select","جيد|ملاحظات|مخالفة|مغلق"],["notes","الملاحظات","textarea"]],
@@ -404,13 +404,59 @@ function reports(){
  const detailRows=x=>{const p=x.payload||{},defs=fields[x.entity_type]||[],known=defs.filter(f=>p[f[0]]!==undefined&&p[f[0]]!==null&&p[f[0]]!=="").map(f=>[f[1],String(p[f[0]])]),keys=new Set(defs.map(f=>f[0])),extra=Object.entries(p).filter(([k,v])=>!keys.has(k)&&v!==undefined&&v!==null&&v!=="").map(([k,v])=>[k,String(v)]);return known.concat(extra);};
  const reportKeyLabels={edit_reason:"سبب التعديل",created_at:"تاريخ الإنشاء",updated_at:"آخر تحديث",patrol_time:"وقت المرور",patrol_date:"تاريخ المرور",id:"رقم السجل"};
  const rowsFor=d=>d.map(x=>({section:labels[x.entity_type]||x.entity_type,date:dayOf(x),time:(x.payload&&x.payload.patrol_time)||"",details:detailRows(x).filter(v=>!["id","created_at","updated_at","is_archived","archived_at"].includes(v[0])).map(v=>(reportKeyLabels[v[0]]||v[0])+": "+v[1]).join(" | ")}));
- const refreshReport=()=>{const d=get(),counts={};d.forEach(x=>counts[x.entity_type]=(counts[x.entity_type]||0)+1);const rows=rowsFor(d);$("#reportSummary").innerHTML="<h3>تقرير "+esc($("#reportType").selectedOptions[0].textContent)+"</h3><p>الفترة: "+esc($("#fromDate").value)+" إلى "+esc($("#toDate").value)+" • عدد السجلات: "+d.length+" • تاريخ الإصدار: "+new Date().toLocaleString("ar-EG")+"</p><div class=\"stats\">"+Object.entries(counts).map(([k,v])=>"<div class=\"stat\"><b>"+v+"</b><span>"+esc(labels[k]||k)+"</span></div>").join("")+"</div><div class=\"table-wrap\"><table><thead><tr><th>القسم</th><th>التاريخ</th><th>الوقت</th><th>تفاصيل السجل</th></tr></thead><tbody>"+rows.map(x=>"<tr><td>"+esc(x.section)+"</td><td>"+esc(x.date)+"</td><td>"+esc(x.time)+"</td><td>"+esc(x.details)+"</td></tr>").join("")+"</tbody></table></div><p class=\"muted\">المُعد: DEEBO • التوقيع: __________________</p>";};
+ const bikeGroupsFor=d=>{
+  const source=d.filter(x=>x.entity_type==="bike_patrols");
+  const groups=new Map();
+  source.forEach(x=>{
+   const p=x.payload||{},date=dayOf(x),bike=String(p.bike||"غير محدد").trim();
+   const key=date+"|"+bike;
+   if(!groups.has(key))groups.set(key,{date,bike,visits:[]});
+   groups.get(key).visits.push(x);
+  });
+  return [...groups.values()].map(g=>{
+   const bikeRecord=data.concat(cache).find(x=>x.entity_type==="bikes"&&String(x.payload?.number||"").trim()===g.bike);
+   const bp=bikeRecord?.payload||{};
+   const sites=new Map();
+   g.visits.sort((a,b)=>String(a.payload?.patrol_time||"").localeCompare(String(b.payload?.patrol_time||"")));
+   g.visits.forEach(v=>{
+    const p=v.payload||{},site=String(p.site||p.branch||p.location||"غير محدد").trim();
+    if(!sites.has(site))sites.set(site,[]);
+    sites.get(site).push(String(p.patrol_time||"—"));
+   });
+   return {date:g.date,bike:g.bike,person:bp.person||g.visits[0]?.payload?.person||g.visits[0]?.payload?.responsible||"غير مسجل",code:bp.code||"غير مسجل",type:bp.type||bp.description||"غير مسجل",sites:[...sites.entries()].map(([site,times])=>({site,times}))};
+  });
+ };
+ const refreshReport=()=>{
+  const d=get(),counts={};d.forEach(x=>counts[x.entity_type]=(counts[x.entity_type]||0)+1);
+  if($("#reportType").value==="bike_patrols"){
+   const groups=bikeGroupsFor(d),visitCount=d.length;
+   $("#reportSummary").innerHTML="<h3>تقرير مرور الدراجات</h3><p>الفترة: "+esc($("#fromDate").value)+" إلى "+esc($("#toDate").value)+" • إجمالي مرات المرور: "+visitCount+" • عدد الدراجات: "+groups.length+"</p>"+groups.map((g,gi)=>"<section class='card bike-report-preview'><h3>بيانات القائم بالمرور والدراجة — "+(gi+1)+"</h3><div class='stats'><div class='stat'><span>اسم القائم بالمرور</span><b>"+esc(g.person)+"</b></div><div class='stat'><span>رقم الدراجة</span><b>"+esc(g.bike)+"</b></div><div class='stat'><span>كود الدراجة</span><b>"+esc(g.code)+"</b></div><div class='stat'><span>نوع الدراجة</span><b>"+esc(g.type)+"</b></div><div class='stat'><span>تاريخ المرور</span><b>"+esc(g.date)+"</b></div></div><div class='table-wrap'><table><thead><tr><th>الفرع / المخزن / مركز الخدمة</th><th>مرور 1</th><th>مرور 2</th><th>مرور 3</th><th>مرور 4</th><th>مرور 5</th></tr></thead><tbody>"+g.sites.map(r=>"<tr><td>"+esc(r.site)+"</td>"+Array.from({length:5},(_,i)=>"<td>"+esc(r.times[i]||"—")+"</td>").join("")+"</tr>"+(r.times.length>5?"<tr><td>"+esc(r.site)+" — استكمال</td>"+Array.from({length:5},(_,i)=>"<td>"+esc(r.times[i+5]||"—")+"</td>").join("")+"</tr>":"")).join("")+"</tbody></table></div></section>").join("")||"<div class='empty'>لا توجد سجلات مرور دراجات في الفترة المحددة</div>";
+   return;
+  }
+  const rows=rowsFor(d);
+  $("#reportSummary").innerHTML="<h3>تقرير "+esc($("#reportType").selectedOptions[0].textContent)+"</h3><p>الفترة: "+esc($("#fromDate").value)+" إلى "+esc($("#toDate").value)+" • عدد السجلات: "+d.length+" • تاريخ الإصدار: "+new Date().toLocaleString("ar-EG")+"</p><div class='stats'>"+Object.entries(counts).map(([k,v])=>"<div class='stat'><b>"+v+"</b><span>"+esc(labels[k]||k)+"</span></div>").join("")+"</div><div class='table-wrap'><table><thead><tr><th>القسم</th><th>التاريخ</th><th>الوقت</th><th>تفاصيل السجل</th></tr></thead><tbody>"+rows.map(x=>"<tr><td>"+esc(x.section)+"</td><td>"+esc(x.date)+"</td><td>"+esc(x.time)+"</td><td>"+esc(x.details)+"</td></tr>").join("")+"</tbody></table></div><p class='muted'>المُعد: DEEBO • التوقيع: __________________</p>";
+ };
  ["fromDate","toDate","reportType"].forEach(id=>$("#"+id).onchange=refreshReport);
  document.querySelectorAll("[data-report-type]").forEach(btn=>btn.onclick=()=>{$("#reportType").value=btn.dataset.reportType;refreshReport();});
  refreshReport();
- const rowsForExport=d=>[["القسم","التاريخ","الوقت","تفاصيل السجل"],...rowsFor(d).map(x=>[x.section,x.date,x.time,x.details])];
+ const rowsForExport=d=>{
+  if($("#reportType").value==="bike_patrols"){
+   const out=[["التاريخ","اسم القائم بالمرور","رقم الدراجة","كود الدراجة","نوع الدراجة","الفرع / المخزن / مركز الخدمة","مرور 1","مرور 2","مرور 3","مرور 4","مرور 5"]];
+   bikeGroupsFor(d).forEach(g=>g.sites.forEach(r=>{
+    out.push([g.date,g.person,g.bike,g.code,g.type,r.site,...Array.from({length:5},(_,i)=>r.times[i]||"")]);
+    for(let offset=5;offset<r.times.length;offset+=5)out.push([g.date,g.person,g.bike,g.code,g.type,r.site+" — استكمال",...Array.from({length:5},(_,i)=>r.times[offset+i]||"")]);
+   }));
+   return out;
+  }
+  return [["القسم","التاريخ","الوقت","تفاصيل السجل"],...rowsFor(d).map(x=>[x.section,x.date,x.time,x.details])];
+ };
  const saveFile=async(name,mime,content)=>{try{const native=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.FileExport;if(native&&native.saveFile){const bytes=new TextEncoder().encode(content);let binary="";for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);await native.saveFile({name:name,mimeType:mime,base64:btoa(binary)});toast("تم حفظ الملف داخل Downloads/DEEBO");}else{DebooDB.downloadBlob(new Blob([content],{type:mime}),name);toast("تم تجهيز الملف للتنزيل");}}catch(e){toast("تعذر حفظ الملف: "+(e.message||e));}};
  const printHtml=d=>{
+  if($("#reportType").value==="bike_patrols"){
+   const groups=bikeGroupsFor(d),title="تقرير مرور الدراجات",period=$("#fromDate").value+" — "+$("#toDate").value;
+   const sections=groups.map((g,gi)=>'<section class="bike-sheet-section"><h2 class="bike-section-title">بيانات القائم بالمرور والدراجة</h2><div class="bike-meta"><div><span>اسم القائم بالمرور</span><b>'+esc(g.person)+'</b></div><div><span>رقم الدراجة</span><b>'+esc(g.bike)+'</b></div><div><span>كود الدراجة</span><b>'+esc(g.code)+'</b></div><div><span>نوع الدراجة</span><b>'+esc(g.type)+'</b></div><div><span>تاريخ المرور</span><b>'+esc(g.date)+'</b></div></div><h2 class="bike-section-title">الأماكن التي تم المرور عليها</h2><table class="bike-table"><thead><tr><th>الفرع / المخزن / مركز الخدمة</th><th>مرور 1</th><th>مرور 2</th><th>مرور 3</th><th>مرور 4</th><th>مرور 5</th></tr></thead><tbody>'+g.sites.map(r=>'<tr><td>'+esc(r.site)+'</td>'+Array.from({length:5},(_,i)=>'<td>'+esc(r.times[i]||'—')+'</td>').join('')+'</tr>'+(r.times.length>5?'<tr><td>'+esc(r.site)+' — استكمال</td>'+Array.from({length:5},(_,i)=>'<td>'+esc(r.times[i+5]||'—')+'</td>').join('')+'</tr>':'')).join('')+'</tbody></table></section>').join('');
+   return '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DEEBO | '+title+'</title><style>*{box-sizing:border-box}html,body{margin:0;background:#eef1f5;color:#172438;font-family:Tahoma,Arial,sans-serif;font-size:13px;line-height:1.6;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{max-width:980px;margin:22px auto;padding:28px;background:#fff;border:1px solid #dce2ea;box-shadow:0 4px 22px #17243818}.brand{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #b99753;padding-bottom:12px;margin-bottom:16px}.brand-name{font-size:27px;font-weight:900;color:#14253d}.brand-tag{font-size:11px;color:#69778a}h1{text-align:center;font-size:22px;margin:10px 0 4px;color:#172b49}.period{text-align:center;color:#68778a;margin:0 0 18px;font-size:12px}.bike-sheet-section{margin:0 0 22px;break-inside:avoid;page-break-inside:avoid}.bike-section-title{font-size:15px;color:#172b49;border-right:4px solid #b99753;padding:5px 9px;margin:15px 0 10px;background:#f5f7fa}.bike-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px}.bike-meta>div{border:1px solid #dce2ea;border-radius:6px;padding:8px 10px;background:#f8f9fb;min-height:52px}.bike-meta span{display:block;font-size:10px;color:#68778a}.bike-meta b{display:block;margin-top:3px;font-size:13px;color:#172b49;overflow-wrap:anywhere}.bike-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px}.bike-table th{background:#172b49;color:#fff;font-weight:700;padding:10px 6px;border:1px solid #172b49}.bike-table td{padding:10px 6px;border:1px solid #cfd7e2;text-align:center;overflow-wrap:anywhere}.bike-table td:first-child{text-align:right;font-weight:700;width:30%;background:#f5f7fa}.bike-table tbody tr:nth-child(even){background:#fafbfd}.report-foot{display:flex;justify-content:space-between;border-top:1px solid #dce2ea;padding-top:12px;margin-top:20px;color:#68778a;font-size:11px}@page{size:A4 landscape;margin:12mm}@media print{html,body{background:#fff}.sheet{max-width:none;margin:0;padding:0;border:0;box-shadow:none}.bike-table thead{display:table-header-group}.bike-table tr{break-inside:avoid;page-break-inside:avoid}.bike-sheet-section{break-inside:auto;page-break-inside:auto}}@media screen and(max-width:640px){.sheet{margin:0;padding:14px}.bike-meta{grid-template-columns:repeat(2,minmax(0,1fr))}.bike-table{font-size:10px}.bike-table th,.bike-table td{padding:6px 3px}}</style></head><body><main class="sheet"><div class="brand"><div><div class="brand-name">DEEBO</div><div class="brand-tag">نظام متابعة التشغيل والدوريات</div></div><div class="brand-tag">تقرير رسمي</div></div><h1>'+title+'</h1><p class="period">الفترة: '+esc(period)+' • إجمالي مرات المرور: '+d.length+'</p>'+(sections||'<p>لا توجد سجلات في الفترة المحددة</p>')+'<div class="report-foot"><span>تم إنشاء التقرير بواسطة DEEBO</span><span>اعتماد المسؤول: __________________</span></div></main></body></html>';
+  }
   const rows=rowsFor(d),counts={};
   rows.forEach(x=>counts[x.section]=(counts[x.section]||0)+1);
   const reportTitle=$("#reportType").selectedOptions[0].textContent;
