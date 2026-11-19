@@ -59,7 +59,7 @@ if (!app.includes('$$(".tile").forEach') || !app.includes('$$("[data-page]").for
 
 const employeeChecks = [
   ['employees:"سجل الموظفين"', 'Employee registry label is missing'],
-  ['employees:["name","اسم الموظف","text",1]', 'Employee name field is missing'],
+  ['employees:[["name","اسم الموظف","text",1]', 'Employee name field is missing'],
   ['["sap_no","رقم ساب","text"]', 'Employee SAP number field is missing'],
   ['["phone","رقم الهاتف","tel"]', 'Employee phone field is missing'],
   ['["branch","الفرع","text"]', 'Employee branch field is missing'],
