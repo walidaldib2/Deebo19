@@ -11,6 +11,8 @@ for (const f of ['index.html','style.css','app.js','db.js','qrcode.js','manifest
 const pkg = JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
 const cap = JSON.parse(fs.readFileSync(path.join(root,'capacitor.config.json'),'utf8'));
 if (!pkg.dependencies?.['@capacitor/android'] || !pkg.dependencies?.['@capacitor/core']) throw new Error('Capacitor dependencies missing');
+if (cap.appName !== 'DEEBO') throw new Error('Android display name must be DEEBO');
+if (pkg.name !== 'deebo-field-operations') throw new Error('Project package name must be deebo-field-operations');
 if (cap.webDir !== 'www') throw new Error('Capacitor webDir must be the staged www directory');
 const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
 if (!app.includes('$(\"#enableBiometric\").onclick=async()=>') || !app.includes('$(\"#disableBiometric\").onclick=()=>')) throw new Error('Biometric settings handlers are missing');
@@ -40,6 +42,8 @@ console.log('PASS: required files, navigation hierarchy, reports archive/restore
 if (!app.includes('patrol_sites:[') || !app.includes('المخازن والمعارض ومراكز الخدمة')) throw new Error('Fixed patrol locations registry is missing');
 if (!app.includes('patrol_date') || !app.includes('location_url') || !app.includes('extractSharedCoordinates')) throw new Error('WhatsApp fixed-location patrol flow is incomplete');
 const manifest = JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
+if (manifest.name !== 'DEEBO' || manifest.short_name !== 'DEEBO') throw new Error('PWA display name must be DEEBO');
+if (!html.includes('<title>DEEBO |') || !html.includes('class="wordmark">DEEBO</div>')) throw new Error('Visible application branding must be DEEBO');
 if (!manifest.share_target || manifest.share_target.action !== './?share=location') throw new Error('PWA WhatsApp share target is missing');
 if (!app.includes('consumeSharedLocation()')) throw new Error('Shared location intake handler is missing');
 if (!app.includes("function bindPatrolLocationInput") || !app.includes("bindPatrolLocationInput(type)")) throw new Error("Manual WhatsApp location-link parsing is missing");
