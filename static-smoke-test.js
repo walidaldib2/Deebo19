@@ -25,7 +25,7 @@ if (!db.includes('return {app:"DEEB",format:2') || !db.includes('["DEEB","DEEBO"
 for (const marker of [
   'document.addEventListener("click",e=>{if(e.target.closest("[data-back-home]"))',
   '$$("[data-page]").forEach',
-  '$$("[data-branch-slot]").forEach',
+  '$("[data-branch-slot]").forEach',
   'moveBranchOrder(button.dataset.moveBranch,Number(button.dataset.direction)||0)',
   "$$(\'[data-edit]\').forEach",
   "$$(\'[data-archive]\').forEach",
@@ -58,6 +58,10 @@ if (!app.includes('const branchGroupsFor=d=>') || !app.includes('supervisor:[["e
 if (!app.includes('const displayRows=visible.flatMap') || !app.includes('continuation:i>0,visits:g.visits.slice(i*5,(i+1)*5)') || !app.includes('g.branch+(g.continuation?" — استكمال":"")')) throw new Error('Branch patrol continuation rows beyond five visits are missing from the screen or reports');
 if (!app.includes('تقرير متابعة الفروع') || !app.includes('data:') && !app.includes('branchGroupsFor(d)')) throw new Error('Branch report matrix is missing');
 if (!db.includes('const patrolDate=String(row.payload?.patrol_date||"").trim()')) throw new Error('Motorcycle backup restore must validate patrol_date rather than patrol_time');
+
+
+if (!app.includes('$("#recordForm")?.elements.namedItem("supervisor")?.focus()')) throw new Error("Quick branch patrol entry must open the form and focus the required supervisor field");
+if (!app.includes("bindGlobalSearchSuggestions()") || !app.includes('input.setAttribute("list","globalSearchSuggestions")')) throw new Error("Global search autocomplete suggestions are missing");
 
 console.log('PASS: required files, navigation hierarchy, reports archive/restore, script references, refreshed service-worker cache, package.json, Capacitor config, automatic-lock wiring, and repeated motorcycle passes allowed with five distinct bikes/day limit.');
 
