@@ -55,10 +55,14 @@ jobs:
       - name: Build biometric web bundle
         run: npm run build:biometric
 
+      - name: Build native plugin bridge
+        run: npm run build:native-plugins
+
       - name: Verify Android web assets
         run: |
           test -s www/index.html
           test -s www/biometric.bundle.js
+          test -s www/native-plugins.bundle.js
           grep -q "BiometricAuth" www/biometric.bundle.js
 
       - name: Generate Android project
