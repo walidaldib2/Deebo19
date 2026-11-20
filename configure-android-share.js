@@ -164,7 +164,7 @@ public class FileExportPlugin extends Plugin {
         view.loadDataWithBaseURL("https://localhost/",html,"text/html","UTF-8",null);
         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(()->{
           if(finished.compareAndSet(false,true)){view.stopLoading();view.destroy();call.reject("انتهت مهلة تجهيز التقرير للطباعة. حاول مرة أخرى.");}
-        },15000);
+        },60000);
       } catch(Exception e){if(finished.compareAndSet(false,true)){view.destroy();call.reject("تعذرت الطباعة: "+e.getMessage(),e);}}
     });
   }
