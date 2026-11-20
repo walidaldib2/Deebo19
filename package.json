@@ -14,12 +14,12 @@
     "build:native-plugins": "esbuild native-plugins-entry.js --bundle --format=iife --outfile=www/native-plugins.bundle.js"
   },
   "dependencies": {
-    "@aparajita/capacitor-biometric-auth": "9.1.2",
-    "@capacitor/android": "^7.4.3",
-    "@capacitor/core": "^7.4.3"
+    "@aparajita/capacitor-biometric-auth": "^10.0.0",
+    "@capacitor/android": "^8.0.2",
+    "@capacitor/core": "^8.0.2"
   },
   "devDependencies": {
-    "@capacitor/cli": "^7.4.3",
+    "@capacitor/cli": "^8.0.2",
     "esbuild": "^0.25.12",
     "fake-indexeddb": "^6.2.4"
   }
