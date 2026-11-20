@@ -529,8 +529,9 @@ function reports(){
    const groups=bikeGroupsFor(d),title="تقرير مرور الدراجات",period=$("#fromDate").value+" — "+$("#toDate").value;
    const locationInfo=visit=>{
     const link=String(visit.location_url||"").trim();
+    const hasCoordinates=visit.lat!==""&&visit.lng!==""&&visit.lat!=null&&visit.lng!=null;
     const lat=Number(visit.lat),lng=Number(visit.lng);
-    const coordinates=Number.isFinite(lat)&&Number.isFinite(lng)?lat.toFixed(5)+", "+lng.toFixed(5):"—";
+    const coordinates=hasCoordinates&&Number.isFinite(lat)&&Number.isFinite(lng)?lat.toFixed(5)+", "+lng.toFixed(5):"—";
     return {coordinates,sent:!!link};
    };
    const sections=groups.map(g=>{
