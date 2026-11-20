@@ -60,7 +60,12 @@ self.addEventListener("fetch", event => {
 
           return response;
         })
-        .catch(() => caches.match("./index.html"));
+        .catch(() => {
+        // Only document navigations may fall back to the app shell.
+        // Returning HTML for a missing JS/CSS/image asset masks the real failure.
+        if (event.request.mode === "navigate") return caches.match("./index.html");
+        return Response.error();
+      });
     })
   );
 });

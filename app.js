@@ -455,8 +455,9 @@ function reports(){
   source.forEach(x=>{
    const p=x.payload||{},date=dayOf(x),bike=String(p.bike||"غير محدد").trim();
    const person=String(p.person||p.responsible||"").trim();
-   const key=date+"|"+bike+"|"+person;
-   if(!groups.has(key))groups.set(key,{date,bike,person,visits:[]});
+   const key=date+"|"+bike;
+   if(!groups.has(key))groups.set(key,{date,bike,people:new Set(),visits:[]});
+   if(person)groups.get(key).people.add(person);
    groups.get(key).visits.push(x);
   });
   return [...groups.values()].map(g=>{
@@ -470,7 +471,7 @@ function reports(){
     const lat=String(p.lat??"").trim(),lng=String(p.lng??"").trim(),coordinates=lat&&lng&&Number.isFinite(Number(lat))&&Number.isFinite(Number(lng))?Number(lat).toFixed(6)+", "+Number(lng).toFixed(6):"—";
     sites.get(site).push({time:String(p.patrol_time||"—"),coordinates,notes:String(p.notes||"").trim()});
    });
-   return {date:g.date,bike:g.bike,person:g.person||bp.person||"—",code:bp.code||"—",type:bp.type||bp.description||"—",sites:[...sites.entries()].map(([site,entries])=>({site,entries,times:entries.map(v=>v.time)}))};
+   return {date:g.date,bike:g.bike,person:[...g.people].join("، ")||bp.person||"—",code:bp.code||"—",type:bp.type||bp.description||"—",sites:[...sites.entries()].map(([site,entries])=>({site,entries,times:entries.map(v=>v.time)}))};
   });
  };
  const branchGroupsFor=d=>{
@@ -490,7 +491,8 @@ function reports(){
   const d=get(),counts={};d.forEach(x=>counts[x.entity_type]=(counts[x.entity_type]||0)+1);
   if($("#reportType").value==="bike_patrols"){
    const groups=bikeGroupsFor(d),visitCount=d.length;
-   $("#reportSummary").innerHTML="<h3>تقرير مرور الدراجات</h3><p>الفترة: "+esc($("#fromDate").value)+" إلى "+esc($("#toDate").value)+" • إجمالي مرات المرور: "+visitCount+" • عدد الدراجات: "+groups.length+"</p>"+groups.map((g,gi)=>"<section class='card bike-report-preview'><h3>بيانات القائم بالمرور والدراجة — "+(gi+1)+"</h3><div class='stats'><div class='stat'><span>اسم القائم بالمرور</span><b>"+esc(g.person)+"</b></div><div class='stat'><span>رقم الدراجة</span><b>"+esc(g.bike)+"</b></div><div class='stat'><span>كود الدراجة</span><b>"+esc(g.code)+"</b></div><div class='stat'><span>نوع الدراجة</span><b>"+esc(g.type)+"</b></div><div class='stat'><span>تاريخ المرور</span><b>"+esc(g.date)+"</b></div></div><div class='table-wrap'><table><thead><tr><th>الفرع / المخزن / مركز الخدمة</th><th>مرور 1</th><th>مرور 2</th><th>مرور 3</th><th>مرور 4</th><th>مرور 5</th></tr></thead><tbody>"+g.sites.map(r=>"<tr><td>"+esc(r.site)+"</td>"+Array.from({length:5},(_,i)=>"<td>"+esc(r.times[i]||"—")+"</td>").join("")+"</tr>"+Array.from({length:Math.max(0,Math.ceil(r.times.length/5)-1)},(_,chunk)=>"<tr><td>"+esc(r.site)+" — استكمال</td>"+Array.from({length:5},(_,i)=>"<td>"+esc(r.times[(chunk+1)*5+i]||"—")+"</td>").join("")+"</tr>").join("")).join("")+"</tbody></table></div></section>").join("")||"<div class='empty'>لا توجد سجلات مرور دراجات في الفترة المحددة</div>";
+   const uniqueBikeCount=new Set(d.map(x=>String(x.payload?.bike||"غير محدد").trim()).filter(Boolean)).size;
+   $("#reportSummary").innerHTML="<h3>تقرير مرور الدراجات</h3><p>الفترة: "+esc($("#fromDate").value)+" إلى "+esc($("#toDate").value)+" • إجمالي مرات المرور: "+visitCount+" • عدد الدراجات: "+uniqueBikeCount+"</p>"+groups.map((g,gi)=>"<section class='card bike-report-preview'><h3>بيانات القائم بالمرور والدراجة — "+(gi+1)+"</h3><div class='stats'><div class='stat'><span>اسم القائم بالمرور</span><b>"+esc(g.person)+"</b></div><div class='stat'><span>رقم الدراجة</span><b>"+esc(g.bike)+"</b></div><div class='stat'><span>كود الدراجة</span><b>"+esc(g.code)+"</b></div><div class='stat'><span>نوع الدراجة</span><b>"+esc(g.type)+"</b></div><div class='stat'><span>تاريخ المرور</span><b>"+esc(g.date)+"</b></div></div><div class='table-wrap'><table><thead><tr><th>الفرع / المخزن / مركز الخدمة</th><th>مرور 1</th><th>مرور 2</th><th>مرور 3</th><th>مرور 4</th><th>مرور 5</th></tr></thead><tbody>"+g.sites.map(r=>"<tr><td>"+esc(r.site)+"</td>"+Array.from({length:5},(_,i)=>"<td>"+esc(r.times[i]||"—")+"</td>").join("")+"</tr>"+Array.from({length:Math.max(0,Math.ceil(r.times.length/5)-1)},(_,chunk)=>"<tr><td>"+esc(r.site)+" — استكمال</td>"+Array.from({length:5},(_,i)=>"<td>"+esc(r.times[(chunk+1)*5+i]||"—")+"</td>").join("")+"</tr>").join("")).join("")+"</tbody></table></div></section>").join("")||"<div class='empty'>لا توجد سجلات مرور دراجات في الفترة المحددة</div>";
    return;
   }
   if($("#reportType").value==="branch_patrols"){

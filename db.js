@@ -70,10 +70,11 @@ window.DebooDB = (() => {
   async function all(opts={}) {
     let data=await getAll("records");
     data=data.filter(x=>!!x.is_archived===!!opts.archived);
-    return data.sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).slice(0,opts.limit||2000);
+    data.sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
+    return Number.isFinite(opts.limit)&&opts.limit>=0?data.slice(0,opts.limit):data;
   }
   async function list(type,opts={}) {
-    let data=await all({archived:opts.archived,limit:opts.limit||500});
+    const data=await all({archived:opts.archived,limit:opts.limit});
     return data.filter(x=>x.entity_type===type&&(!opts.branch_id||x.branch_id===opts.branch_id)&&(!opts.status||x.status===opts.status));
   }
   function makeAudit(action,recordId,oldData,newData,reason) {
