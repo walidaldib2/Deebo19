@@ -48,6 +48,7 @@ jobs:
           node --check sw.js
           node --check prepare-android.js
           node --check configure-android-share.js
+          node --check prepare-android-icons.js
           node --check preferences.js
           node --check native-plugins-entry.js
           node --check biometric-entry.js
@@ -66,10 +67,14 @@ jobs:
           test -s www/index.html
           test -s www/biometric.bundle.js
           test -s www/native-plugins.bundle.js
+          test -s play-store-assets/icon-512.png
           grep -q "BiometricAuth" www/biometric.bundle.js
 
       - name: Generate Android project
         run: npx cap add android
+
+      - name: Generate DEEB Android launcher and Play Store icons
+        run: npm run prepare:android:icons
 
       - name: Sync Android project
         run: npx cap sync android
@@ -144,5 +149,6 @@ jobs:
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
             android/app/build/outputs/bundle/release/app-release.aab
+            play-store-assets/icon-512.png
           if-no-files-found: error
           retention-days: 30
