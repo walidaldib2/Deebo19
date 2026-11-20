@@ -1,4 +1,5 @@
 name: Build DEEB Android APK
+# Rebuild after the latest branch-report layout and readability updates.
 
 on:
   workflow_dispatch:
