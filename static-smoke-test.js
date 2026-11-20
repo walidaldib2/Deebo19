@@ -56,7 +56,8 @@ if (app.split('DEEB</div>').length - 1 < 2) throw new Error('Both printed report
 
 if (!app.includes('const branchGroupsFor=d=>') || !app.includes('supervisor:[["employees","name"],["managers","name"],["patrol_people","name"]]')) throw new Error('Branch report supervisor grouping / saved suggestions are missing');
 if (!app.includes('Math.max(0,Math.ceil(r.times.length/5)-1)')) throw new Error('Motorcycle screen preview and spreadsheet export must preserve all recorded visits');
-if (!app.includes('Math.ceil(r.entries.length/3)') || !app.includes('إحداثيات الموقع') || !app.includes('إرسال الموقع') || !app.includes('لم يرسل')) throw new Error('Printed motorcycle report must show three patrol slots, coordinates, and send status');
+if (!app.includes('Math.ceil(r.entries.length/3)') || !app.includes('رابط الموقع') || !app.includes('إرسال الموقع') || !app.includes('لم يرسل')) throw new Error('Printed motorcycle report must show three patrol slots, Maps link, and send status');
+if (!app.includes('<section class="bike-sheet-section"><div class="brand">') || !app.includes('break-inside:avoid;page-break-inside:avoid;break-after:page;page-break-after:always')) throw new Error('Each printed motorcycle report must retain its own branded page without intentional splitting');
 if (!app.includes('const displayRows=visible.flatMap') || !app.includes('continuation:i>0,visits:g.visits.slice(i*5,(i+1)*5)') || !app.includes('g.branch+(g.continuation?" — استكمال":"")')) throw new Error('Branch patrol continuation rows beyond five visits are missing from the screen or reports');
 if (!app.includes('تقرير متابعة الفروع') || !app.includes('data:') && !app.includes('branchGroupsFor(d)')) throw new Error('Branch report matrix is missing');
 if (!db.includes('const patrolDate=String(row.payload?.patrol_date||"").trim()')) throw new Error('Motorcycle backup restore must validate patrol_date rather than patrol_time');
