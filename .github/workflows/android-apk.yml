@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - feature/deboo-pro-upgrade
+      - fix/night-shift-bike-report
 
 concurrency:
   group: deeb-android-apk-${{ github.ref }}
