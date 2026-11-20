@@ -509,10 +509,10 @@ function reports(){
   $("#reportSummary").innerHTML="<h3>تقرير "+esc($("#reportType").selectedOptions[0].textContent)+"</h3><p>الفترة: "+esc($("#fromDate").value)+" إلى "+esc($("#toDate").value)+" • عدد السجلات: "+d.length+" • تاريخ الإصدار: "+new Date().toLocaleString("ar-EG")+"</p><div class='stats'>"+Object.entries(counts).map(([k,v])=>"<div class='stat'><b>"+v+"</b><span>"+esc(labels[k]||k)+"</span></div>").join("")+"</div><div class='table-wrap'><table><thead><tr><th>القسم</th><th>التاريخ</th><th>الوقت</th><th>تفاصيل السجل</th></tr></thead><tbody>"+rows.map(x=>"<tr><td>"+esc(x.section)+"</td><td>"+esc(x.date)+"</td><td>"+esc(x.time)+"</td><td>"+esc(x.details)+"</td></tr>").join("")+"</tbody></table></div><p class='muted'>المُعد: DEEB • التوقيع: __________________</p>";
  };
  ["fromDate","toDate","reportType"].forEach(id=>$("#"+id).onchange=()=>{selectedBikeReport="all";refreshReport();refreshBikeQuickReports();});
- const refreshBikeQuickReports=()=>{const groups=bikeGroupsFor(get()),host=$("#bikeQuickReports");host.innerHTML=groups.map((g,gi)=>'<button class="secondary" data-bike-number="'+esc(g.bike)+'">تقرير مرور دراجة '+(gi+1)+'</button>').join("");host.querySelectorAll("[data-bike-number]").forEach(btn=>btn.onclick=()=>{selectedBikeReport=btn.dataset.bikeNumber;$("#reportType").value="bike_patrols";refreshReport();$("#bikeReportSelect").value=selectedBikeReport;});};
+ const refreshBikeQuickReports=()=>{const a=$("#fromDate").value,b=$("#toDate").value,filtered=data.filter(x=>x.entity_type==="bike_patrols"&&(!a||dayOf(x)>=a)&&(!b||dayOf(x)<=b)),groups=bikeGroupsFor(filtered),host=$("#bikeQuickReports");host.innerHTML=groups.map((g,gi)=>'<button class="secondary" data-bike-number="'+esc(g.bike)+'">تقرير مرور دراجة '+(gi+1)+'</button>').join("");host.querySelectorAll("[data-bike-number]").forEach(btn=>btn.onclick=()=>{selectedBikeReport=btn.dataset.bikeNumber;$("#reportType").value="bike_patrols";refreshReport();$("#bikeReportSelect").value=selectedBikeReport;});};
   $("#bikeReportSelect").onchange=()=>{selectedBikeReport=$("#bikeReportSelect").value;refreshReport();};
- document.querySelectorAll("[data-report-type]").forEach(btn=>btn.onclick=()=>{$("#reportType").value=btn.dataset.reportType;refreshReport();});
- $("#monthlyReport").onclick=()=>{$("#fromDate").value=monthStart;$("#toDate").value=today;$("#reportType").value="";refreshReport();};
+ document.querySelectorAll("[data-report-type]").forEach(btn=>btn.onclick=()=>{selectedBikeReport="all";$("#reportType").value=btn.dataset.reportType;refreshReport();refreshBikeQuickReports();});
+ $("#monthlyReport").onclick=()=>{selectedBikeReport="all";$("#fromDate").value=monthStart;$("#toDate").value=today;$("#reportType").value="";refreshReport();refreshBikeQuickReports();};
  refreshReport();
  refreshBikeQuickReports();
  const rowsForExport=d=>{
@@ -568,7 +568,7 @@ function reports(){
   if($("#reportType").value==="bike_patrols"){
    const allGroups=bikeGroupsFor(d),groups=allGroups.filter(g=>selectedBikeReport==="all"||g.bike===selectedBikeReport),title=selectedBikeReport==="all"?"تقرير مرور الدراجات":"تقرير مرور دراجة "+(allGroups.findIndex(g=>g.bike===selectedBikeReport)+1),period=$("#fromDate").value+" — "+$("#toDate").value;
        const sections=groups.map((g,gi)=>{
-    const originalIndex=groups.indexOf(g);
+    const originalIndex=allGroups.indexOf(g);
     const sectionTitle="تقرير مرور دراجة "+(originalIndex+1);
     const siteRows=g.sites.flatMap(r=>r.entries.map((v,i)=>{
      const patrol=esc(v.time||"—");
