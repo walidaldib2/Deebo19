@@ -98,6 +98,10 @@ const manifest = JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf
 if (manifest.name !== 'DEEB' || manifest.short_name !== 'DEEB') throw new Error('PWA display name must be DEEB');
 if (!html.includes('<title>DEEB |') || !html.includes('class="wordmark">DEEB</div>') || html.includes('wolf-mark') || html.includes('شعار الذئب')) throw new Error('Visible DEEB wordmark-only branding is missing or a wolf icon remains');
 if (!manifest.share_target || manifest.share_target.action !== './?share=location') throw new Error('PWA WhatsApp share target is missing');
+if (!fs.existsSync(path.join(root,"native-plugins.bundle.js")) || !html.includes('<script src="native-plugins.bundle.js"></script>')) throw new Error("Browser fallback for optional native plugins is missing");
+const swSource = fs.readFileSync(path.join(root,"sw.js"),"utf8");
+const prepareSource = fs.readFileSync(path.join(root,"prepare-android.js"),"utf8");
+if (!swSource.includes('"./native-plugins.bundle.js"') || !prepareSource.includes('"native-plugins.bundle.js"')) throw new Error("Native plugin fallback must be cached offline and copied into Android assets");
 if (!app.includes('consumeSharedLocation()')) throw new Error('Shared location intake handler is missing');
 if (!app.includes("function bindPatrolLocationInput") || !app.includes("bindPatrolLocationInput(type)")) throw new Error("Manual WhatsApp location-link parsing is missing");
 
