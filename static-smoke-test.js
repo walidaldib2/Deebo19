@@ -79,6 +79,7 @@ if (!app.includes('const sectionTitle="تقرير مرور دراجة "+(origina
 if (!app.includes('key=bike;') || !app.includes('data-bike-index="0"') || !app.includes('data-bike-index="1"') || !app.includes('data-bike-index="2"') || app.includes('data-report-type="bike_patrols"') || !app.includes('showDate=type!=="bike_patrols"')) throw new Error('Motorcycle reports must be split into three numbered selectors with no generic report button or duplicate date column');
 if (app.includes('["patrol_date","تاريخ الوصول","date",1]')) throw new Error('Motorcycle form must not show a duplicate date input');
 if (!app.includes('payload.patrol_date=oldDate||')) throw new Error('Motorcycle patrol date must still be stored automatically');
+if (app.includes('<span>تاريخ المرور</span><b>"+esc(g.date)+"</b>') || (app.match(/تاريخ إصدار التقرير/g)||[]).length!==1) throw new Error('Bike report must show its date once globally, not once above each bike');
 if (app.includes('saveFile("DEEB-report.xls"') || app.includes('application/vnd.ms-excel;charset=utf-8')) throw new Error('Legacy XML Spreadsheet export must not be mislabeled as XLS');
 
 if (!app.includes('patrol_sites:[') || !app.includes('المخازن والمعارض ومراكز الخدمة')) throw new Error('Fixed patrol locations registry is missing');
