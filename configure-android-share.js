@@ -351,7 +351,7 @@ public class MainActivity extends BridgeActivity {
 fs.writeFileSync(path.join(javaDir, "MainActivity.java"), activity);
 
 let manifest = fs.readFileSync(manifestPath, "utf8");
-const applicationPattern = /<application\\b[^>]*>/;
+const applicationPattern = /<application[^>]*>/;
 const applicationTag = manifest.match(applicationPattern)?.[0];
 if (!applicationTag) throw new Error("Could not find Android application manifest element.");
 for (const [attribute, value] of [["android:allowBackup", "false"], ["android:usesCleartextTraffic", "false"]]) {
