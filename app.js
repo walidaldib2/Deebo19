@@ -482,7 +482,6 @@ function reports(){
    });
    return {date:g.date,bike:g.bike,person:[...g.people].join("، ")||bp.person||"—",code:bp.code||"—",type:bp.type||bp.description||"—",visits:g.visits,sites:[...sites.entries()].map(([site,entries])=>({site,entries,times:entries.map(v=>v.time)}))};
   });
-  while(result.length<3){const n=result.length+1;result.push({date:"",bike:String(n),person:"—",code:"—",type:"—",visits:[],sites:[],placeholder:true});}
   return result;
  };
  const branchGroupsFor=d=>{
