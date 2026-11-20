@@ -505,7 +505,7 @@ function reports(){
    g.visits.forEach(v=>{
     const p=v.payload||{},site=String(p.site||p.branch||p.location||"غير محدد").trim();
     if(!sites.has(site))sites.set(site,[]);
-    const lat=String(p.lat??"").trim(),lng=String(p.lng??"").trim(),locationUrl=String(p.location_url??"").trim();const coordinates=[lat?"خط العرض: "+lat:"",lng?"خط الطول: "+lng:"",locationUrl].filter(Boolean).join("\\n")||"—";
+    const lat=String(p.lat??"").trim(),lng=String(p.lng??"").trim(),locationUrl=String(p.location_url??"").trim();const coordinates=[lat?"خط العرض: "+lat:"",lng?"خط الطول: "+lng:"",locationUrl].filter(Boolean).join("\n")||"—";
     sites.get(site).push({time:String(p.patrol_time||"—"),coordinates,notes:String(p.notes||"").trim()});
    });
    return {date:g.date,bike:g.bike,person:nightShiftPersonForBike(g.bike,ordinal+1,g.date,data),code:bp.code||"—",type:bp.type||bp.description||"—",visits:g.visits,sites:[...sites.entries()].map(([site,entries])=>({site,entries,times:entries.map(v=>v.time)}))};
