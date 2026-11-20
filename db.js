@@ -98,8 +98,6 @@ window.DebooDB = (() => {
         req.onsuccess=()=>{
           const sameDay=req.result.filter(x=>x.entity_type==="bike_patrols"&&x.id!==row.id&&!x.is_archived&&String(x.payload?.patrol_date||x.payload?.patrol_time||x.created_at).slice(0,10)===day);
           const used=new Set(sameDay.map(x=>String(x.payload?.bike||"").trim().toLocaleLowerCase("ar")).filter(Boolean));
-          // تكرار مرور نفس الدراجة مسموح؛ الحد يخص خمس دراجات مختلفة فقط في اليوم.
-          if(!used.has(bike)&&used.size>=5){validationError=new Error("تعذر حفظ المرور: تم بلوغ حد خمس دراجات مختلفة في هذا اليوم.");try{tx.abort()}catch{};return;}
           store.put(row);
           tx.objectStore("audit_logs").put(auditItem);
         };
