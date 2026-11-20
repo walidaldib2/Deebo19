@@ -168,3 +168,11 @@ const bikeSectionEnd=app.indexOf('const branchGroupsFor=d=>',bikeSectionStart);
 const bikeSection=app.slice(bikeSectionStart,bikeSectionEnd);
 if (!bikeSection.includes('registry=data.filter(x=>x.entity_type==="bikes"&&!x.is_archived)') || bikeSection.includes('while(result.length<3)')) throw new Error('Bike report count must be based only on registered bikes, without a hardcoded third bike');
 if (!app.includes('filter(([k])=>k!=="bikes")') || !app.includes('host.onclick=e=>{const btn=e.target.closest("[data-bike-number]")')) throw new Error('Bike report type option and delegated individual report selection are missing');
+
+const bikeReportStart = app.indexOf('const bikeGroupsFor=d=>');
+const bikeReportEnd = app.indexOf('const branchGroupsFor=d=>', bikeReportStart);
+const bikeReportSource = app.slice(bikeReportStart, bikeReportEnd);
+if (!bikeReportSource.includes('nightShiftPersonForBike(g.bike,ordinal+1,g.date,data)')) throw new Error('Bike report must use the night-shift roster assignment for its rider name');
+if (bikeReportSource.includes('people:new Set()') || bikeReportSource.includes('g.people.add(person)') || bikeReportSource.includes('bp.person||')) throw new Error('Bike report must not aggregate patrol-event names or use the static bike registry person');
+if (!bikeReportSource.includes('غير مسجل في شفت الليلة')) throw new Error('Bike report must clearly indicate when no night-shift assignment exists instead of guessing');
+if (!app.includes('out.push([dayOf(v),g.person,g.bike,g.code,g.type,site')) throw new Error('Motorcycle Excel export must use the assigned night-shift rider consistently');

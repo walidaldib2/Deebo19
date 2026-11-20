@@ -450,6 +450,35 @@ function reports(){
  const detailRows=x=>{const p=x.payload||{},defs=fields[x.entity_type]||[],known=defs.filter(f=>p[f[0]]!==undefined&&p[f[0]]!==null&&p[f[0]]!=="").map(f=>[f[1],String(p[f[0]])]),keys=new Set(defs.map(f=>f[0])),extra=Object.entries(p).filter(([k,v])=>!keys.has(k)&&v!==undefined&&v!==null&&v!=="").map(([k,v])=>[k,String(v)]);return known.concat(extra);};
  const reportKeyLabels={edit_reason:"سبب التعديل",created_at:"تاريخ الإنشاء",updated_at:"آخر تحديث",patrol_time:"وقت المرور",patrol_date:"تاريخ المرور",incident_time:"وقت البلاغ",incident_date:"تاريخ البلاغ",id:"رقم السجل"};
  const rowsFor=d=>d.map(x=>({section:labels[x.entity_type]||x.entity_type,date:dayOf(x),time:(x.payload&&(x.payload.patrol_time||x.payload.incident_time))||"",details:detailRows(x).filter(v=>!["id","created_at","updated_at","is_archived","archived_at"].includes(v[0])).map(v=>(reportKeyLabels[v[0]]||v[0])+": "+v[1]).join(" | ")}));
+ const nightShiftPersonForBike=(bike,ordinal,reportDate,records)=>{
+  const wanted=normalize(bike),aliases=new Set([wanted,normalize("دراجة "+ordinal),normalize("مرور دراجة "+ordinal)]);
+  const shiftRows=records.filter(x=>!x.is_archived&&/(night|shift|شفت)/i.test(String(x.entity_type||"")));
+  const candidates=[];
+  const personOf=p=>String(p?.person||p?.assigned_person||p?.rider||p?.driver||p?.employee||p?.responsible||p?.name||"").trim();
+  const dateOf=p=>String(p?.shift_date||p?.night_date||p?.date||p?.patrol_date||p?.work_date||"").slice(0,10);
+  const add=(p,record)=>{
+   if(!p||typeof p!=="object")return;
+   const shift=String(p.shift||p.shift_type||p.period||"").trim();
+   if(shift&&!/(ليل|ليلي|night)/i.test(shift))return;
+   const assignedBike=String(p.bike||p.bike_number||p.motorcycle||p.motorcycle_number||p.vehicle||"").trim();
+   const person=personOf(p);
+   if(assignedBike&&person&&aliases.has(normalize(assignedBike)))candidates.push({person,date:dateOf(p),updated:String(record.updated_at||record.created_at||"")});
+  };
+  shiftRows.forEach(record=>{
+   const p=record.payload||{};
+   add(p,record);
+   const bikeValue=p["bike"+ordinal]??p["bike_"+ordinal]??p["motorcycle"+ordinal]??p["motorcycle_"+ordinal];
+   const personValue=p["person"+ordinal]??p["person_"+ordinal]??p["rider"+ordinal]??p["rider_"+ordinal]??p["assigned_person"+ordinal]??p["assigned_person_"+ordinal];
+   if(bikeValue&&personValue&&aliases.has(normalize(bikeValue)))candidates.push({person:String(personValue).trim(),date:dateOf(p),updated:String(record.updated_at||record.created_at||"")});
+   ["assignments","bikes","motorcycles","rows","members"].forEach(key=>{
+    if(Array.isArray(p[key]))p[key].forEach(item=>add(item,record));
+   });
+  });
+  const dated=reportDate?candidates.filter(x=>x.date===reportDate):[];
+  const eligible=dated.length?dated:candidates.filter(x=>!x.date);
+  eligible.sort((a,b)=>b.updated.localeCompare(a.updated));
+  return eligible[0]?.person||"غير مسجل في شفت الليلة";
+ };
  const bikeGroupsFor=d=>{
   const source=d.filter(x=>x.entity_type==="bike_patrols");
   const registry=data.filter(x=>x.entity_type==="bikes"&&!x.is_archived);
@@ -458,29 +487,28 @@ function reports(){
    const number=String(bike||"").trim();
    if(!number)return;
    const key=normalize(number);
-   if(!groups.has(key))groups.set(key,{date:"",bike:number,bikeRecord,people:new Set(),visits:[]});
+   if(!groups.has(key))groups.set(key,{date:"",bike:number,bikeRecord,visits:[]});
    else if(bikeRecord&&!groups.get(key).bikeRecord)groups.get(key).bikeRecord=bikeRecord;
   };
   registry.forEach(row=>addBike(row.payload?.number,row));
   source.forEach(x=>{
    const p=x.payload||{},bike=String(p.bike||"غير محدد").trim();
    addBike(bike);
-   const group=groups.get(normalize(bike)),date=dayOf(x),person=String(p.person||p.responsible||"").trim();
+   const group=groups.get(normalize(bike)),date=dayOf(x);
    if(date>group.date)group.date=date;
-   if(person)group.people.add(person);
    group.visits.push(x);
   });
-  const result=[...groups.values()].sort((a,b)=>a.bike.localeCompare(b.bike,"ar",{numeric:true})).map(g=>{
+  const result=[...groups.values()].sort((a,b)=>a.bike.localeCompare(b.bike,"ar",{numeric:true})).map((g,ordinal)=>{
    const bp=g.bikeRecord?.payload||{};
    const sites=new Map();
    g.visits.sort((a,b)=>dayOf(a).localeCompare(dayOf(b))||String(a.payload?.patrol_time||"").localeCompare(String(b.payload?.patrol_time||"")));
    g.visits.forEach(v=>{
     const p=v.payload||{},site=String(p.site||p.branch||p.location||"غير محدد").trim();
     if(!sites.has(site))sites.set(site,[]);
-    const lat=String(p.lat??"").trim(),lng=String(p.lng??"").trim(),locationUrl=String(p.location_url??"").trim();const coordinates=[lat?"خط العرض: "+lat:"",lng?"خط الطول: "+lng:"",locationUrl].filter(Boolean).join("\n")||"—";
+    const lat=String(p.lat??"").trim(),lng=String(p.lng??"").trim(),locationUrl=String(p.location_url??"").trim();const coordinates=[lat?"خط العرض: "+lat:"",lng?"خط الطول: "+lng:"",locationUrl].filter(Boolean).join("\\n")||"—";
     sites.get(site).push({time:String(p.patrol_time||"—"),coordinates,notes:String(p.notes||"").trim()});
    });
-   return {date:g.date,bike:g.bike,person:[...g.people].join("، ")||bp.person||"—",code:bp.code||"—",type:bp.type||bp.description||"—",visits:g.visits,sites:[...sites.entries()].map(([site,entries])=>({site,entries,times:entries.map(v=>v.time)}))};
+   return {date:g.date,bike:g.bike,person:nightShiftPersonForBike(g.bike,ordinal+1,g.date,data),code:bp.code||"—",type:bp.type||bp.description||"—",visits:g.visits,sites:[...sites.entries()].map(([site,entries])=>({site,entries,times:entries.map(v=>v.time)}))};
   });
   return result;
  };
@@ -534,7 +562,7 @@ function reports(){
     const p=v.payload||{};
     const site=String(p.site||p.branch||p.location||"غير محدد");
     const coordinates=[p.lat!==undefined&&String(p.lat).trim()?"خط العرض: "+String(p.lat):"",p.lng!==undefined&&String(p.lng).trim()?"خط الطول: "+String(p.lng):"",p.location_url!==undefined?String(p.location_url):""].filter(Boolean).join(" | ");
-    out.push([dayOf(v),String(p.person||p.responsible||g.person),g.bike,g.code,g.type,site,String(p.patrol_time||""),coordinates,String(p.notes??"")]);
+    out.push([dayOf(v),g.person,g.bike,g.code,g.type,site,String(p.patrol_time||""),coordinates,String(p.notes??"")]);
    }));
    return out;
   }
