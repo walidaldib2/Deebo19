@@ -471,7 +471,7 @@ function reports(){
     const lat=String(p.lat??"").trim(),lng=String(p.lng??"").trim(),coordinates=lat&&lng&&Number.isFinite(Number(lat))&&Number.isFinite(Number(lng))?Number(lat).toFixed(6)+", "+Number(lng).toFixed(6):"—";
     sites.get(site).push({time:String(p.patrol_time||"—"),coordinates,notes:String(p.notes||"").trim()});
    });
-   return {date:g.date,bike:g.bike,person:[...g.people].join("، ")||bp.person||"—",code:bp.code||"—",type:bp.type||bp.description||"—",sites:[...sites.entries()].map(([site,entries])=>({site,entries,times:entries.map(v=>v.time)}))};
+   return {date:g.date,bike:g.bike,person:[...g.people].join("، ")||bp.person||"—",code:bp.code||"—",type:bp.type||bp.description||"—",visits:g.visits,sites:[...sites.entries()].map(([site,entries])=>({site,entries,times:entries.map(v=>v.time)}))};
   });
  };
  const branchGroupsFor=d=>{
