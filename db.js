@@ -224,19 +224,15 @@ window.DebooDB = (() => {
     const checkUnique=(rows,label)=>{const ids=rows.map(x=>x.id);if(new Set(ids).size!==ids.length)throw new Error("تحتوي النسخة على معرّفات مكررة في "+label+"؛ لم يتم تغيير بياناتك.");};
     checkUnique(obj.records,"السجلات");checkUnique(obj.audit_logs,"سجل المراجعة");checkUnique(obj.approved_reports||[],"التقارير");checkUnique(obj.handover_versions||[],"إصدارات التسليم");checkUnique(obj.attachments||[],"المرفقات");
     const recordIds=new Set(obj.records.map(x=>x.id));
-    // السماح بتكرار مرور الدراجة نفسها مع الإبقاء على حد خمس دراجات مختلفة يوميًا.
+    // Validate active bike visits while allowing any number of registered bikes per day.
     const patrols=obj.records.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived);
-    const bikesByDay=new Map();
     for(const row of patrols){
-      const bike=String(row.payload?.bike||"").trim().toLocaleLowerCase("ar");
+      const bike=String(row.payload?.bike||"").trim();
       const patrolDate=String(row.payload?.patrol_date||"").trim();
       const stamp=String(row.created_at||"");
       const day=/^\d{4}-\d{2}-\d{2}$/.test(patrolDate)?patrolDate:stamp.slice(0,10);
       if(!bike||!/^\d{4}-\d{2}-\d{2}$/.test(day)||Number.isNaN(Date.parse(day+"T00:00:00Z")))
         throw new Error("يوجد مرور دراجة ببيانات ناقصة أو تاريخ غير صالح في النسخة؛ لم يتم تغيير بياناتك.");
-      if(!bikesByDay.has(day)) bikesByDay.set(day,new Set());
-      bikesByDay.get(day).add(bike);
-      if(bikesByDay.get(day).size>5) throw new Error("النسخة تتجاوز حد خمس دراجات مختلفة بتاريخ "+day+"؛ لم يتم تغيير بياناتك.");
     }
     if((obj.attachments||[]).some(x=>!recordIds.has(x.record_id))) throw new Error("يوجد مرفق مرتبط بسجل غير موجود في النسخة؛ لم يتم تغيير بياناتك.");
     if((obj.handover_versions||[]).some(x=>!recordIds.has(x.record_id)||!Number.isInteger(x.version)||x.version<1||!x.snapshot||typeof x.snapshot!=="object")) throw new Error("يوجد إصدار تسليم غير مرتبط بسجل صالح؛ لم يتم تغيير بياناتك.");
