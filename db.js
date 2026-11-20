@@ -267,7 +267,7 @@ window.DebooDB = (() => {
     try{await createAutoBackup();}catch(error){console.warn("DEEB automatic backup:",error);}
   }
   async function downloadBlob(blob,name) {
-    const native=window.Capacitor?.Plugins?.FileExport;
+    const native=window.DEEBNativePlugins?.FileExport;
     if(native?.saveFile&&blob?.arrayBuffer){
       const bytes=new Uint8Array(await blob.arrayBuffer());
       let binary="";
