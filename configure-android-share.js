@@ -134,7 +134,7 @@ public class FileExportPlugin extends Plugin {
       try {
         WebView view=new WebView(getContext()); view.getSettings().setJavaScriptEnabled(false);
         view.setWebViewClient(new WebViewClient(){ @Override public void onPageFinished(WebView v,String url){
-          try { PrintManager pm=(PrintManager)getContext().getSystemService(Context.PRINT_SERVICE); String job="DEEBO-"+System.currentTimeMillis(); pm.print(job,v.createPrintDocumentAdapter(job),new PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4).setColorMode(PrintAttributes.COLOR_MODE_COLOR).build()); JSObject result=new JSObject();result.put("started",true);call.resolve(result); }
+          try { PrintManager pm=(PrintManager)getContext().getSystemService(Context.PRINT_SERVICE); String job="DEEBO-"+System.currentTimeMillis(); pm.print(job,v.createPrintDocumentAdapter(job),new PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4.asLandscape()).setColorMode(PrintAttributes.COLOR_MODE_COLOR).build()); JSObject result=new JSObject();result.put("started",true);call.resolve(result); }
           catch(Exception e){call.reject("تعذرت تهيئة الطباعة: "+e.getMessage(),e);}
         }});
         view.loadDataWithBaseURL(null,html,"text/html","UTF-8",null);
