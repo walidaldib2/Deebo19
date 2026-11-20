@@ -21,11 +21,11 @@ The repository includes a GitHub Actions workflow at `.github/workflows/android-
 1. Open the **Actions** tab in this repository.
 2. Select **Build DEEB Android APK**.
 3. Select **Run workflow** and choose `feature/deboo-pro-upgrade` (or push a commit to that branch).
-4. When the run succeeds, open the run and download the `DEEB-Android-APK` artifact. It contains `app-debug.apk`.
+4. When the run succeeds, open the run and download the `DEEB-Android-Release-Candidates` artifact. It contains the debug APK, release AAB, and Play Store icon.
 
 The workflow installs Node dependencies, runs source and IndexedDB integration checks, builds the biometric/native bridges, generates DEEB launcher icons from `icon.svg`, generates the 512×512 Play listing icon, stages web assets, and creates the Capacitor Android project. It verifies `compileSdkVersion` and `targetSdkVersion` are both at least 36, then builds a debug APK and a release Android App Bundle (AAB).
 
-The AAB currently builds unsigned. Google Play requires an upload-key-signed AAB and Play App Signing enrollment for new apps. Configure a private upload keystore in GitHub Actions secrets before treating the AAB as upload-ready. Never commit the keystore or passwords to the repository. The debug APK is for installation/testing only.
+The AAB currently builds unsigned. Google Play requires an upload-key-signed AAB and Play App Signing enrollment for new apps. Configure a private upload keystore using the four GitHub Actions secrets described in [`docs/GOOGLE_PLAY_RELEASE.md`](docs/GOOGLE_PLAY_RELEASE.md). When configured, the workflow signs and verifies the AAB. Never commit the keystore or passwords to the repository. The debug APK is for installation/testing only.
 
 ## Data storage note
 
