@@ -1,6 +1,6 @@
 {
   "name": "deeb-field-operations",
-  "version": "10.0.3",
+  "version": "10.0.4",
   "private": true,
   "description": "DEEB field operations PWA prepared for Capacitor Android packaging",
   "scripts": {
@@ -11,7 +11,8 @@
     "build:biometric": "esbuild biometric-entry.js --bundle --format=iife --outfile=www/biometric.bundle.js",
     "prepare:android": "node prepare-android.js",
     "configure:android:share": "node configure-android-share.js",
-    "build:native-plugins": "esbuild native-plugins-entry.js --bundle --format=iife --outfile=www/native-plugins.bundle.js"
+    "build:native-plugins": "esbuild native-plugins-entry.js --bundle --format=iife --outfile=www/native-plugins.bundle.js",
+    "prepare:android:icons": "node prepare-android-icons.js"
   },
   "dependencies": {
     "@aparajita/capacitor-biometric-auth": "^10.0.0",
@@ -21,6 +22,7 @@
   "devDependencies": {
     "@capacitor/cli": "^8.0.2",
     "esbuild": "^0.25.12",
-    "fake-indexeddb": "^6.2.4"
+    "fake-indexeddb": "^6.2.4",
+    "sharp": "^0.35.5"
   }
 }
