@@ -355,8 +355,7 @@ const applicationPattern = /<application\\b[^>]*>/;
 const applicationTag = manifest.match(applicationPattern)?.[0];
 if (!applicationTag) throw new Error("Could not find Android application manifest element.");
 for (const [attribute, value] of [["android:allowBackup", "false"], ["android:usesCleartextTraffic", "false"]]) {
-  const escaped = attribute.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\let manifest = fs.readFileSync(manifestPath, "utf8");
-");
+  const attributePattern = new RegExp(attribute + '="[^"]*"');
   const attributePattern = new RegExp(escaped + '="[^"]*"');
   if (attributePattern.test(applicationTag)) {
     manifest = manifest.replace(applicationPattern, tag => tag.replace(attributePattern, attribute + '="' + value + '"'));
