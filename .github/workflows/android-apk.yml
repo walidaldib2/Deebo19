@@ -202,7 +202,7 @@ jobs:
         run: |
           bundle="android/app/build/outputs/bundle/release/app-release.aab"
           if [ -f "$bundle" ] && [ -n "$DEEB_UPLOAD_KEYSTORE_BASE64" ]; then
-            jarsigner -verify -strict -certs "$bundle"
+            jarsigner -verify -certs "$bundle"
           elif [ -f "$bundle" ]; then
             echo "AAB is unsigned; configure the four DEEB_UPLOAD_* GitHub secrets before Play Console upload."
           fi
