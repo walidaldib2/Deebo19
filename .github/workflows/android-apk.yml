@@ -67,14 +67,15 @@ jobs:
           test -s www/index.html
           test -s www/biometric.bundle.js
           test -s www/native-plugins.bundle.js
-          test -s play-store-assets/icon-512.png
           grep -q "BiometricAuth" www/biometric.bundle.js
 
       - name: Generate Android project
         run: npx cap add android
 
       - name: Generate DEEB Android launcher and Play Store icons
-        run: npm run prepare:android:icons
+        run: |
+          npm run prepare:android:icons
+          test -s play-store-assets/icon-512.png
 
       - name: Sync Android project
         run: npx cap sync android
