@@ -128,17 +128,44 @@ public class FileExportPlugin extends Plugin {
     });
   }
   @PluginMethod public void printHtml(PluginCall call) {
-    String html=call.getString("html","");
-    if(html.isEmpty()){call.reject("لا توجد بيانات للطباعة");return;}
+    final String html=call.getString("html","");
+    if(html.trim().isEmpty()){call.reject("لا توجد بيانات للطباعة");return;}
     getActivity().runOnUiThread(()->{
+      final java.util.concurrent.atomic.AtomicBoolean finished=new java.util.concurrent.atomic.AtomicBoolean(false);
+      final WebView view=new WebView(getContext());
       try {
-        WebView view=new WebView(getContext()); view.getSettings().setJavaScriptEnabled(false);
-        view.setWebViewClient(new WebViewClient(){ @Override public void onPageFinished(WebView v,String url){
-          try { PrintManager pm=(PrintManager)getContext().getSystemService(Context.PRINT_SERVICE); String job="DEEBO-"+System.currentTimeMillis(); pm.print(job,v.createPrintDocumentAdapter(job),new PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4.asLandscape()).setColorMode(PrintAttributes.COLOR_MODE_COLOR).build()); JSObject result=new JSObject();result.put("started",true);call.resolve(result); }
-          catch(Exception e){call.reject("تعذرت تهيئة الطباعة: "+e.getMessage(),e);}
-        }});
-        view.loadDataWithBaseURL(null,html,"text/html","UTF-8",null);
-      } catch(Exception e){call.reject("تعذرت الطباعة: "+e.getMessage(),e);}
+        view.setBackgroundColor(Color.WHITE);
+        view.getSettings().setJavaScriptEnabled(false);
+        view.setWebViewClient(new WebViewClient(){
+          private void finishWithError(String message,Exception error){
+            if(!finished.compareAndSet(false,true))return;
+            view.stopLoading();
+            view.destroy();
+            call.reject(message,error);
+          }
+          @Override public void onPageFinished(WebView v,String url){
+            if(!finished.compareAndSet(false,true))return;
+            try {
+              PrintManager pm=(PrintManager)getContext().getSystemService(Context.PRINT_SERVICE);
+              if(pm==null)throw new Exception("خدمة الطباعة غير متاحة على الجهاز");
+              String job="DEEB-"+System.currentTimeMillis();
+              PrintAttributes attributes=new PrintAttributes.Builder()
+                .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
+                .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
+                .build();
+              pm.print(job,v.createPrintDocumentAdapter(job),attributes);
+              JSObject result=new JSObject();result.put("started",true);result.put("orientation","portrait");call.resolve(result);
+            } catch(Exception e){view.destroy();call.reject("تعذرت تهيئة الطباعة: "+e.getMessage(),e);}
+          }
+          @Override public void onReceivedError(WebView v,android.webkit.WebResourceRequest request,android.webkit.WebResourceError error){
+            if(request.isForMainFrame())finishWithError("تعذر تجهيز التقرير للطباعة: "+error.getDescription(),null);
+          }
+        });
+        view.loadDataWithBaseURL("https://localhost/",html,"text/html","UTF-8",null);
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(()->{
+          if(finished.compareAndSet(false,true)){view.stopLoading();view.destroy();call.reject("انتهت مهلة تجهيز التقرير للطباعة. حاول مرة أخرى.");}
+        },15000);
+      } catch(Exception e){if(finished.compareAndSet(false,true)){view.destroy();call.reject("تعذرت الطباعة: "+e.getMessage(),e);}}
     });
   }
 }
