@@ -11,6 +11,8 @@ for (const f of ['index.html','style.css','app.js','db.js','qrcode.js','manifest
 const pkg = JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
 const cap = JSON.parse(fs.readFileSync(path.join(root,'capacitor.config.json'),'utf8'));
 if (!pkg.dependencies?.['@capacitor/android'] || !pkg.dependencies?.['@capacitor/core']) throw new Error('Capacitor dependencies missing');
+if (!pkg.dependencies['@capacitor/android'].startsWith('^8.') || !pkg.dependencies['@capacitor/core'].startsWith('^8.') || !pkg.devDependencies?.['@capacitor/cli']?.startsWith('^8.')) throw new Error('Google Play API 36 build requires Capacitor 8');
+if (!pkg.dependencies?.['@aparajita/capacitor-biometric-auth']?.startsWith('^10.')) throw new Error('Capacitor 8 biometric plugin compatibility is required');
 if (cap.appName !== 'DEEB') throw new Error('Android display name must be DEEB');
 if (pkg.name !== 'deeb-field-operations') throw new Error('Project package name must be deebo-field-operations');
 if (cap.webDir !== 'www') throw new Error('Capacitor webDir must be the staged www directory');
