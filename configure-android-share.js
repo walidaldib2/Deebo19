@@ -146,7 +146,7 @@ public class FileExportPlugin extends Plugin {
       };
       try {
         view.setBackgroundColor(Color.WHITE);
-        view.setAlpha(0f);
+        view.setAlpha(1f);
         view.setFocusable(false);
         view.getSettings().setJavaScriptEnabled(false);
         root.addView(view,new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
