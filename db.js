@@ -132,7 +132,6 @@ window.DebooDB = (() => {
       });
     }
     try{await createAutoBackup();}catch(error){console.warn("DEEB automatic backup:",error);}
-    try{await createAutoBackup();}catch(error){console.warn("DEEB automatic backup:",error);}
     return row;
   }
   async function archive(id,reason="أرشفة سجل") {
