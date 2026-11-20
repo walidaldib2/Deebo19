@@ -48,6 +48,9 @@ jobs:
           node --check sw.js
           node --check prepare-android.js
           node --check configure-android-share.js
+          node --check preferences.js
+          node --check native-plugins-entry.js
+          node --check biometric-entry.js
 
       - name: Prepare web assets
         run: npm run prepare:android
