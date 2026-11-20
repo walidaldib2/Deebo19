@@ -156,3 +156,8 @@ const nativeShareStep = workflow.indexOf('npm run configure:android:share');
 const syncStep = workflow.indexOf('npx cap sync android');
 const apkStep = workflow.indexOf('./gradlew assembleDebug');
 if (syncStep < 0 || nativeShareStep < syncStep || apkStep < nativeShareStep) throw new Error('Native share receiver must be configured after Capacitor sync and before APK build');
+const bikeSectionStart=app.indexOf('const bikeGroupsFor=d=>');
+const bikeSectionEnd=app.indexOf('const branchGroupsFor=d=>',bikeSectionStart);
+const bikeSection=app.slice(bikeSectionStart,bikeSectionEnd);
+if (!bikeSection.includes('registry=data.filter(x=>x.entity_type==="bikes"&&!x.is_archived)') || bikeSection.includes('while(result.length<3)')) throw new Error('Bike report count must be based only on registered bikes, without a hardcoded third bike');
+if (!app.includes('filter(([k])=>k!=="bikes")') || !app.includes('host.onclick=e=>{const btn=e.target.closest("[data-bike-number]")')) throw new Error('Bike report type option and delegated individual report selection are missing');
