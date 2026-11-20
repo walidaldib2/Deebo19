@@ -19,7 +19,7 @@ if (!app.includes('$(\"#enableBiometric\").onclick=async()=>') || !app.includes(
 if (!app.includes('localStorage.removeItem(BIOMETRIC_KEY)') || !app.includes('سيفتح التطبيق مباشرة دون PIN أو بصمة')) throw new Error('Direct unlock / biometric reset flow is missing');
 if (!app.includes('يمكنك الدخول باستخدام PIN')) throw new Error('Biometric PIN fallback message is missing');
 if (!app.includes('function lockApplication()') || !app.includes('document.visibilityState==="hidden"') || !app.includes('window.addEventListener("pagehide",lockApplication)')) throw new Error('Automatic PIN lock hooks are missing');
-if (!sw.includes('deebo-local-v10-13')) throw new Error('Service worker cache version was not bumped');
+if (!sw.includes('deebo-local-v10-14')) throw new Error('Service worker cache version was not bumped');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 if (!db.includes('return {app:"DEEB",format:2') || !db.includes('["DEEB","DEEBO","DEBOO16"].includes(obj.app)') || !db.includes('title:"تقرير DEEB"')) throw new Error('DEEB backup / approved report branding or legacy backup compatibility is missing');
 for (const marker of [
