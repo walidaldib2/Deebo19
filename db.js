@@ -88,7 +88,6 @@ window.DebooDB = (() => {
     const auditItem=makeAudit(id?"update":"create",row.id,old,row,id?(payload.edit_reason||"تعديل سجل"):"إضافة سجل");
     const d=await openDB();
     if(type==="bike_patrols") {
-      const day=String(payload.patrol_date||payload.patrol_time||now()).slice(0,10);
       const bike=String(payload.bike||"").trim().toLocaleLowerCase("ar");
       if(!bike) throw new Error("يجب تحديد رقم الدراجة.");
       await new Promise((resolve,reject)=>{
@@ -96,8 +95,6 @@ window.DebooDB = (() => {
         const store=tx.objectStore("records"),req=store.getAll();
         let validationError=null;
         req.onsuccess=()=>{
-          const sameDay=req.result.filter(x=>x.entity_type==="bike_patrols"&&x.id!==row.id&&!x.is_archived&&String(x.payload?.patrol_date||x.payload?.patrol_time||x.created_at).slice(0,10)===day);
-          const used=new Set(sameDay.map(x=>String(x.payload?.bike||"").trim().toLocaleLowerCase("ar")).filter(Boolean));
           store.put(row);
           tx.objectStore("audit_logs").put(auditItem);
         };
