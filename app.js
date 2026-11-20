@@ -520,10 +520,10 @@ function reports(){
    return [["الفرع","المشرف",...Array.from({length:slots},(_,i)=>"متابعة "+(i+1))],...groups.map(g=>[g.branch+(g.continuation?" — استكمال":""),g.supervisor,...Array.from({length:slots},(_,i)=>g.visits[i]?.payload?.patrol_time||"")])];
   }
   if($("#reportType").value==="bike_patrols"){
-   const out=[["التاريخ","اسم القائم بالمرور","رقم الدراجة","كود الدراجة","نوع الدراجة","الفرع / المخزن / مركز الخدمة","مرور 1","مرور 2","مرور 3","مرور 4","مرور 5"]];
+   const out=[["التاريخ","اسم القائم بالمرور","رقم الدراجة","كود الدراجة","نوع الدراجة","الفرع / المخزن / مركز الخدمة","مرور"]];
    bikeGroupsFor(d).forEach(g=>g.sites.forEach(r=>{
-    out.push([g.date,g.person,g.bike,g.code,g.type,r.site,...Array.from({length:5},(_,i)=>r.times[i]||"")]);
-    for(let offset=5;offset<r.times.length;offset+=5)out.push([g.date,g.person,g.bike,g.code,g.type,r.site+" — استكمال",...Array.from({length:5},(_,i)=>r.times[offset+i]||"")]);
+    const times=r.times.length?r.times:[""];
+    times.forEach((time,index)=>out.push([g.date,g.person,g.bike,g.code,g.type,r.site+(index>=5?" — استكمال":""),time||""]));
    }));
    return out;
   }
