@@ -34,16 +34,12 @@ async function main() {
   await db.unarchive(branch.id);
   assert.equal((await db.all()).some(x => x.id === branch.id), true);
 
-  // Bike rule: repeat visits by the same bike are allowed; a sixth distinct bike is rejected.
-  for (let i = 1; i <= 5; i++) {
-    await db.save("bike_patrols", { bike: "دراجة " + i, patrol_date: "2026-11-19", patrol_time: "10:0" + i });
+  // Bike registry is dynamic: ten distinct bikes and repeated visits must all save.
+  for (let i = 1; i <= 10; i++) {
+    await db.save("bike_patrols", { bike: "دراجة " + i, patrol_date: "2026-11-19", patrol_time: "10:" + String(i).padStart(2,"0") });
   }
   await db.save("bike_patrols", { bike: "دراجة 1", patrol_date: "2026-11-19", patrol_time: "11:00" });
-  await assert.rejects(
-    db.save("bike_patrols", { bike: "دراجة 6", patrol_date: "2026-11-19", patrol_time: "12:00" }),
-    /خمس دراجات مختلفة/
-  );
-  assert.equal((await db.all()).filter(x => x.entity_type === "bike_patrols").length, 7);
+  assert.equal((await db.all()).filter(x => x.entity_type === "bike_patrols").length, 12);
 
   // Motorcycle patrol records preserve the actual person who conducted each visit.
   const namedVisit = await db.save("bike_patrols", { bike: "دراجة 1", person: "فرد مرور اختبار", site: "مخزن اختبار", patrol_date: "2026-11-19", patrol_time: "11:30" });
@@ -84,7 +80,21 @@ async function main() {
   const incidentAttachment = await db.saveAttachment(incident.id, blob);
   assert.equal((await db.attachments(incident.id)).some(x => x.id === incidentAttachment.id), true);
 
-  console.log("PASS: IndexedDB integration — branch create/read/edit, archive/restore, bike limits, handover versions, report approval, attachments, and daily automatic backups.");
+  // Backup restore must also accept more than five distinct bikes on one day.
+  const tenBikeBackup = {
+    app: "DEEB", format: 2,
+    records: Array.from({ length: 10 }, (_, i) => ({
+      id: "restore-bike-" + (i + 1),
+      entity_type: "bike_patrols",
+      payload: { bike: "دراجة " + (i + 1), patrol_date: "2026-11-20", patrol_time: "08:00" },
+      created_at: "2026-11-20T08:00:00.000Z"
+    })),
+    audit_logs: []
+  };
+  await db.restore(tenBikeBackup);
+  assert.equal((await db.all()).filter(x => x.entity_type === "bike_patrols").length, 10);
+
+  console.log("PASS: IndexedDB integration — branch CRUD/archive, dynamic bike patrols and backup restore, handover versions, report approval, attachments, and daily automatic backups.");
 }
 
 main().catch(error => {
