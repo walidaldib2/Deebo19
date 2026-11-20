@@ -72,7 +72,9 @@ console.log('PASS: required files, navigation hierarchy, reports archive/restore
 if (!app.includes('id="pdfReport"') || !app.includes('$("#pdfReport").onclick=()=>') || !app.includes('اختر حفظ كملف PDF')) throw new Error('PDF export action is missing');
 
 if (!app.includes('const createXlsx=rows=>') || !app.includes('[Content_Types].xml') || !app.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') || !app.includes('DEEB-report.xlsx')) throw new Error('Excel export must create a valid XLSX workbook for Android Microsoft Excel');
-if (!app.includes('const sectionTitle="مرور دراجه "+(gi+1)') || !app.includes('<h1>\'+sectionTitle+\'</h1>') || !app.includes('<h3>مرور دراجه "+(gi+1)+"</h3>')) throw new Error('Each motorcycle report must have its own numbered heading');
+if (!app.includes('const sectionTitle="تقرير مرور دراجة "+(originalIndex+1)') || !app.includes('<h1>\'+sectionTitle+\'</h1>') || !app.includes('selectedBikeReport==="all"||String(gi)===selectedBikeReport') || !app.includes('id="bikeReportSelect"')) throw new Error('Each motorcycle report must have its own selectable numbered printout');
+if (app.includes('["patrol_date","تاريخ الوصول","date",1]')) throw new Error('Motorcycle form must not show a duplicate date input');
+if (!app.includes('payload.patrol_date=oldDate||')) throw new Error('Motorcycle patrol date must still be stored automatically');
 if (app.includes('saveFile("DEEB-report.xls"') || app.includes('application/vnd.ms-excel;charset=utf-8')) throw new Error('Legacy XML Spreadsheet export must not be mislabeled as XLS');
 
 if (!app.includes('patrol_sites:[') || !app.includes('المخازن والمعارض ومراكز الخدمة')) throw new Error('Fixed patrol locations registry is missing');
