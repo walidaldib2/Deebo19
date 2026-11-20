@@ -3,6 +3,9 @@ name: Build DEEB Android APK
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - feature/deboo-pro-upgrade
   push:
     branches:
       - feature/deboo-pro-upgrade
