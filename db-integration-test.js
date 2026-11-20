@@ -4,6 +4,18 @@ require("fake-indexeddb/auto");
 
 global.window = global;
 global.crypto = webcrypto;
+global.FileReader = class {
+  async readAsDataURL(blob) {
+    try {
+      const bytes = Buffer.from(await blob.arrayBuffer());
+      this.result = "data:" + (blob.type || "application/octet-stream") + ";base64," + bytes.toString("base64");
+      this.onload?.({ target: this });
+    } catch (error) {
+      this.error = error;
+      this.onerror?.(error);
+    }
+  }
+};
 require("./db.js");
 
 async function main() {
