@@ -99,10 +99,13 @@ if (!manifest.share_target || manifest.share_target.action !== './?share=locatio
 if (!app.includes('consumeSharedLocation()')) throw new Error('Shared location intake handler is missing');
 if (!app.includes("function bindPatrolLocationInput") || !app.includes("bindPatrolLocationInput(type)")) throw new Error("Manual WhatsApp location-link parsing is missing");
 
+const nativeBridge = fs.readFileSync(path.join(root,'native-plugins-entry.js'),'utf8');
+if (!nativeBridge.includes("registerPlugin('FileExport')") || !nativeBridge.includes('isNativePlatform') || !nativeBridge.includes('window.DEEBNativePlugins')) throw new Error('Native Capacitor plugin JavaScript bridge is missing');
 const workflow = fs.readFileSync(path.join(root,'.github/workflows/android-apk.yml'),'utf8');
 const prepareAt = workflow.indexOf('npm run prepare:android');
 const biometricAt = workflow.indexOf('npm run build:biometric');
 if (prepareAt < 0 || biometricAt < 0 || prepareAt > biometricAt) throw new Error('Android build must prepare www before generating the native biometric bundle; otherwise the bundle is deleted.');
+if (!workflow.includes('npm run build:native-plugins') || !workflow.includes('test -s www/native-plugins.bundle.js')) throw new Error('Android build must bundle and verify the native plugin bridge');
 if (!workflow.includes('grep -q "BiometricAuth" www/biometric.bundle.js')) throw new Error('Android build must verify that the native biometric bundle is present.');
 
 const index = fs.readFileSync(path.join(root,'index.html'),'utf8');
@@ -133,10 +136,10 @@ if (!employeeCss.includes('.employee-list{') || !employeeCss.includes('.employee
 const nativeShare = fs.readFileSync(path.join(root,'configure-android-share.js'),'utf8');
 if (!nativeShare.includes('CurrentLocationPlugin.java') || !nativeShare.includes('ACCESS_FINE_LOCATION') || !nativeShare.includes('requestPermissionForAlias("location"')) throw new Error('Native Android location permission / GPS plugin is missing');
 if (!nativeShare.includes('ShareIntentPlugin.java') || !nativeShare.includes('android.intent.action.SEND') || !nativeShare.includes('Intent.EXTRA_TEXT')) throw new Error('Native Android text-share receiver configuration is incomplete');
-if (!nativeShare.includes('saveHtmlAsImages') || !nativeShare.includes('MediaStore.Images.Media.RELATIVE_PATH') || !nativeShare.includes('DIRECTORY_PICTURES+"/DEEB"')) throw new Error('Native report image export is missing');
+if (!nativeShare.includes('saveHtmlAsImages') || !nativeShare.includes('registerPlugin(FileExportPlugin.class)') || !nativeShare.includes('MediaStore.Images.Media.RELATIVE_PATH') || !nativeShare.includes('DIRECTORY_PICTURES+"/DEEB"')) throw new Error('Native report image export is missing');
 if (!db.includes('async function downloadBlob') || !db.includes('native.saveFile({name,mimeType:blob.type||"application/octet-stream",base64:btoa(binary)})')) throw new Error('Android native file export is not wired for backups and attachments');
 if (!app.includes('deboo-share-intent') || !app.includes('consumeNativeShare()') || !app.includes('getInitialShare')) throw new Error('App does not consume native Android shared text/location payloads');
-if (!app.includes('function currentCoordinates()') || !app.includes('window.Capacitor?.Plugins?.CurrentLocation') || !app.includes('"bike_patrols"].includes(type)')) throw new Error('Current-location button is not wired for native Android and motorcycle patrol forms');
+if (!app.includes('function currentCoordinates()') || !app.includes('window.DEEBNativePlugins?.CurrentLocation') || !app.includes('"bike_patrols"].includes(type)')) throw new Error('Current-location button is not wired for native Android and motorcycle patrol forms');
 
 
 if (!pkg.scripts?.['configure:android:share']) throw new Error('Native Android share configuration script is missing');
