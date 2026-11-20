@@ -488,8 +488,8 @@ function reports(){
    return {...g,supervisor:String(latest?.payload?.supervisor||"—")};
   }).sort((a,b)=>(a.date+"|"+a.branch).localeCompare(b.date+"|"+b.branch,"ar")).flatMap(g=>Array.from({length:Math.max(1,Math.ceil(g.visits.length/5))},(_,i)=>({...g,continuation:i>0,visits:g.visits.slice(i*5,(i+1)*5)})));
  };
- const let selectedBikeReport="all";
-  refreshReport=()=>{
+ let selectedBikeReport="all";
+  const refreshReport=()=>{
   const d=get(),counts={};d.forEach(x=>counts[x.entity_type]=(counts[x.entity_type]||0)+1);
   if($("#reportType").value==="bike_patrols"){
    const groups=bikeGroupsFor(d),visitCount=d.length;
