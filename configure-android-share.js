@@ -57,6 +57,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.print.PrintJob;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -131,41 +133,58 @@ public class FileExportPlugin extends Plugin {
     final String html=call.getString("html","");
     if(html.trim().isEmpty()){call.reject("لا توجد بيانات للطباعة");return;}
     getActivity().runOnUiThread(()->{
-      final java.util.concurrent.atomic.AtomicBoolean finished=new java.util.concurrent.atomic.AtomicBoolean(false);
+      final java.util.concurrent.atomic.AtomicBoolean settled=new java.util.concurrent.atomic.AtomicBoolean(false);
+      final java.util.concurrent.atomic.AtomicBoolean pageReady=new java.util.concurrent.atomic.AtomicBoolean(false);
+      final Handler handler=new Handler(Looper.getMainLooper());
+      final FrameLayout root=(FrameLayout)getActivity().findViewById(android.R.id.content);
+      if(root==null){call.reject("تعذر الوصول إلى نافذة التطبيق لبدء الطباعة");return;}
       final WebView view=new WebView(getContext());
+      final Runnable dispose=()->{
+        try{view.stopLoading();if(view.getParent() instanceof ViewGroup)((ViewGroup)view.getParent()).removeView(view);view.destroy();}catch(Exception ignored){}
+      };
       try {
         view.setBackgroundColor(Color.WHITE);
+        view.setAlpha(0f);
+        view.setFocusable(false);
         view.getSettings().setJavaScriptEnabled(false);
+        root.addView(view,new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
         view.setWebViewClient(new WebViewClient(){
-          private void finishWithError(String message,Exception error){
-            if(!finished.compareAndSet(false,true))return;
-            view.stopLoading();
-            view.destroy();
-            call.reject(message,error);
-          }
           @Override public void onPageFinished(WebView v,String url){
-            if(!finished.compareAndSet(false,true))return;
-            try {
-              PrintManager pm=(PrintManager)getContext().getSystemService(Context.PRINT_SERVICE);
-              if(pm==null)throw new Exception("خدمة الطباعة غير متاحة على الجهاز");
-              String job="DEEB-"+System.currentTimeMillis();
-              PrintAttributes attributes=new PrintAttributes.Builder()
-                .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrait())
-                .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
-                .build();
-              pm.print(job,v.createPrintDocumentAdapter(job),attributes);
-              JSObject result=new JSObject();result.put("started",true);result.put("orientation","portrait");call.resolve(result);
-            } catch(Exception e){view.destroy();call.reject("تعذرت تهيئة الطباعة: "+e.getMessage(),e);}
+            if(!pageReady.compareAndSet(false,true))return;
+            v.postDelayed(()->{
+              if(settled.get())return;
+              try{
+                int width=Math.max(1,root.getWidth()),height=Math.max(1,root.getHeight());
+                v.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.AT_MOST));
+                v.layout(0,0,width,Math.max(height,v.getMeasuredHeight()));
+                PrintManager pm=(PrintManager)getContext().getSystemService(Context.PRINT_SERVICE);
+                if(pm==null)throw new Exception("خدمة الطباعة غير متاحة على الجهاز");
+                String jobName="DEEB-"+System.currentTimeMillis();
+                PrintAttributes attributes=new PrintAttributes.Builder()
+                  .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrait())
+                  .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
+                  .setResolution(new PrintAttributes.Resolution("DEEB","DEEB",300,300))
+                  .build();
+                PrintJob job=pm.print(jobName,v.createPrintDocumentAdapter(jobName),attributes);
+                if(job==null)throw new Exception("لم يستطع أندرويد إنشاء مهمة الطباعة");
+                if(settled.compareAndSet(false,true)){
+                  JSObject result=new JSObject();result.put("started",true);result.put("orientation","portrait");result.put("jobName",jobName);call.resolve(result);
+                  Runnable cleanup=new Runnable(){@Override public void run(){
+                    if(job.isCompleted()||job.isCancelled()||job.isFailed()){dispose.run();}
+                    else handler.postDelayed(this,1500);
+                  }};
+                  handler.postDelayed(cleanup,1500);
+                }
+              }catch(Exception e){if(settled.compareAndSet(false,true)){dispose.run();call.reject("تعذرت تهيئة الطباعة: "+e.getClass().getSimpleName()+": "+e.getMessage(),e);}}
+            },700);
           }
           @Override public void onReceivedError(WebView v,android.webkit.WebResourceRequest request,android.webkit.WebResourceError error){
-            if(request.isForMainFrame())finishWithError("تعذر تجهيز التقرير للطباعة: "+error.getDescription(),null);
+            if(request.isForMainFrame()&&settled.compareAndSet(false,true)){dispose.run();call.reject("تعذر تجهيز التقرير للطباعة: "+error.getDescription());}
           }
         });
         view.loadDataWithBaseURL("https://localhost/",html,"text/html","UTF-8",null);
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(()->{
-          if(finished.compareAndSet(false,true)){view.stopLoading();view.destroy();call.reject("انتهت مهلة تجهيز التقرير للطباعة. حاول مرة أخرى.");}
-        },60000);
-      } catch(Exception e){if(finished.compareAndSet(false,true)){view.destroy();call.reject("تعذرت الطباعة: "+e.getMessage(),e);}}
+        handler.postDelayed(()->{if(settled.compareAndSet(false,true)){dispose.run();call.reject("انتهت مهلة تجهيز التقرير للطباعة بعد 60 ثانية. تحقق من خدمة الطباعة وحاول مرة أخرى.");}},60000);
+      }catch(Exception e){if(settled.compareAndSet(false,true)){dispose.run();call.reject("تعذرت الطباعة: "+e.getClass().getSimpleName()+": "+e.getMessage(),e);}}
     });
   }
 }
