@@ -11,7 +11,8 @@ const CORE = [
   "./icon.svg",
   "./preferences.js",
   "./preferences.css",
-  "./biometric.bundle.js"
+  "./biometric.bundle.js",
+  "./native-plugins.bundle.js"
 ];
 
 self.addEventListener("install", event => {
