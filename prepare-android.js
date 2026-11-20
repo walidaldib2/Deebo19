@@ -9,7 +9,6 @@ const assets = [
   "db.js",
   "qrcode.js",
   "biometric.bundle.js",
-  "native-plugins.bundle.js",
   "style.css",
   "preferences.css",
   "preferences.js",
