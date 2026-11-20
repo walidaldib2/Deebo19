@@ -11,7 +11,7 @@ bikes:[["number","رقم الدراجة","text",1],["code","كود الدراج�
 patrol_sites:[["name","اسم المكان","text",1],["site_type","نوع المكان","select","مخزن|معرض|مركز خدمة",1],["address","العنوان / الوصف","text"],["lat","خط العرض","number"],["lng","خط الطول","number"],["notes","ملاحظات","textarea"]],
 managers:[["name","اسم المدير","text",1],["department","القسم","text"],["phone","رقم التواصل","tel"],["branches","الفروع التابعة","text"]],
 branch_patrols:[["branch","الفرع","text",1],["supervisor","المشرف","text",1],["responsible","المسؤول","text"],["patrol_date","تاريخ المرور","date",1],["patrol_time","ساعة المرور","time",1],["condition","حالة الفرع","select","جيد|ملاحظات|مخالفة|مغلق"],["notes","الملاحظات","textarea"]],
-bike_patrols:[["bike","الدراجة","text",1],["site","المخزن / المعرض / مركز الخدمة","text"],["patrol_date","تاريخ الوصول","date",1],["patrol_time","توقيت الوصول","time",1],["location_url","رابط موقع واتساب","url"],["lat","خط العرض","number"],["lng","خط الطول","number"],["notes","ملاحظات","textarea"]],
+bike_patrols:[["bike","الدراجة","text",1],["person","اسم الفرد القائم بالمرور","text",1],["site","المخزن / المعرض / مركز الخدمة","text"],["patrol_date","تاريخ الوصول","date",1],["patrol_time","توقيت الوصول","time",1],["location_url","رابط موقع واتساب","url"],["lat","خط العرض","number"],["lng","خط الطول","number"],["notes","ملاحظات","textarea"]],
 manager_rounds:[["manager","مدير القسم","text",1],["department","القسم","text"],["branches","الفروع التي تمت زيارتها","text"],["result","نتيجة المرور","textarea"]],
 incidents:[["incident_type","نوع البلاغ","select","أمني|تشغيلي|فني|إداري|حادث|أخرى",1],["incident_date","تاريخ البلاغ","date",1],["incident_time","وقت البلاغ","time",1],["branch","الفرع / الموقع","text"],["responsible","المسؤول","text"],["priority","الأولوية","select","عاجل|مرتفع|متوسط|منخفض"],["status","الحالة","select","جديد|قيد المعالجة|بانتظار إجراء|مغلق"],["description","وصف البلاغ","textarea",1],["lat","خط العرض","number"],["lng","خط الطول","number"],["action_taken","الإجراءات المتخذة","textarea"]],
 tasks:[["title","عنوان المهمة","text",1],["responsible","المسؤول","text"],["branch","الفرع","text"],["start_date","تاريخ البداية","date"],["due_date","تاريخ النهاية","date"],["priority","الأولوية","select","عاجل|مرتفع|متوسط|منخفض"],["status","الحالة","select","جديدة|جارية|مكتملة|متأخرة"],["progress","نسبة الإنجاز %","number"],["notes","ملاحظات","textarea"]],
@@ -448,8 +448,9 @@ function reports(){
   const groups=new Map();
   source.forEach(x=>{
    const p=x.payload||{},date=dayOf(x),bike=String(p.bike||"غير محدد").trim();
-   const key=date+"|"+bike;
-   if(!groups.has(key))groups.set(key,{date,bike,visits:[]});
+   const person=String(p.person||p.responsible||"").trim();
+   const key=date+"|"+bike+"|"+person;
+   if(!groups.has(key))groups.set(key,{date,bike,person,visits:[]});
    groups.get(key).visits.push(x);
   });
   return [...groups.values()].map(g=>{
@@ -462,7 +463,7 @@ function reports(){
     if(!sites.has(site))sites.set(site,[]);
     sites.get(site).push(String(p.patrol_time||"—"));
    });
-   return {date:g.date,bike:g.bike,person:bp.person||g.visits[0]?.payload?.person||g.visits[0]?.payload?.responsible||"—",code:bp.code||"—",type:bp.type||bp.description||"—",sites:[...sites.entries()].map(([site,times])=>({site,times}))};
+   return {date:g.date,bike:g.bike,person:g.person||bp.person||"—",code:bp.code||"—",type:bp.type||bp.description||"—",sites:[...sites.entries()].map(([site,times])=>({site,times}))};
   });
  };
  const branchGroupsFor=d=>{
