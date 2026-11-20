@@ -373,7 +373,7 @@ function renderEntity(type){
     await refresh();renderEntity("branch_patrols");toast("تم تعديل توقيت المرور إلى "+newTime);
    }catch(error){input.disabled=false;toast("تعذر تعديل التوقيت: "+error.message);}
   }));
-  $("[data-branch-slot]").forEach(button=>button.addEventListener("click",()=>{
+  $$("[data-branch-slot]").forEach(button=>button.addEventListener("click",()=>{
    const branch=button.dataset.branchName,date=button.dataset.branchDate;
    const d=new Date(),time=[String(d.getHours()).padStart(2,"0"),String(d.getMinutes()).padStart(2,"0")].join(":");
    currentEdit={id:null,payload:{branch,patrol_date:date,patrol_time:time}};
