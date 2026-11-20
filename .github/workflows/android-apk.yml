@@ -25,7 +25,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -77,6 +77,29 @@ jobs:
       - name: Configure native WhatsApp share receiver
         run: npm run configure:android:share
 
+      - name: Verify Play Store Android configuration
+        env:
+          APP_VERSION: ${{ github.run_number }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, os, re
+          variables = Path("android/variables.gradle").read_text(encoding="utf-8")
+          for key in ("compileSdkVersion", "targetSdkVersion"):
+              match = re.search(rf"\b{key}\s*=\s*(\d+)", variables)
+              if not match or int(match.group(1)) < 36:
+                  raise SystemExit(f"{key} must be at least 36 for Google Play")
+          package = json.loads(Path("package.json").read_text(encoding="utf-8"))
+          gradle = Path("android/app/build.gradle")
+          source = gradle.read_text(encoding="utf-8")
+          source, code_count = re.subn(r"versionCode\s+\d+", f"versionCode {int(os.environ['APP_VERSION'])}", source, count=1)
+          source, name_count = re.subn(r'versionName\s+"[^"]+"', f'versionName "{package["version"]}"', source, count=1)
+          if code_count != 1 or name_count != 1:
+              raise SystemExit("Could not set Android versionCode/versionName")
+          gradle.write_text(source, encoding="utf-8")
+          print(f"Verified target API 36+; versionCode={os.environ['APP_VERSION']}, versionName={package['version']}")
+          PY
+
       - name: Configure Maven Central mirrors
         run: |
           python3 - <<'PY'
@@ -109,10 +132,17 @@ jobs:
           done
           exit 1
 
-      - name: Upload APK
+      - name: Build Play Store Android App Bundle (unsigned until upload key is configured)
+        timeout-minutes: 20
+        working-directory: android
+        run: ./gradlew bundleRelease --no-daemon --no-configuration-cache --max-workers=2 --console=plain --stacktrace
+
+      - name: Upload APK and Play Store bundle
         uses: actions/upload-artifact@v4
         with:
-          name: DEEB-Android-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: DEEB-Android-Release-Candidates
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 30
