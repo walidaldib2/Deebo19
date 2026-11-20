@@ -243,6 +243,22 @@ function bindPatrolLocationInput(type){
   if(site&&form.elements.namedItem("site"))form.elements.namedItem("site").value=site.payload.name;
  });
 }
+function bindGlobalSearchSuggestions(){
+ const input=$("#globalSearch");if(!input)return;
+ let list=$("#globalSearchSuggestions");
+ if(!list){list=document.createElement("datalist");list.id="globalSearchSuggestions";input.insertAdjacentElement("afterend",list);}
+ input.setAttribute("list","globalSearchSuggestions");
+ const update=()=>{
+  const query=normalize(input.value);list.replaceChildren();if(!query)return;
+  const values=new Set();
+  cache.filter(record=>!record.is_archived).forEach(record=>Object.values(record.payload||{}).forEach(value=>{
+   if(typeof value!=="string"&&typeof value!=="number")return;
+   const candidate=String(value).trim();if(candidate&&normalize(candidate).includes(query))values.add(candidate);
+  }));
+  [...values].sort((a,b)=>a.localeCompare(b,"ar")).slice(0,20).forEach(value=>{const option=document.createElement("option");option.value=value;list.appendChild(option);});
+ };
+ input.addEventListener("input",update);input.addEventListener("focus",update);
+}
 function bindAutocomplete(){
  const sourceKeys={
   branch:[["branches","name"],["patrol_sites","name"]],
