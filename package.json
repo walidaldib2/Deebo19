@@ -10,7 +10,8 @@
     "android:open": "cap open android",
     "build:biometric": "esbuild biometric-entry.js --bundle --format=iife --outfile=www/biometric.bundle.js",
     "prepare:android": "node prepare-android.js",
-    "configure:android:share": "node configure-android-share.js"
+    "configure:android:share": "node configure-android-share.js",
+    "build:native-plugins": "esbuild native-plugins-entry.js --bundle --format=iife --outfile=www/native-plugins.bundle.js"
   },
   "dependencies": {
     "@aparajita/capacitor-biometric-auth": "9.1.2",
