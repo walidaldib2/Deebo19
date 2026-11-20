@@ -150,7 +150,7 @@ public class FileExportPlugin extends Plugin {
               if(pm==null)throw new Exception("خدمة الطباعة غير متاحة على الجهاز");
               String job="DEEB-"+System.currentTimeMillis();
               PrintAttributes attributes=new PrintAttributes.Builder()
-                .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
+                .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrait())
                 .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
                 .build();
               pm.print(job,v.createPrintDocumentAdapter(job),attributes);
