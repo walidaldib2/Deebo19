@@ -26,7 +26,7 @@ if (!app.includes('$(\"#enableBiometric\").onclick=async()=>') || !app.includes(
 if (!app.includes('localStorage.removeItem(BIOMETRIC_KEY)') || !app.includes('سيفتح التطبيق مباشرة دون PIN أو بصمة')) throw new Error('Direct unlock / biometric reset flow is missing');
 if (!app.includes('يمكنك الدخول باستخدام PIN')) throw new Error('Biometric PIN fallback message is missing');
 if (!app.includes('function lockApplication()') || !app.includes('document.visibilityState==="hidden"') || !app.includes('window.addEventListener("pagehide",lockApplication)')) throw new Error('Automatic PIN lock hooks are missing');
-if (!sw.includes('deebo-local-v10-16')) throw new Error('Service worker cache version was not bumped');
+if (!sw.includes('deebo-local-v10-17')) throw new Error('Service worker cache version was not bumped');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 if (!db.includes('return {app:"DEEB",format:2') || !db.includes('["DEEB","DEEBO","DEBOO16"].includes(obj.app)') || !db.includes('title:"تقرير DEEB"')) throw new Error('DEEB backup / approved report branding or legacy backup compatibility is missing');
 for (const marker of [
@@ -163,6 +163,11 @@ const nativeShareStep = workflow.indexOf('npm run configure:android:share');
 const syncStep = workflow.indexOf('npx cap sync android');
 const apkStep = workflow.indexOf('./gradlew assembleDebug');
 if (syncStep < 0 || nativeShareStep < syncStep || apkStep < nativeShareStep) throw new Error('Native share receiver must be configured after Capacitor sync and before APK build');
+const bikeReportStart=app.indexOf('const bikeGroupsFor=d=>');
+const bikeReportEnd=app.indexOf('const branchGroupsFor=d=>',bikeReportStart);
+const bikeReportSource=app.slice(bikeReportStart,bikeReportEnd);
+if (bikeReportSource.includes('people:new Set()') || bikeReportSource.includes('group.people.add(') || bikeReportSource.includes('[...g.people]')) throw new Error('Bike report must not combine every patrol visitor into the assigned rider name');
+if (!bikeReportSource.includes('person:String(bp.person||\"\").trim()||\"—\"')) throw new Error('Bike report must show only the single assigned person on the registered bike record');
 const bikeSectionStart=app.indexOf('const bikeGroupsFor=d=>');
 const bikeSectionEnd=app.indexOf('const branchGroupsFor=d=>',bikeSectionStart);
 const bikeSection=app.slice(bikeSectionStart,bikeSectionEnd);

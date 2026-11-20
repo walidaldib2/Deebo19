@@ -458,16 +458,15 @@ function reports(){
    const number=String(bike||"").trim();
    if(!number)return;
    const key=normalize(number);
-   if(!groups.has(key))groups.set(key,{date:"",bike:number,bikeRecord,people:new Set(),visits:[]});
+   if(!groups.has(key))groups.set(key,{date:"",bike:number,bikeRecord,visits:[]});
    else if(bikeRecord&&!groups.get(key).bikeRecord)groups.get(key).bikeRecord=bikeRecord;
   };
   registry.forEach(row=>addBike(row.payload?.number,row));
   source.forEach(x=>{
    const p=x.payload||{},bike=String(p.bike||"غير محدد").trim();
    addBike(bike);
-   const group=groups.get(normalize(bike)),date=dayOf(x),person=String(p.person||p.responsible||"").trim();
+   const group=groups.get(normalize(bike)),date=dayOf(x);
    if(date>group.date)group.date=date;
-   if(person)group.people.add(person);
    group.visits.push(x);
   });
   const result=[...groups.values()].sort((a,b)=>a.bike.localeCompare(b.bike,"ar",{numeric:true})).map(g=>{
@@ -480,7 +479,7 @@ function reports(){
     const lat=String(p.lat??"").trim(),lng=String(p.lng??"").trim(),locationUrl=String(p.location_url??"").trim();const coordinates=[lat?"خط العرض: "+lat:"",lng?"خط الطول: "+lng:"",locationUrl].filter(Boolean).join("\n")||"—";
     sites.get(site).push({time:String(p.patrol_time||"—"),coordinates,notes:String(p.notes||"").trim()});
    });
-   return {date:g.date,bike:g.bike,person:[...g.people].join("، ")||bp.person||"—",code:bp.code||"—",type:bp.type||bp.description||"—",visits:g.visits,sites:[...sites.entries()].map(([site,entries])=>({site,entries,times:entries.map(v=>v.time)}))};
+   return {date:g.date,bike:g.bike,person:String(bp.person||"").trim()||"—",code:bp.code||"—",type:bp.type||bp.description||"—",visits:g.visits,sites:[...sites.entries()].map(([site,entries])=>({site,entries,times:entries.map(v=>v.time)}))};
   });
   return result;
  };
