@@ -4,6 +4,7 @@ require("fake-indexeddb/auto");
 
 global.window = global;
 global.crypto = webcrypto;
+global.DEEBNativePlugins = { FileExport: { saveFile: async () => ({ saved: true }) } };
 global.FileReader = class {
   async readAsDataURL(blob) {
     try {
