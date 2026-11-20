@@ -45,6 +45,12 @@ async function main() {
   );
   assert.equal((await db.all()).filter(x => x.entity_type === "bike_patrols").length, 7);
 
+  // Motorcycle patrol records preserve the actual person who conducted each visit.
+  const namedVisit = await db.save("bike_patrols", { bike: "دراجة 1", person: "فرد مرور اختبار", site: "مخزن اختبار", patrol_date: "2026-11-19", patrol_time: "11:30" });
+  assert.equal((await db.getRecord(namedVisit.id)).payload.person, "فرد مرور اختبار");
+  const secondPersonVisit = await db.save("bike_patrols", { bike: "دراجة 1", person: "فرد آخر", site: "معرض اختبار", patrol_date: "2026-11-19", patrol_time: "11:45" });
+  assert.equal((await db.getRecord(secondPersonVisit.id)).payload.person, "فرد آخر");
+
   // Handover snapshots and report approvals remain linked to their records.
   const handover = await db.save("handovers", { sender: "مُسلّم", receiver: "مُستلم" });
   const history = await db.handoverHistory(handover.id);
