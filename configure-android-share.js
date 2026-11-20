@@ -351,6 +351,19 @@ public class MainActivity extends BridgeActivity {
 fs.writeFileSync(path.join(javaDir, "MainActivity.java"), activity);
 
 let manifest = fs.readFileSync(manifestPath, "utf8");
+const applicationPattern = /<application\\b[^>]*>/;
+const applicationTag = manifest.match(applicationPattern)?.[0];
+if (!applicationTag) throw new Error("Could not find Android application manifest element.");
+for (const [attribute, value] of [["android:allowBackup", "false"], ["android:usesCleartextTraffic", "false"]]) {
+  const escaped = attribute.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\let manifest = fs.readFileSync(manifestPath, "utf8");
+");
+  const attributePattern = new RegExp(escaped + '="[^"]*"');
+  if (attributePattern.test(applicationTag)) {
+    manifest = manifest.replace(applicationPattern, tag => tag.replace(attributePattern, attribute + '="' + value + '"'));
+  } else {
+    manifest = manifest.replace(applicationPattern, tag => tag.replace(/>$/, ' ' + attribute + '="' + value + '">'));
+  }
+}
 for (const permission of ['android.permission.ACCESS_COARSE_LOCATION','android.permission.ACCESS_FINE_LOCATION']) {
   if (!manifest.includes('android:name="' + permission + '"')) {
     manifest = manifest.replace(/(<manifest\b[^>]*>)/, '$1\n    <uses-permission android:name="' + permission + '" />');
