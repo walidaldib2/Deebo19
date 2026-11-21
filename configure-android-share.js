@@ -68,25 +68,69 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import java.io.OutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-@CapacitorPlugin(name = "FileExport")
+@CapacitorPlugin(name = "FileExport", permissions = {
+  @com.getcapacitor.annotation.Permission(alias = "legacyStorage", strings = { Manifest.permission.WRITE_EXTERNAL_STORAGE })
+})
 public class FileExportPlugin extends Plugin {
   @PluginMethod public void saveFile(PluginCall call) {
+    if (Build.VERSION.SDK_INT < 29 &&
+        getContext().checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+      requestPermissionForAlias("legacyStorage", call, "legacyStoragePermissionCallback");
+      return;
+    }
+    saveFileInternal(call);
+  }
+
+  @com.getcapacitor.annotation.PermissionCallback
+  private void legacyStoragePermissionCallback(PluginCall call) {
+    if (Build.VERSION.SDK_INT < 29 &&
+        getContext().checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+      call.reject("إذن التخزين مطلوب لحفظ الملف على إصدارات أندرويد القديمة.");
+      return;
+    }
+    saveFileInternal(call);
+  }
+
+  private void saveFileInternal(PluginCall call) {
     String name=call.getString("name","DEEB-export.txt");
     String mime=call.getString("mimeType","application/octet-stream");
     String data=call.getString("base64","");
+    Uri insertedUri=null;
+    File legacyFile=null;
     try {
       byte[] bytes=Base64.decode(data,Base64.DEFAULT);
-      ContentValues values=new ContentValues(); values.put(MediaStore.Downloads.DISPLAY_NAME,name); values.put(MediaStore.Downloads.MIME_TYPE,mime);
-      if(Build.VERSION.SDK_INT>=29) values.put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/DEEB");
-      Uri uri=getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
-      if(uri==null) throw new Exception("تعذر إنشاء الملف في التنزيلات");
-      try(OutputStream out=getContext().getContentResolver().openOutputStream(uri)){ if(out==null) throw new Exception("تعذر فتح الملف للحفظ"); out.write(bytes); out.flush(); }
-      JSObject result=new JSObject(); result.put("saved",true); result.put("name",name); call.resolve(result);
-    } catch(Exception e){call.reject("تعذر حفظ الملف: "+e.getMessage(),e);}
+      if (Build.VERSION.SDK_INT >= 29) {
+        ContentValues values=new ContentValues();
+        values.put(MediaStore.Downloads.DISPLAY_NAME,name);
+        values.put(MediaStore.Downloads.MIME_TYPE,mime);
+        values.put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/DEEB");
+        insertedUri=getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
+        if(insertedUri==null) throw new Exception("تعذر إنشاء الملف في التنزيلات");
+        try(OutputStream out=getContext().getContentResolver().openOutputStream(insertedUri)){
+          if(out==null) throw new Exception("تعذر فتح الملف للحفظ");
+          out.write(bytes); out.flush();
+        }
+      } else {
+        File downloads=Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        File directory=new File(downloads,"DEEB");
+        if(!directory.exists()&&!directory.mkdirs()) throw new Exception("تعذر إنشاء مجلد DEEB داخل التنزيلات");
+        legacyFile=new File(directory,name);
+        try(FileOutputStream out=new FileOutputStream(legacyFile)){out.write(bytes);out.flush();}
+      }
+      JSObject result=new JSObject(); result.put("saved",true); result.put("name",name);
+      result.put("location",Build.VERSION.SDK_INT>=29?"Downloads/DEEB":legacyFile.getAbsolutePath());
+      call.resolve(result);
+    } catch(Exception e) {
+      if(insertedUri!=null){try{getContext().getContentResolver().delete(insertedUri,null,null);}catch(Exception ignored){}}
+      if(legacyFile!=null&&legacyFile.exists())legacyFile.delete();
+      call.reject("تعذر حفظ الملف: "+e.getMessage(),e);
+    }
   }
   @PluginMethod public void saveHtmlAsImages(PluginCall call) {
     final String html=call.getString("html","");
@@ -525,6 +569,10 @@ for (const [attribute, value] of [["android:allowBackup", "false"], ["android:us
   } else {
     manifest = manifest.replace(applicationPattern, tag => tag.replace(/>$/, ' ' + attribute + '="' + value + '">'));
   }
+}
+// Android 9 and earlier require legacy public-storage permission; cap it at API 28.
+if (!manifest.includes('android.permission.WRITE_EXTERNAL_STORAGE')) {
+  manifest = manifest.replace(/(<manifest\\b[^>]*>)/, '$1\\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />');
 }
 for (const permission of ['android.permission.ACCESS_COARSE_LOCATION','android.permission.ACCESS_FINE_LOCATION']) {
   if (!manifest.includes('android:name="' + permission + '"')) {
