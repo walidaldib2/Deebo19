@@ -238,16 +238,6 @@ public class FileExportPlugin extends Plugin {
               };
               capturePage[0].run();
 
-              if(finished.compareAndSet(false,true)){
-                handler.removeCallbacksAndMessages(null);
-                cleanup.run();
-                JSObject result=new JSObject();
-                result.put("count",saved);
-                result.put("saved",true);
-                result.put("format","A4");
-                result.put("source","Android WebView page rasterizer");
-                call.resolve(result);
-              }
             }catch(Exception error){fail.reject("تعذر تحويل صفحات التقرير إلى صور: "+error.getMessage());}
           });
           handler.postDelayed(measureTask[0],100);
