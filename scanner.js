@@ -49,8 +49,22 @@ function cropCanvas(base){
 function solveLinear(a,b){
  const n=b.length;for(let i=0;i<n;i++){let max=i;for(let r=i+1;r<n;r++)if(Math.abs(a[r][i])>Math.abs(a[max][i]))max=r;if(Math.abs(a[max][i])<1e-9)throw new Error("تعذر حساب زوايا المنظور.");[a[i],a[max]]=[a[max],a[i]];[b[i],b[max]]=[b[max],b[i]];const div=a[i][i];for(let c=i;c<n;c++)a[i][c]/=div;b[i]/=div;for(let r=0;r<n;r++)if(r!==i){const f=a[r][i];for(let c=i;c<n;c++)a[r][c]-=f*a[i][c];b[r]-=f*b[i];}}return b;
 }
+function validateQuad(src,points){
+ if(!src||!Array.isArray(points)||points.length!==4)throw new Error("حدد زوايا الورقة الأربع بالترتيب الصحيح.");
+ const minSide=Math.max(12,Math.min(src.width,src.height)*.025),cross=[];
+ for(let i=0;i<4;i++){
+  const p=points[i],n=points[(i+1)%4],m=points[(i+2)%4];
+  if(!Number.isFinite(p.x)||!Number.isFinite(p.y)||p.x<0||p.y<0||p.x>=src.width||p.y>=src.height)throw new Error("إحدى زوايا الورقة خارج حدود الصورة.");
+  if(Math.hypot(n.x-p.x,n.y-p.y)<minSide)throw new Error("بعض زوايا الورقة قريبة جدًا؛ أعد تحديد الزوايا.");
+  cross.push((n.x-p.x)*(m.y-n.y)-(n.y-p.y)*(m.x-n.x));
+ }
+ if(cross.some(v=>Math.abs(v)<minSide*minSide*.08)||!(cross.every(v=>v>0)||cross.every(v=>v<0)))throw new Error("ترتيب الزوايا متقاطع أو غير صالح. ابدأ من أعلى اليسار ثم أعلى اليمين ثم أسفل اليمين ثم أسفل اليسار.");
+ let area=0;for(let i=0;i<4;i++){const p=points[i],n=points[(i+1)%4];area+=p.x*n.y-n.x*p.y;}
+ if(Math.abs(area)/2<src.width*src.height*.025)throw new Error("المساحة المحددة صغيرة جدًا لتصحيح المنظور.");
+ return true;
+}
 function warpPerspective(src,points){
- const [p0,p1,p2,p3]=points;const width=Math.max(Math.hypot(p1.x-p0.x,p1.y-p0.y),Math.hypot(p2.x-p3.x,p2.y-p3.y));
+ validateQuad(src,points);const [p0,p1,p2,p3]=points;const width=Math.max(Math.hypot(p1.x-p0.x,p1.y-p0.y),Math.hypot(p2.x-p3.x,p2.y-p3.y));
  const height=Math.max(Math.hypot(p3.x-p0.x,p3.y-p0.y),Math.hypot(p2.x-p1.x,p2.y-p1.y));
  const scale=Math.min(1,2200/Math.max(width,height),4500000/(width*height)),w=Math.max(2,Math.round(width*scale)),h=Math.max(2,Math.round(height*scale));
  const dst=[{x:0,y:0},{x:w-1,y:0},{x:w-1,y:h-1},{x:0,y:h-1}],a=[],b=[];
