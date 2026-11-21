@@ -251,6 +251,4 @@ if (!app.includes('height:auto;max-width:none;margin:0;padding:0;overflow:visibl
 
 
  // Automatic-backup status must be visible to the user, including the attachment-size skip.
- assert 'تم تحديث النسخة التلقائية لهذا اليوم بنجاح' in app
- assert 'تجاوز 30 ميجابايت' in app
- assert 'DebooDB.createAutoBackup()' in app
+if (!app.includes('تم تحديث النسخة التلقائية لهذا اليوم بنجاح') || !app.includes('تجاوز 30 ميجابايت') || !app.includes('DebooDB.createAutoBackup()')) throw new Error('Automatic backup status and attachment-size warning must be visible in settings');
