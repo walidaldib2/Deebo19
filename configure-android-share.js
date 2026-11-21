@@ -596,198 +596,6 @@ public class CurrentLocationPlugin extends Plugin {
 fs.writeFileSync(path.join(javaDir, "CurrentLocationPlugin.java"), locationPlugin);
 
 
-const documentScannerPlugin = `package ${packageName};
-
-import android.app.Activity;
-import android.content.ContentValues;
-import android.net.Uri;
-import android.os.Build;
-import android.os.Environment;
-import android.provider.MediaStore;
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.IntentSenderRequest;
-import androidx.activity.result.contract.ActivityResultContracts;
-import com.google.mlkit.vision.documentscanner.GmsDocumentScanner;
-import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions;
-import com.google.mlkit.vision.documentscanner.GmsDocumentScanning;
-import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult;
-import com.getcapacitor.JSArray;
-import com.getcapacitor.JSObject;
-import com.getcapacitor.Plugin;
-import com.getcapacitor.PluginCall;
-import com.getcapacitor.PluginMethod;
-import com.getcapacitor.annotation.CapacitorPlugin;
-import java.io.File;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.util.List;
-
-@CapacitorPlugin(name = "DocumentScanner")
-public class DocumentScannerPlugin extends Plugin {
-    private ActivityResultLauncher<IntentSenderRequest> scannerLauncher;
-    private PluginCall pendingCall;
-
-    @Override
-    public void load() {
-        scannerLauncher = getBridge().registerForActivityResult(
-            new ActivityResultContracts.StartIntentSenderForResult(),
-            result -> handleScannerResult(result)
-        );
-    }
-
-    @PluginMethod
-    public void scanDocument(PluginCall call) {
-        if (pendingCall != null) {
-            call.reject("هناك عملية مسح أخرى قيد التنفيذ.");
-            return;
-        }
-        pendingCall = call;
-        GmsDocumentScannerOptions options = new GmsDocumentScannerOptions.Builder()
-            .setGalleryImportAllowed(true)
-            .setPageLimit(40)
-            .setResultFormats(
-                GmsDocumentScannerOptions.RESULT_FORMAT_JPEG,
-                GmsDocumentScannerOptions.RESULT_FORMAT_PDF
-            )
-            .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL)
-            .build();
-        GmsDocumentScanner scanner = GmsDocumentScanning.getClient(options);
-        scanner.getStartScanIntent(getActivity())
-            .addOnSuccessListener(getActivity(), intentSender -> {
-                if (pendingCall != call) return;
-                scannerLauncher.launch(new IntentSenderRequest.Builder(intentSender).build());
-            })
-            .addOnFailureListener(getActivity(), error -> {
-                if (pendingCall == call) {
-                    pendingCall = null;
-                    call.reject("تعذر تشغيل ماسح المستندات من Google: " + error.getMessage(), error);
-                }
-            });
-    }
-
-    private void handleScannerResult(ActivityResult activityResult) {
-        PluginCall call = pendingCall;
-        if (call == null) return;
-        if (activityResult.getResultCode() != Activity.RESULT_OK) {
-            pendingCall = null;
-            JSObject cancelled = new JSObject();
-            cancelled.put("cancelled", true);
-            call.resolve(cancelled);
-            return;
-        }
-        try {
-            GmsDocumentScanningResult scan = GmsDocumentScanningResult.fromActivityResultIntent(activityResult.getData());
-            if (scan == null || scan.getPdf() == null) throw new Exception("لم يُنتج الماسح ملف PDF.");
-            String baseName = call.getString("name", "DEEB-Scan");
-            if (baseName == null || baseName.trim().isEmpty()) baseName = "DEEB-Scan";
-            baseName = baseName.replace("/", "_").replace(String.valueOf((char)92), "_");
-            if (baseName.toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")) {
-                baseName = baseName.substring(0, baseName.length() - 4);
-            }
-            String pdfName = baseName + ".pdf";
-            List<GmsDocumentScanningResult.Page> pages = scan.getPages();
-            int expectedPages = scan.getPdf().getPageCount();
-            if (expectedPages < 1 || pages == null || pages.size() != expectedPages) {
-                throw new Exception("عدد صفحات PDF لا يطابق صور الصفحات التي أعادها الماسح.");
-            }
-            List<Uri> createdUris = new java.util.ArrayList<>();
-            List<File> createdFiles = new java.util.ArrayList<>();
-            try {
-                String pdfLocation = copyToPublicStore(
-                    scan.getPdf().getUri(), pdfName, "application/pdf", true, createdUris, createdFiles
-                );
-                JSArray savedImages = new JSArray();
-                int savedImageCount = 0;
-                if (pages != null) {
-                    for (int i = 0; i < pages.size(); i++) {
-                        String imageName = baseName + "-" + String.format(java.util.Locale.US, "%02d", i + 1) + ".jpg";
-                        String imageLocation = copyToPublicStore(
-                            pages.get(i).getImageUri(), imageName, "image/jpeg", false, createdUris, createdFiles
-                        );
-                        savedImages.put(imageLocation);
-                        savedImageCount++;
-                    }
-                }
-                JSObject result = new JSObject();
-                result.put("saved", true);
-                result.put("cancelled", false);
-                result.put("name", pdfName);
-                result.put("pages", scan.getPdf().getPageCount());
-                result.put("location", pdfLocation);
-                result.put("imagesSaved", savedImageCount);
-                result.put("images", savedImages);
-                pendingCall = null;
-                call.resolve(result);
-            } catch (Exception saveError) {
-                for (Uri uri : createdUris) {
-                    try { getContext().getContentResolver().delete(uri, null, null); } catch (Exception ignored) {}
-                }
-                for (File file : createdFiles) {
-                    try { if (file.exists()) file.delete(); } catch (Exception ignored) {}
-                }
-                throw saveError;
-            }
-        } catch (Exception error) {
-            pendingCall = null;
-            call.reject("اكتمل المسح لكن تعذر حفظ ملفه: " + error.getMessage(), error);
-        }
-    }
-
-    private String copyToPublicStore(Uri source, String name, String mime, boolean pdf,
-                                     List<Uri> createdUris, List<File> createdFiles) throws Exception {
-        if (source == null) throw new Exception("مصدر إحدى صفحات المستند غير متاح.");
-        if (Build.VERSION.SDK_INT >= 29) {
-            ContentValues values = new ContentValues();
-            values.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
-            values.put(MediaStore.MediaColumns.MIME_TYPE, mime);
-            values.put(MediaStore.MediaColumns.RELATIVE_PATH,
-                pdf ? Environment.DIRECTORY_DOWNLOADS + "/DEEB" : Environment.DIRECTORY_PICTURES + "/DEEB");
-            values.put(MediaStore.MediaColumns.IS_PENDING, 1);
-            Uri destination = getContext().getContentResolver().insert(
-                pdf ? MediaStore.Downloads.EXTERNAL_CONTENT_URI : MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                values
-            );
-            if (destination == null) throw new Exception("تعذر إنشاء الملف " + name);
-            createdUris.add(destination);
-            try (InputStream input = getContext().getContentResolver().openInputStream(source);
-                 OutputStream output = getContext().getContentResolver().openOutputStream(destination)) {
-                if (input == null || output == null) throw new Exception("تعذر فتح ملف المصدر أو الوجهة.");
-                byte[] buffer = new byte[65536];
-                int count;
-                while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
-                output.flush();
-            } catch (Exception error) {
-                getContext().getContentResolver().delete(destination, null, null);
-                createdUris.remove(destination);
-                throw error;
-            }
-            ContentValues ready = new ContentValues();
-            ready.put(MediaStore.MediaColumns.IS_PENDING, 0);
-            getContext().getContentResolver().update(destination, ready, null, null);
-            return pdf ? "Downloads/DEEB/" + name : "Pictures/DEEB/" + name;
-        }
-        File directory = getContext().getExternalFilesDir(pdf ? Environment.DIRECTORY_DOCUMENTS : Environment.DIRECTORY_PICTURES);
-        if (directory == null) throw new Exception("مساحة تخزين التطبيق غير متاحة.");
-        if (!directory.exists() && !directory.mkdirs()) throw new Exception("تعذر إنشاء مجلد المستندات.");
-        File target = new File(directory, name);
-        createdFiles.add(target);
-        try (InputStream input = getContext().getContentResolver().openInputStream(source);
-             OutputStream output = new FileOutputStream(target)) {
-            if (input == null) throw new Exception("تعذر قراءة الملف الناتج من الماسح.");
-            byte[] buffer = new byte[65536];
-            int count;
-            while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
-            output.flush();
-        }
-        return target.getAbsolutePath();
-    }
-}
-`;
-fs.writeFileSync(path.join(javaDir, "DocumentScannerPlugin.java"), documentScannerPlugin);
-
 const activity = `package ${packageName};
 
 import android.content.Intent;
@@ -804,7 +612,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(ShareIntentPlugin.class);
         registerPlugin(CurrentLocationPlugin.class);
         registerPlugin(FileExportPlugin.class);
-        registerPlugin(DocumentScannerPlugin.class);
+
         super.onCreate(savedInstanceState);
         captureSharedText(getIntent(), false);
     }
@@ -883,13 +691,9 @@ fs.writeFileSync(manifestPath, manifest);
 const gradlePath = path.join(root, "android", "app", "build.gradle");
 if (!fs.existsSync(gradlePath)) throw new Error("Android app Gradle file is missing after Capacitor sync.");
 let gradle = fs.readFileSync(gradlePath, "utf8");
-if (!gradle.includes("play-services-mlkit-document-scanner")) {
-  const dependenciesBlock = /dependencies\s*\{/;
-  if (!dependenciesBlock.test(gradle)) throw new Error("Could not find Android dependencies block for Google ML Kit.");
-  gradle = gradle.replace(dependenciesBlock, match =>
-    match + '\n    implementation "com.google.android.gms:play-services-mlkit-document-scanner:16.0.0"'
-  );
-  fs.writeFileSync(gradlePath, gradle);
-}
-console.log("Configured DEEBO Android sharing, location, and Google ML Kit document scanning.");
+// Remove remnants from previously generated projects; document scanning is not part of DEEB.
+fs.rmSync(path.join(javaDir, "DocumentScannerPlugin.java"), { force: true });
+gradle = gradle.replace(/^\s*implementation ["']com\.google\.android\.gms:play-services-mlkit-document-scanner:[^"']+["']\s*$/m, "");
+fs.writeFileSync(gradlePath, gradle);
+console.log("Configured DEEBO Android sharing, location, and report export.");
 
