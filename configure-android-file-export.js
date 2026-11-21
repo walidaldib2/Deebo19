@@ -33,7 +33,7 @@ const missing = required.filter(marker => !source.includes(marker));
 if (missing.length) {
   throw new Error("The canonical Android PDF/image exporter is incomplete: " + missing.join(", "));
 }
-if (source.includes("new android.graphics.pdf.PdfDocument()") || source.includes("v.scrollTo(0,scrollY)") || source.includes("v.draw(canvas)") || source.includes("document.writeTo(output)")) {
+if (source.includes("nativeAdapter.onLayout(") || source.includes("nativeAdapter.onWrite(")) {
   throw new Error("Image export must not invoke hidden Android print callbacks directly.");
 }
 console.log("Verified whole-document WebView rendering, paginated PdfDocument-to-PNG export, blank-page detection, and cleanup.");
