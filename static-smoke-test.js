@@ -118,7 +118,7 @@ if (!db.includes(String.raw`const day=/^\d{4}-\d{2}-\d{2}$/.test(patrolDate)?pat
 if (!app.includes('$("#recordForm")?.elements.namedItem("supervisor")?.focus()')) throw new Error("Quick branch patrol entry must open the form and focus the required supervisor field");
 if (!app.includes("bindGlobalSearchSuggestions()") || !app.includes('input.setAttribute("list","globalSearchSuggestions")')) throw new Error("Global search autocomplete suggestions are missing");
 
-console.log('PASS: required files, navigation hierarchy, reports archive/restore, script references, refreshed service-worker cache, package.json, Capacitor config, automatic-lock wiring, and chronological five-column motorcycle print reports with weekday/date, notes, and continuation pages, with existing screen preview and spreadsheet export preserved.');
+console.log('PASS: required files, navigation hierarchy, reports archive/restore, script references, refreshed service-worker cache, package.json, Capacitor config, automatic-lock wiring, and chronological three-column motorcycle print reports (site, patrol time, coordinates) with report date in the header and continuation pages, with existing screen preview and spreadsheet export preserved.');
 
 if (!app.includes('id="pdfReport"') || !app.includes('$("#pdfReport").onclick=()=>') || !app.includes('اختر حفظ كملف PDF')) throw new Error('PDF export action is missing');
 
