@@ -88,7 +88,7 @@ if (!app.includes('dateObj=/^\\d{4}-\\d{2}-\\d{2}$/.test(date)') || !app.include
 if (!app.includes('key=normalize(number);') || !app.includes('registry=data.filter(x=>x.entity_type===\"bikes\"&&!x.is_archived)') || !app.includes('bikeGroupsFor(data)') || !app.includes('data-bike-number=') || !app.includes('id="bikeQuickReports"') || app.includes('data-bike-index=') || app.includes('data-report-type="bike_patrols"') || !app.includes('showDate=type!=="bike_patrols"')) throw new Error('Motorcycle reports must have dynamically generated individual report actions for every registered bike, with no duplicate date column');
 if (app.includes('["patrol_date","تاريخ الوصول","date",1]')) throw new Error('Motorcycle form must not show a duplicate date input');
 if (!app.includes('payload.patrol_date=oldDate||')) throw new Error('Motorcycle patrol date must still be stored automatically');
-if (app.includes('<span>تاريخ المرور</span><b>"+esc(g.date)+"</b>') || (app.match(/تاريخ إصدار التقرير/g)||[]).length!==1) throw new Error('Bike report must show its date once globally, not once above each bike');
+if (app.includes('<span>تاريخ المرور</span><b>"+esc(g.date)+"</b>') || (app.match(/تاريخ الإصدار/g)||[]).length!==1) throw new Error('Bike report must show its date once globally, not once above each bike');
 if (app.includes('saveFile("DEEB-report.xls"') || app.includes('application/vnd.ms-excel;charset=utf-8')) throw new Error('Legacy XML Spreadsheet export must not be mislabeled as XLS');
 
 if (!app.includes('patrol_sites:[') || !app.includes('المخازن والمعارض ومراكز الخدمة')) throw new Error('Fixed patrol locations registry is missing');
