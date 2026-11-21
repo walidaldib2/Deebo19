@@ -681,13 +681,13 @@ public class DocumentScannerPlugin extends Plugin {
                 baseName = baseName.substring(0, baseName.length() - 4);
             }
             String pdfName = baseName + ".pdf";
-            String pdfLocation = copyToPublicStore(
-                scan.getPdf().getUri(), pdfName, "application/pdf", true
-            );
             List<GmsDocumentScanningResult.Page> pages = scan.getPages();
             List<Uri> createdUris = new java.util.ArrayList<>();
             List<File> createdFiles = new java.util.ArrayList<>();
             try {
+                String pdfLocation = copyToPublicStore(
+                    scan.getPdf().getUri(), pdfName, "application/pdf", true, createdUris, createdFiles
+                );
                 JSArray savedImages = new JSArray();
                 int savedImageCount = 0;
                 if (pages != null) {
