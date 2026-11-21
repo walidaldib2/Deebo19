@@ -129,7 +129,7 @@ public class FileExportPlugin extends Plugin {
       view.getSettings().setUseWideViewPort(true);
       view.getSettings().setLoadWithOverviewMode(false);
       view.setInitialScale(100);
-      root.addView(view,new FrameLayout.LayoutParams(webWidth,1));
+      root.addView(view,new FrameLayout.LayoutParams(webWidth,webPageHeight));
       view.setWebViewClient(new WebViewClient(){
         @Override public void onPageFinished(WebView v,String url){
           v.evaluateJavascript("(function(){function collectPrintRules(rules,out){for(var i=0;i<rules.length;i++){var rule=rules[i];if(rule.type===4&&/print/i.test(rule.conditionText||rule.media&&rule.media.mediaText||'')){collectPrintRules(rule.cssRules,out);}else if(rule.type===12&&rule.cssRules){collectPrintRules(rule.cssRules,out);}else if(rule.type!==6&&!rule.cssRules&&rule.cssText){out.push(rule.cssText);}}}var printRules=[];for(var s=0;s<document.styleSheets.length;s++){try{collectPrintRules(document.styleSheets[s].cssRules,printRules);}catch(e){}}if(printRules.length){var printStyle=document.createElement('style');printStyle.setAttribute('data-deeb-print-rules','true');printStyle.textContent=printRules.join(' ');document.head.appendChild(printStyle);}var imageNumberStyle=document.createElement('style');imageNumberStyle.textContent='.report-page-number,.branch-page-number{display:none!important}';document.head.appendChild(imageNumberStyle);if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){window.__deebFontsReady=true;});}else{window.__deebFontsReady=true;}return true;})()",ignored->{});
