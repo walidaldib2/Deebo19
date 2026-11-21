@@ -98,7 +98,8 @@ public class FileExportPlugin extends Plugin {
       final Handler handler=new Handler(Looper.getMainLooper());
       final java.util.concurrent.atomic.AtomicBoolean finished=new java.util.concurrent.atomic.AtomicBoolean(false);
       final Runnable cleanup=()->{try{if(view.getParent() instanceof ViewGroup)((ViewGroup)view.getParent()).removeView(view);}catch(Exception ignored){}try{view.stopLoading();view.destroy();}catch(Exception ignored){}};
-      final java.util.function.Consumer<String> fail=message->{if(finished.compareAndSet(false,true)){cleanup.run();call.reject(message);}};
+      final class ImageExportFailure { void reject(String message){if(finished.compareAndSet(false,true)){cleanup.run();call.reject(message);}} }
+      final ImageExportFailure fail=new ImageExportFailure();
       view.setBackgroundColor(Color.WHITE);
       view.setLayerType(View.LAYER_TYPE_SOFTWARE,null);
       view.setVerticalScrollBarEnabled(false);
@@ -169,7 +170,7 @@ public class FileExportPlugin extends Plugin {
                             cleanup.run();
                             JSObject result=new JSObject();result.put("count",saved);result.put("saved",true);result.put("format","A4");call.resolve(result);
                           }
-                        }catch(Exception e){pdfFile.delete();fail.accept("تعذر تحويل صفحات التقرير إلى صور: "+e.getMessage());}
+                        }catch(Exception e){pdfFile.delete();fail.reject("تعذر تحويل صفحات التقرير إلى صور: "+e.getMessage());}
                       }
                       @Override public void onWriteFailed(CharSequence error){try{output.close();}catch(Exception ignored){}pdfFile.delete();fail.accept("فشل إنشاء صفحات التقرير: "+error);}
                       @Override public void onWriteCancelled(){try{output.close();}catch(Exception ignored){}pdfFile.delete();fail.accept("تم إلغاء تجهيز صور التقرير.");}
