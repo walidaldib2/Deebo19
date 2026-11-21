@@ -14,15 +14,20 @@ const required = [
   "saveHtmlAsImages",
   "printHtml",
   "writeWebViewToPdf",
-  "android.graphics.pdf.PdfDocument",
+  "createPrintDocumentAdapter(baseName)",
+  "adapter.onLayout(null,attributes,cancellation",
+  "adapter.onWrite(new android.print.PageRange[]{android.print.PageRange.ALL_PAGES}",
   "PdfRenderer",
+  "page.render(bitmap",
+  "bitmap.compress(Bitmap.CompressFormat.PNG,100,out)",
+  "nonWhite==0",
   "removePartialImages.run()"
 ];
 const missing = required.filter(marker => !source.includes(marker));
 if (missing.length) {
   throw new Error("The canonical Android PDF/image exporter is incomplete: " + missing.join(", "));
 }
-if (source.includes("adapter.onLayout(") || source.includes("adapter.onWrite(")) {
-  throw new Error("Unsupported direct PrintDocumentAdapter callbacks were detected.");
+if (!source.includes("onLayoutFinished") || !source.includes("onWriteFinished") || !source.includes("onWriteFailed")) {
+  throw new Error("Android print adapter lifecycle callbacks are incomplete.");
 }
-console.log("Verified the canonical Android native print/PDF/image exporter; no files were overwritten.");
+console.log("Verified the Android print adapter, paginated PDF-to-PNG export, blank-page detection, and cleanup.");
