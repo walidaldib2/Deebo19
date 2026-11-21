@@ -89,7 +89,8 @@ public class FileExportPlugin extends Plugin {
     view.evaluateJavascript(startScript, started -> {
       final Runnable[] poll = new Runnable[1];
       poll[0] = () -> view.evaluateJavascript("window.__DEEB_REPORT_READY||'pending'", value -> {
-        String state = value == null ? "" : value.replace("\\"", "");
+        String state = value == null ? "" : value;
+        if (state.length() >= 2 && state.charAt(0) == 34 && state.charAt(state.length()-1) == 34) state = state.substring(1, state.length()-1);
         if ("pending".equals(state) && System.currentTimeMillis() < deadline) {
           handler.postDelayed(poll[0], 100);
         } else {
