@@ -26,9 +26,10 @@ for (const required of ['writeWebViewToPdf','android.graphics.pdf.PdfDocument','
 if (!imageExport.includes('device pixels') || !imageExport.includes('CSS pixels') || !imageExport.includes('v.evaluateJavascript("window.scrollTo(0,"+(currentPage*pageHeightCss)+");true;"')) throw new Error('A4 image export must scroll each page in CSS pixels, independent of Android screen density');
 if (imageExport.includes('adapter.onLayout(') || imageExport.includes('adapter.onWrite(') || imageExport.includes('canvas.scale(2f/density')) throw new Error('Image export must not invoke inaccessible PrintDocumentAdapter callbacks or use density-dependent scaling');
 for (const required of ['setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrait())','setResolution(new PrintAttributes.Resolution("DEEB","DEEB",300,300))','setMinMargins(PrintAttributes.Margins.NO_MARGINS)','createPrintDocumentAdapter(jobName)','setJavaScriptEnabled(true)']) if (!printHandler.includes(required)) throw new Error('Android printing must use fixed A4 print attributes and the native print adapter: '+required);
-const bikeReportStart=app.indexOf('if($("#reportType").value==="bike_patrols"){',app.indexOf('const printHtml'));
-const bikeReportEnd=app.indexOf('\n  }\n  const rows=rowsFor(d),counts={};',bikeReportStart);
-const bikeReportTemplate=bikeReportStart>=0&&bikeReportEnd>bikeReportStart?app.slice(bikeReportStart,bikeReportEnd):'';
+const appSource = fs.readFileSync(path.join(root,'app.js'),'utf8');
+const bikeReportStart=appSource.indexOf('if($("#reportType").value==="bike_patrols"){',app.indexOf('const printHtml'));
+const bikeReportEnd=appSource.indexOf('\n  }\n  const rows=rowsFor(d),counts={};',bikeReportStart);
+const bikeReportTemplate=bikeReportStart>=0&&bikeReportEnd>bikeReportStart?appSource.slice(bikeReportStart,bikeReportEnd):'';
 if (!bikeReportTemplate.includes('reportDate=new Date().toLocaleDateString("ar-EG")') || !bikeReportTemplate.includes('<div class="bike-report-date"><span>التاريخ</span><b>') || !bikeReportTemplate.includes("'+esc(reportDate)+'") || bikeReportTemplate.includes('<div class="bike-meta-date"><span>التاريخ</span>')) throw new Error('Bike report issue date must appear above the table on every page, never as a table/meta column');
 const scannerBridgeSource = fs.readFileSync(path.join(root,'native-plugins-entry.js'),'utf8');
 if (!scannerBridgeSource.includes("DocumentScanner: registerPlugin('DocumentScanner')")) throw new Error('Google document scanner JavaScript bridge is missing');
