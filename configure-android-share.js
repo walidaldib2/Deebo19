@@ -92,7 +92,7 @@ public class FileExportPlugin extends Plugin {
     final String html=call.getString("html","");
     final String requestedName=call.getString("name","DEEB-report");
     final String baseName=(requestedName==null||requestedName.trim().isEmpty()?"DEEB-report":requestedName.trim())
-      .replace("/","_").replace("\\","_");
+      .replace("/","_").replace(String.valueOf((char)92),"_");
     if(html.trim().isEmpty()){call.reject("لا توجد بيانات لتحويلها إلى صور");return;}
     getActivity().runOnUiThread(()->{
       final WebView view=new WebView(getContext());
@@ -124,7 +124,7 @@ public class FileExportPlugin extends Plugin {
       root.addView(view,new FrameLayout.LayoutParams(794,1));
       view.setWebViewClient(new WebViewClient(){
         @Override public void onPageFinished(WebView v,String url){
-          v.evaluateJavascript("(function(){function collectPrintRules(rules,out){for(var i=0;i<rules.length;i++){var rule=rules[i];if(rule.type===4&&/print/i.test(rule.conditionText||rule.media&&rule.media.mediaText||\"\")){collectPrintRules(rule.cssRules,out);}else if(rule.type===12&&rule.cssRules){collectPrintRules(rule.cssRules,out);}else if(rule.type!==6&&!rule.cssRules&&rule.cssText){out.push(rule.cssText);}}}var printRules=[];for(var s=0;s<document.styleSheets.length;s++){try{collectPrintRules(document.styleSheets[s].cssRules,printRules);}catch(e){}}if(printRules.length){var printStyle=document.createElement(\"style\");printStyle.setAttribute(\"data-deeb-print-rules\",\"true\");printStyle.textContent=printRules.join(\"\\n\");document.head.appendChild(printStyle);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){window.__deebFontsReady=true;});}else{window.__deebFontsReady=true;}return true;})()",ignored->{});
+          v.evaluateJavascript("(function(){function collectPrintRules(rules,out){for(var i=0;i<rules.length;i++){var rule=rules[i];if(rule.type===4&&/print/i.test(rule.conditionText||rule.media&&rule.media.mediaText||'')){collectPrintRules(rule.cssRules,out);}else if(rule.type===12&&rule.cssRules){collectPrintRules(rule.cssRules,out);}else if(rule.type!==6&&!rule.cssRules&&rule.cssText){out.push(rule.cssText);}}}var printRules=[];for(var s=0;s<document.styleSheets.length;s++){try{collectPrintRules(document.styleSheets[s].cssRules,printRules);}catch(e){}}if(printRules.length){var printStyle=document.createElement('style');printStyle.setAttribute('data-deeb-print-rules','true');printStyle.textContent=printRules.join(' ');document.head.appendChild(printStyle);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){window.__deebFontsReady=true;});}else{window.__deebFontsReady=true;}return true;})()",ignored->{});
           final Runnable[] measureTask=new Runnable[1];
           measureTask[0]=()->v.evaluateJavascript("(function(){if(!window.__deebFontsReady)return -1;return Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);})()",heightValue->{
             if(finished.get())return;
