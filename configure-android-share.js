@@ -50,6 +50,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
 import android.print.PrintAttributes;
+import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -67,6 +68,9 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import java.io.OutputStream;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.json.JSONTokener;
 
 @CapacitorPlugin(name = "FileExport")
 public class FileExportPlugin extends Plugin {
@@ -85,50 +89,177 @@ public class FileExportPlugin extends Plugin {
     } catch(Exception e){call.reject("تعذر حفظ الملف: "+e.getMessage(),e);}
   }
   @PluginMethod public void saveHtmlAsImages(PluginCall call) {
-    String html=call.getString("html","");
-    String baseName=call.getString("name","DEEB-report");
-    if(html.isEmpty()){call.reject("لا توجد بيانات لتحويلها إلى صور");return;}
+    final String html=call.getString("html","");
+    final String requestedName=call.getString("name","DEEB-report");
+    final String baseName=(requestedName==null||requestedName.trim().isEmpty()?"DEEB-report":requestedName.trim())
+      .replace("/","_").replace(String.valueOf((char)92),"_");
+    if(html.trim().isEmpty()){call.reject("لا توجد بيانات لتحويلها إلى صور");return;}
     getActivity().runOnUiThread(()->{
-      WebView view=new WebView(getContext());
+      final WebView view=new WebView(getContext());
+      final ViewGroup root=(ViewGroup)getActivity().getWindow().getDecorView();
+      final Handler handler=new Handler(Looper.getMainLooper());
+      final java.util.concurrent.atomic.AtomicBoolean finished=new java.util.concurrent.atomic.AtomicBoolean(false);
+      final java.util.ArrayList<Uri> createdUris=new java.util.ArrayList<>();
+      final Runnable cleanup=()->handler.post(()->{
+        try{if(view.getParent() instanceof ViewGroup)((ViewGroup)view.getParent()).removeView(view);}catch(Exception ignored){}
+        try{view.stopLoading();view.destroy();}catch(Exception ignored){}
+      });
+      final Runnable removePartialImages=()->{
+        for(Uri uri:createdUris){try{getContext().getContentResolver().delete(uri,null,null);}catch(Exception ignored){}}
+        createdUris.clear();
+      };
+      final class ImageExportFailure {
+        void reject(String message){
+          if(finished.compareAndSet(false,true)){
+            handler.post(()->{removePartialImages.run();cleanup.run();call.reject(message);});
+          }
+        }
+      }
+      final ImageExportFailure fail=new ImageExportFailure();
       view.setBackgroundColor(Color.WHITE);
+      view.setLayerType(View.LAYER_TYPE_SOFTWARE,null);
       view.setVerticalScrollBarEnabled(false);
       view.setHorizontalScrollBarEnabled(false);
       view.getSettings().setJavaScriptEnabled(true);
+      root.addView(view,new FrameLayout.LayoutParams(794,1));
       view.setWebViewClient(new WebViewClient(){
         @Override public void onPageFinished(WebView v,String url){
-          v.evaluateJavascript("(function(){return Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);})()",value->{
+          v.evaluateJavascript("(function(){function collectPrintRules(rules,out){for(var i=0;i<rules.length;i++){var rule=rules[i];if(rule.type===4&&/print/i.test(rule.conditionText||rule.media&&rule.media.mediaText||'')){collectPrintRules(rule.cssRules,out);}else if(rule.type===12&&rule.cssRules){collectPrintRules(rule.cssRules,out);}else if(rule.type!==6&&!rule.cssRules&&rule.cssText){out.push(rule.cssText);}}}var printRules=[];for(var s=0;s<document.styleSheets.length;s++){try{collectPrintRules(document.styleSheets[s].cssRules,printRules);}catch(e){}}if(printRules.length){var printStyle=document.createElement('style');printStyle.setAttribute('data-deeb-print-rules','true');printStyle.textContent=printRules.join(' ');document.head.appendChild(printStyle);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){window.__deebFontsReady=true;});}else{window.__deebFontsReady=true;}return true;})()",ignored->{});
+          final Runnable[] measureTask=new Runnable[1];
+          measureTask[0]=()->v.evaluateJavascript("(function(){if(!window.__deebFontsReady)return -1;var pageCssHeight=Math.round(794*297/210),nodes=document.querySelectorAll('.written-page,.bike-sheet-section,.branch-sheet-section'),pages=[];if(nodes.length){for(var i=0;i<nodes.length;i++){var node=nodes[i];node.style.setProperty('margin-top','0','important');node.style.setProperty('min-height',pageCssHeight+'px','important');var rect=node.getBoundingClientRect(),height=Math.max(1,Math.ceil(rect.height)),marginBottom=parseFloat(window.getComputedStyle(node).marginBottom)||0,pageSpan=Math.max(1,Math.ceil((height+marginBottom)/pageCssHeight));node.style.setProperty('margin-bottom',Math.max(0,pageSpan*pageCssHeight-height)+'px','important');rect=node.getBoundingClientRect();pages.push({top:Math.max(0,Math.round(rect.top+window.pageYOffset)),height:pageSpan*pageCssHeight});}}else{var contentHeight=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);pages.push({top:0,height:contentHeight});}var contentHeight=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);return JSON.stringify({contentHeight:contentHeight,pages:pages});})()",heightValue->{
+            if(finished.get())return;
             try{
-              int contentHeight=Integer.parseInt(value.replace("\\\"","").trim());
-              int width=1080;
-              if(contentHeight<100)throw new Exception("تعذر تحديد طول التقرير.");
-              v.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(contentHeight,View.MeasureSpec.EXACTLY));
-              v.layout(0,0,width,contentHeight);
-              int pageHeight=2600;
-              int count=(contentHeight+pageHeight-1)/pageHeight;
-              for(int page=0;page<count;page++){
-                int top=page*pageHeight,partHeight=Math.min(pageHeight,contentHeight-top);
-                Bitmap bitmap=Bitmap.createBitmap(width,partHeight,Bitmap.Config.ARGB_8888);
-                Canvas canvas=new Canvas(bitmap);canvas.drawColor(Color.WHITE);canvas.save();canvas.translate(0,-top);v.draw(canvas);canvas.restore();
-                ContentValues values=new ContentValues();
-                values.put(MediaStore.Images.Media.DISPLAY_NAME,baseName+"-"+String.format(java.util.Locale.US,"%02d",page+1)+".png");
-                values.put(MediaStore.Images.Media.MIME_TYPE,"image/png");
-                if(Build.VERSION.SDK_INT>=29){values.put(MediaStore.Images.Media.RELATIVE_PATH,Environment.DIRECTORY_PICTURES+"/DEEB");values.put(MediaStore.Images.Media.IS_PENDING,1);}
-                Uri uri=getContext().getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values);
-                if(uri==null)throw new Exception("تعذر إنشاء صورة التقرير رقم "+(page+1));
-                try(OutputStream out=getContext().getContentResolver().openOutputStream(uri)){
-                  if(out==null||!bitmap.compress(Bitmap.CompressFormat.PNG,100,out))throw new Exception("تعذر كتابة صورة التقرير رقم "+(page+1));
-                  out.flush();
+              String raw=heightValue==null?"":heightValue.trim();
+              if("-1".equals(raw)){handler.postDelayed(measureTask[0],100);return;}
+              Object decoded=new JSONTokener(raw).nextValue();
+              if(!(decoded instanceof String))throw new Exception("تعذر قراءة تقسيم صفحات التقرير.");
+              JSONObject measurement=new JSONObject((String)decoded);
+              int contentHeight=measurement.getInt("contentHeight");
+              if(contentHeight<80)throw new Exception("تعذر قياس محتوى التقرير.");
+              int pageCssHeight=(int)Math.round(794.0*297.0/210.0);
+              JSONArray segments=measurement.getJSONArray("pages");
+              java.util.ArrayList<Integer> pageTops=new java.util.ArrayList<>();
+              for(int segmentIndex=0;segmentIndex<segments.length();segmentIndex++){
+                JSONObject segment=segments.getJSONObject(segmentIndex);
+                int segmentTop=Math.max(0,segment.getInt("top"));
+                int segmentHeight=Math.max(1,segment.getInt("height"));
+                for(int offset=0;offset<segmentHeight;offset+=pageCssHeight){
+                  pageTops.add(segmentTop+offset);
+                  if(pageTops.size()>100)throw new Exception("التقرير يتجاوز 100 صفحة؛ قسّمه قبل حفظ الصور.");
                 }
-                if(Build.VERSION.SDK_INT>=29){ContentValues ready=new ContentValues();ready.put(MediaStore.Images.Media.IS_PENDING,0);getContext().getContentResolver().update(uri,ready,null,null);}
-                bitmap.recycle();
               }
-              view.destroy();
-              JSObject result=new JSObject();result.put("count",count);result.put("saved",true);call.resolve(result);
-            }catch(Exception e){view.destroy();call.reject("تعذر حفظ صور التقرير: "+e.getMessage(),e);}
+              if(pageTops.isEmpty())throw new Exception("التقرير لا يحتوي على صفحات.");
+              int pageCount=pageTops.size();
+              v.setLayoutParams(new FrameLayout.LayoutParams(794,pageCssHeight));
+              v.measure(View.MeasureSpec.makeMeasureSpec(794,View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(pageCssHeight,View.MeasureSpec.EXACTLY));
+              v.layout(0,0,794,pageCssHeight);
+              final int[] pageIndex={0};
+              final int[] saved={0};
+              final Runnable[] capturePage=new Runnable[1];
+              capturePage[0]=()->{
+                if(finished.get())return;
+                if(pageIndex[0]>=pageCount){
+                  if(saved[0]<1){fail.reject("لم يتم إنشاء أي صورة للتقرير.");return;}
+                  if(finished.compareAndSet(false,true)){
+                    handler.removeCallbacksAndMessages(null);
+                    cleanup.run();
+                    JSObject result=new JSObject();
+                    result.put("count",saved[0]);
+                    result.put("saved",true);
+                    result.put("format","A4");
+                    result.put("source","Android WebView page rasterizer");
+                    call.resolve(result);
+                  }
+                  return;
+                }
+                final int currentPage=pageIndex[0];
+                final int top=pageTops.get(currentPage);
+                final int width=1588,height=pageCssHeight*2;
+                if(width<1||height<1||(long)width*height>12000000L){
+                  fail.reject("أبعاد صفحة التقرير أكبر من الحد الآمن للتحويل.");
+                  return;
+                }
+                // Let Chromium finish scrolling and paint the requested page before drawing it.
+                v.scrollTo(0,top);
+                v.invalidate();
+                v.postDelayed(()->{
+                  if(finished.get())return;
+                  Bitmap bitmap=null;
+                  try{
+                    bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
+                    bitmap.eraseColor(Color.WHITE);
+                    Canvas canvas=new Canvas(bitmap);
+                    canvas.scale(2f,2f);
+                    v.draw(canvas);
+                    int nonWhite=0;
+                    int stepX=Math.max(1,bitmap.getWidth()/512),stepY=Math.max(1,bitmap.getHeight()/512);
+                    for(int y=0;y<bitmap.getHeight();y+=stepY){
+                      for(int x=0;x<bitmap.getWidth();x+=stepX){
+                        int pixel=bitmap.getPixel(x,y);
+                        if(Color.red(pixel)<248||Color.green(pixel)<248||Color.blue(pixel)<248){nonWhite++;break;}
+                      }
+                      if(nonWhite>0)break;
+                    }
+                    if(nonWhite==0)throw new Exception("صفحة التقرير رقم "+(currentPage+1)+" فارغة؛ تم إيقاف الحفظ.");
+                    ContentValues values=new ContentValues();
+                    values.put(MediaStore.Images.Media.DISPLAY_NAME,baseName+"-"+String.format(java.util.Locale.US,"%02d",currentPage+1)+".png");
+                    values.put(MediaStore.Images.Media.MIME_TYPE,"image/png");
+                    if(Build.VERSION.SDK_INT>=29){
+                      values.put(MediaStore.Images.Media.RELATIVE_PATH,Environment.DIRECTORY_PICTURES+"/DEEB");
+                      values.put(MediaStore.Images.Media.IS_PENDING,1);
+                    }
+                    Uri uri=getContext().getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values);
+                    if(uri==null)throw new Exception("تعذر إنشاء صورة التقرير رقم "+(currentPage+1));
+                    createdUris.add(uri);
+                    try(OutputStream imageOut=getContext().getContentResolver().openOutputStream(uri)){
+                      if(imageOut==null||!bitmap.compress(Bitmap.CompressFormat.PNG,100,imageOut))
+                        throw new Exception("تعذر كتابة صورة التقرير رقم "+(currentPage+1));
+                      imageOut.flush();
+                    }catch(Exception writeError){
+                      getContext().getContentResolver().delete(uri,null,null);
+                      createdUris.remove(uri);
+                      throw writeError;
+                    }
+                    if(Build.VERSION.SDK_INT>=29){
+                      ContentValues readyValues=new ContentValues();
+                      readyValues.put(MediaStore.Images.Media.IS_PENDING,0);
+                      getContext().getContentResolver().update(uri,readyValues,null,null);
+                    }
+                    saved[0]++;
+                    pageIndex[0]++;
+                    handler.post(capturePage[0]);
+                  }catch(Exception error){
+                    fail.reject("تعذر تحويل صفحات التقرير إلى صور: "+error.getMessage());
+                  }finally{
+                    if(bitmap!=null&&!bitmap.isRecycled())bitmap.recycle();
+                  }
+                },120);
+              };
+              capturePage[0].run();
+
+              if(finished.compareAndSet(false,true)){
+                handler.removeCallbacksAndMessages(null);
+                cleanup.run();
+                JSObject result=new JSObject();
+                result.put("count",saved);
+                result.put("saved",true);
+                result.put("format","A4");
+                result.put("source","Android WebView page rasterizer");
+                call.resolve(result);
+              }
+            }catch(Exception error){fail.reject("تعذر تحويل صفحات التقرير إلى صور: "+error.getMessage());}
           });
+          handler.postDelayed(measureTask[0],100);
+        }
+        @Override public void onReceivedError(WebView v,android.webkit.WebResourceRequest request,android.webkit.WebResourceError error){
+          if(request.isForMainFrame())fail.reject("تعذر تحميل التقرير قبل تحويله إلى صور.");
         }
       });
-      view.loadDataWithBaseURL(null,html,"text/html","UTF-8",null);
+      view.loadDataWithBaseURL("https://localhost/",html,"text/html","UTF-8",null);
+      handler.postDelayed(()->{
+        if(!finished.get())fail.reject("انتهت مهلة تجهيز صور التقرير بعد 90 ثانية. حاول مرة أخرى.");
+      },90000);
     });
   }
   @PluginMethod public void printHtml(PluginCall call) {
@@ -148,7 +279,8 @@ public class FileExportPlugin extends Plugin {
         view.setBackgroundColor(Color.WHITE);
         view.setAlpha(1f);
         view.setFocusable(false);
-        view.getSettings().setJavaScriptEnabled(false);
+        // Run the report print hook that enables page numbers only for multi-page reports.
+        view.getSettings().setJavaScriptEnabled(true);
         root.addView(view,new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
         view.setWebViewClient(new WebViewClient(){
           @Override public void onPageFinished(WebView v,String url){
@@ -305,6 +437,7 @@ import android.os.Bundle;
 import android.content.Context;
 import android.content.SharedPreferences;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
