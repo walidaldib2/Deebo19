@@ -346,6 +346,7 @@ public class FileExportPlugin extends Plugin {
                   .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrait())
                   .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
                   .setResolution(new PrintAttributes.Resolution("DEEB","DEEB",300,300))
+                  .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
                   .build();
                 PrintJob job=pm.print(jobName,v.createPrintDocumentAdapter(jobName),attributes);
                 if(job==null)throw new Exception("لم يستطع أندرويد إنشاء مهمة الطباعة");
