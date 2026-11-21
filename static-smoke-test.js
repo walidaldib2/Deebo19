@@ -19,6 +19,7 @@ const printHandlerStart=androidSetup.indexOf('@PluginMethod public void printHtm
 const printHandlerEnd=androidSetup.indexOf('\n  }\n}',printHandlerStart);
 const printHandler=printHandlerStart>=0&&printHandlerEnd>printHandlerStart?androidSetup.slice(printHandlerStart,printHandlerEnd):'';
 if (!printHandler.includes('setJavaScriptEnabled(true)') || !printHandler.includes('createPrintDocumentAdapter(jobName)')) throw new Error('Android print WebView must execute the conditional page-number hook and use the native print adapter');
+if (!printHandler.includes('int height=webPageHeight;') || !printHandler.includes('int width=webWidth;') || printHandler.includes('contentCssHeight=Math.max(cssPageHeight,v.getContentHeight())')) throw new Error('Native report printing must keep a fixed A4 WebView viewport and let Android paginate the complete document');
 const imageExportStart=androidSetup.indexOf('@PluginMethod public void saveHtmlAsImages');
 const imageExportEnd=androidSetup.indexOf('@PluginMethod public void printHtml',imageExportStart);
 const imageExport=imageExportStart>=0&&imageExportEnd>imageExportStart?androidSetup.slice(imageExportStart,imageExportEnd):'';
