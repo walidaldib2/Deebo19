@@ -183,10 +183,11 @@ public class FileExportPlugin extends Plugin {
       root.addView(view,new FrameLayout.LayoutParams(webWidth,(int)Math.ceil(1123*density)));
       view.setWebViewClient(new WebViewClient(){
         @Override public void onPageFinished(WebView v,String url){
-          v.evaluateJavascript("(function(){var imgs=Array.prototype.slice.call(document.images);var wait=imgs.map(function(i){if(i.complete)return Promise.resolve();return new Promise(function(resolve){i.addEventListener('load',resolve,{once:true});i.addEventListener('error',resolve,{once:true});setTimeout(resolve,15000);});});var fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();return Promise.all([fonts].concat(wait)).then(function(){return new Promise(function(resolve){requestAnimationFrame(function(){requestAnimationFrame(resolve);});});}).then(function(){return 'ready';});})()",ready->{
+          v.evaluateJavascript("(function(){var imgs=Array.prototype.slice.call(document.images).filter(function(i){return !!(i.currentSrc||i.src);});var wait=imgs.map(function(i){if(i.complete)return Promise.resolve(i.naturalWidth>0);return new Promise(function(resolve){var done=function(){resolve(i.naturalWidth>0);};i.addEventListener('load',done,{once:true});i.addEventListener('error',function(){resolve(false);},{once:true});setTimeout(function(){resolve(i.complete&&i.naturalWidth>0);},20000);});});var fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();return Promise.all([fonts].concat(wait)).then(function(results){var failed=results.slice(1).filter(function(ok){return !ok;}).length;if(failed)return 'image-error:'+failed;return new Promise(function(resolve){requestAnimationFrame(function(){requestAnimationFrame(function(){resolve('ready');});});});});})()",ready->{
             if(finished.get())return;
             String state=ready==null?"":ready.toString();
-            if(!state.contains("ready")){handler.postDelayed(()->v.evaluateJavascript("document.readyState",x->{if(!finished.get())startPrintAdapter(v);}),250);return;}
+            if(state.contains("image-error")){fail.reject("تعذر تحميل "+state.replaceAll("[^0-9]","")+" صورة مرفقة بالتقرير؛ لم يتم حفظ صور ناقصة.");return;}
+            if(!state.contains("ready")){fail.reject("لم تكتمل تهيئة الصور والخطوط قبل تحويل التقرير.");return;}
             startPrintAdapter(v);
           });
         }
