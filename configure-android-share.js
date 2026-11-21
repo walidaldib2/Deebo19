@@ -112,7 +112,7 @@ public class FileExportPlugin extends Plugin {
               try{
                 String json=value;
                 if(json==null||json.equals("null"))throw new Exception("تعذر تجهيز صفحات التقرير.");
-                if(json.startsWith("\\"")&&json.endsWith("\\""))json=json.substring(1,json.length()-1).replace("\\\\\"","\\"").replace("\\\\\\\\","\\\\");
+                if(json.startsWith("\"")&&json.endsWith("\""))json=json.substring(1,json.length()-1).replace("\\\"","\"").replace("\\\\","\\");
                 JSONArray pages=new JSONArray(json);
                 if(pages.length()==0)throw new Exception("التقرير لا يحتوي على صفحات.");
                 int totalHeight=0;
