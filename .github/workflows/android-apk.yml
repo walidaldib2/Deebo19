@@ -52,6 +52,7 @@ jobs:
           node --check prepare-android.js
           node --check configure-android-share.js
           node --check prepare-android-icons.js
+          node --check configure-android-file-export.js
           node --check preferences.js
           node --check native-plugins-entry.js
           node --check biometric-entry.js
@@ -70,10 +71,14 @@ jobs:
           test -s www/index.html
           test -s www/biometric.bundle.js
           test -s www/native-plugins.bundle.js
+          grep -q 'FileExport' native-plugins-entry.js
           grep -q "BiometricAuth" www/biometric.bundle.js
 
       - name: Generate Android project
         run: npx cap add android
+
+      - name: Install native report print and image export plugin
+        run: node configure-android-file-export.js
 
       - name: Generate DEEB Android launcher and Play Store icons
         run: |
