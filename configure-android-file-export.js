@@ -10,6 +10,15 @@ if (!fs.existsSync(pluginPath)) {
   throw new Error("FileExportPlugin.java is missing. Run configure-android-share.js first.");
 }
 const source = fs.readFileSync(pluginPath, "utf8");
+const activityPath = path.join(__dirname, "android", "app", "src", "main", "java", packagePath, "MainActivity.java");
+if (!fs.existsSync(activityPath)) throw new Error("MainActivity.java is missing. Run configure-android-share.js first.");
+const activity = fs.readFileSync(activityPath, "utf8");
+const onCreateStart = activity.indexOf("public void onCreate(Bundle savedInstanceState)");
+const earlyDrawInit = activity.indexOf("WebView.enableSlowWholeDocumentDraw()", onCreateStart);
+const bridgeInit = activity.indexOf("super.onCreate(savedInstanceState)", onCreateStart);
+if (onCreateStart < 0 || earlyDrawInit < 0 || bridgeInit < 0 || earlyDrawInit > bridgeInit || !activity.includes("import android.webkit.WebView;")) {
+  throw new Error("Whole-document WebView drawing must be enabled in MainActivity before BridgeActivity creates the app WebView.");
+}
 const required = [
   "saveHtmlAsImages",
   "printHtml",
