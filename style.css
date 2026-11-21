@@ -51,3 +51,17 @@
 .employee-fields dt{font-size:.82rem;color:var(--muted,#667085);margin-bottom:5px}
 .employee-fields dd{margin:0;font-weight:750;overflow-wrap:anywhere}
 @media(max-width:520px){.employee-fields{grid-template-columns:1fr}.employee-list-item{flex-wrap:wrap}.employee-list-job{margin-inline-start:auto}}
+
+/* DEEB document scanner */
+.scanner-file-label{display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.scanner-preview{display:flex;justify-content:center;align-items:center;min-height:180px;max-height:65vh;overflow:auto;background:#020914;border:1px solid #75613e;border-radius:14px;padding:10px;margin:12px 0}
+.scanner-preview canvas{display:block;max-width:100%;max-height:62vh;width:auto;height:auto;object-fit:contain;background:#fff}
+.scanner-controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+.scanner-controls input[type=range]{width:100%;accent-color:var(--gold)}
+.scanner-filters button.active{background:#80632d;border-color:#f0cd75}
+.scanner-pages{display:flex;gap:10px;overflow-x:auto;padding:10px 2px}
+.scanner-page{min-width:112px;max-width:130px;display:flex;flex-direction:column;align-items:center;gap:7px;padding:8px;border:1px solid #79633e;border-radius:10px;background:#071326}
+.scanner-page img{width:92px;height:118px;object-fit:contain;background:#fff;border-radius:4px}
+.scanner-error{border-right-color:#d66b75;color:#ffb4bb}
+.scanner-note{font-size:13px;line-height:1.7}
+@media(max-width:600px){.scanner-controls{grid-template-columns:1fr}.scanner-preview{padding:5px}.scanner-page{min-width:100px}}
