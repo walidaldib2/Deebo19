@@ -47,6 +47,7 @@ jobs:
         run: |
           npm test
           node --check app.js
+          node --check scanner.js
           node --check db.js
           node --check qrcode.js
           node --check sw.js
@@ -70,6 +71,7 @@ jobs:
       - name: Verify Android web assets
         run: |
           test -s www/index.html
+          test -s www/scanner.js
           test -s www/biometric.bundle.js
           test -s www/native-plugins.bundle.js
           grep -q 'FileExport' native-plugins-entry.js
