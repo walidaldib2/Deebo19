@@ -429,7 +429,7 @@ function dataManagementPage(){
 function emergencyPage(){area.innerHTML=`${pageHead("الطوارئ")}<div class="subnav"><button data-type="emergencies">حالات الطوارئ</button><button data-type="emergency_people">أفراد الطوارئ</button></div><div id="groupContent"></div>`;$$(".subnav button").forEach(b=>b.onclick=()=>{currentEdit=null;renderEntity(b.dataset.type)});renderEntity("emergencies")}
 function patrolTimeMinutes(value){
  const raw=String(value||"").trim().replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(/[۰-۹]/g,d=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
- const match=raw.match(/^(\\d{1,2}):(\\d{2})(?::\\d{2})?\\s*(ص|م|AM|PM)?$/i);
+ const match=raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(ص|م|AM|PM)?$/i);
  if(!match)return null;
  let hour=Number(match[1]),minute=Number(match[2]);const suffix=String(match[3]||"").toLowerCase();
  if(hour>23||minute>59)return null;
