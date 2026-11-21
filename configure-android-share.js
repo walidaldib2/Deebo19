@@ -98,7 +98,7 @@ public class FileExportPlugin extends Plugin {
       final WebView view=new WebView(getContext());
       final ViewGroup root=(ViewGroup)getActivity().getWindow().getDecorView();
       final Handler handler=new Handler(Looper.getMainLooper());
-      final float density=getResources().getDisplayMetrics().density;
+      final float density=getContext().getResources().getDisplayMetrics().density;
       final int cssPageHeight=(int)Math.round(794.0*297.0/210.0);
       final int webWidth=(int)Math.ceil(794.0*density);
       final int webPageHeight=(int)Math.ceil(cssPageHeight*density);
@@ -286,7 +286,7 @@ public class FileExportPlugin extends Plugin {
       final java.util.concurrent.atomic.AtomicBoolean settled=new java.util.concurrent.atomic.AtomicBoolean(false);
       final java.util.concurrent.atomic.AtomicBoolean pageReady=new java.util.concurrent.atomic.AtomicBoolean(false);
       final Handler handler=new Handler(Looper.getMainLooper());
-      final float density=getResources().getDisplayMetrics().density;
+      final float density=getContext().getResources().getDisplayMetrics().density;
       final int cssPageWidth=794;
       final int cssPageHeight=(int)Math.round(794.0*297.0/210.0);
       final int webWidth=(int)Math.ceil(cssPageWidth*density);
