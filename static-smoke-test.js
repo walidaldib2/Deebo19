@@ -76,7 +76,7 @@ if (/\bwolf\b|ذئب/i.test(app)) throw new Error('Printed DEEB reports must not
 if (app.split('DEEB</div>').length - 1 < 2) throw new Error('Both printed report templates must retain DEEB branding');
 
 
-if (!imageExport.includes("adapter.onWrite") || !imageExport.includes("renderer.openPage(index)") || !imageExport.includes("page.close()")) throw new Error("Image export must render every completed PDF page independently and close native page resources");
+if (!imageExport.includes("writeWebViewToPdf") || !imageExport.includes("document.startPage(info)") || !imageExport.includes("document.finishPage(page)") || !imageExport.includes("document.close()") || !imageExport.includes("renderer.openPage(index)") || !imageExport.includes("page.close()")) throw new Error("Image export must create a paginated PDF, render each resulting page independently, and close native page resources");
 if (!app.includes('const pageSize=8,reportPages=') || !app.includes('branch-sheet-section') || !app.includes('groups.slice(i*pageSize,(i+1)*pageSize)') || !app.includes('const pageFooter=""') || !app.includes("pageNumbering(269)")) throw new Error('Branch follow-up reports must split into complete sheets, repeat headers, label continuation pages, and number only multi-page reports');
 if (!app.includes('const branchGroupsFor=d=>') || !app.includes('supervisor:[["employees","name"],["managers","name"],["patrol_people","name"]]')) throw new Error('Branch report supervisor grouping / saved suggestions are missing');
 if (!app.includes('Math.max(0,Math.ceil(r.times.length/5)-1)')) throw new Error('Motorcycle screen preview and spreadsheet export must preserve all recorded visits');
