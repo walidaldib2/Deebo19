@@ -33,8 +33,6 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.ContentValues;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.pdf.PdfDocument;
 import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
 import android.os.Build;
@@ -257,51 +255,73 @@ public class FileExportPlugin extends Plugin {
             webViewHolder[0] = createReportWebView(activity, html, baseName, () -> {
                 final WebView webView = webViewHolder[0];
                 final File pdf = new File(activity.getCacheDir(), "deeb-export-" + System.currentTimeMillis() + ".pdf");
-                try {
-                    writeWebViewToPdf(webView, pdf);
-                    exportExecutor.execute(() -> renderPdfPages(activity, pdf, baseName, webView, call));
-                } catch (Exception error) {
-                    cleanup(pdf, webView);
-                    call.reject("تعذر تجهيز صفحات التقرير للصور: " + error.getMessage());
-                }
+                writeWebViewToPdf(webView, pdf, new PdfExportCallback() {
+                    @Override public void onSuccess() {
+                        exportExecutor.execute(() -> renderPdfPages(activity, pdf, baseName, webView, call));
+                    }
+                    @Override public void onFailure(String message) {
+                        cleanup(pdf, webView);
+                        call.reject("تعذر إنشاء صفحات التقرير: " + message);
+                    }
+                });
             }, true);
         });
     }
 
-    private void writeWebViewToPdf(WebView webView, File pdfFile) throws Exception {
-        int contentWidth = webView.getWidth();
-        int contentHeight = webView.getHeight();
-        if (contentWidth <= 0 || contentHeight <= 0) {
-            throw new IllegalStateException("أبعاد التقرير غير صالحة بعد تحميل المحتوى.");
-        }
-        final int pageWidth = 595;
-        final int pageHeight = 842;
-        float scale = (float) pageWidth / (float) contentWidth;
-        int pageContentHeight = Math.max(1, (int) Math.floor(pageHeight / scale));
-        int pageCount = (int) Math.ceil((double) contentHeight / (double) pageContentHeight);
-        if (pageCount < 1 || pageCount > 100) {
-            throw new IllegalStateException("عدد صفحات التقرير غير صالح أو يتجاوز 100 صفحة.");
-        }
-        PdfDocument document = new PdfDocument();
-        try (FileOutputStream output = new FileOutputStream(pdfFile)) {
-            for (int index = 0; index < pageCount; index++) {
-                PdfDocument.PageInfo info = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, index + 1).create();
-                PdfDocument.Page page = document.startPage(info);
-                Canvas canvas = page.getCanvas();
-                canvas.save();
-                canvas.scale(scale, scale);
-                canvas.translate(0, -index * pageContentHeight);
-                webView.draw(canvas);
-                canvas.restore();
-                document.finishPage(page);
+    private interface PdfExportCallback {
+        void onSuccess();
+        void onFailure(String message);
+    }
+
+    private void writeWebViewToPdf(WebView webView, File pdfFile, PdfExportCallback result) {
+        final PrintDocumentAdapter adapter = webView.createPrintDocumentAdapter("DEEB-report");
+        final CancellationSignal cancellation = new CancellationSignal();
+        final PrintAttributes attributes = printAttributes();
+        adapter.onLayout(null, attributes, cancellation, new PrintDocumentAdapter.LayoutResultCallback() {
+            @Override public void onLayoutFinished(PrintDocumentInfo info, boolean changed) {
+                if (info == null || info.getPageCount() < 1 || info.getPageCount() > 100) {
+                    result.onFailure("عدد صفحات التقرير غير صالح أو يتجاوز 100 صفحة.");
+                    return;
+                }
+                ParcelFileDescriptor destination = null;
+                try {
+                    destination = ParcelFileDescriptor.open(pdfFile,
+                        ParcelFileDescriptor.MODE_CREATE | ParcelFileDescriptor.MODE_TRUNCATE | ParcelFileDescriptor.MODE_READ_WRITE);
+                    final ParcelFileDescriptor output = destination;
+                    adapter.onWrite(new PageRange[] { PageRange.ALL_PAGES }, output, cancellation,
+                        new PrintDocumentAdapter.WriteResultCallback() {
+                            private void closeOutput() {
+                                try { output.close(); } catch (Exception ignored) {}
+                            }
+                            @Override public void onWriteFinished(PageRange[] pages) {
+                                closeOutput();
+                                if (!pdfFile.exists() || pdfFile.length() < 100) {
+                                    result.onFailure("ملف PDF الناتج فارغ.");
+                                } else {
+                                    result.onSuccess();
+                                }
+                            }
+                            @Override public void onWriteFailed(CharSequence error) {
+                                closeOutput();
+                                result.onFailure(error == null ? "فشلت كتابة صفحات PDF." : error.toString());
+                            }
+                            @Override public void onWriteCancelled() {
+                                closeOutput();
+                                result.onFailure("تم إلغاء إنشاء ملف PDF.");
+                            }
+                        });
+                } catch (Exception error) {
+                    if (destination != null) try { destination.close(); } catch (Exception ignored) {}
+                    result.onFailure(error.getMessage() == null ? "تعذر فتح ملف PDF المؤقت." : error.getMessage());
+                }
             }
-            document.writeTo(output);
-        } finally {
-            document.close();
-        }
-        if (!pdfFile.exists() || pdfFile.length() < 100) {
-            throw new IllegalStateException("ملف PDF الناتج فارغ.");
-        }
+            @Override public void onLayoutFailed(CharSequence error) {
+                result.onFailure(error == null ? "تعذر تخطيط صفحات التقرير." : error.toString());
+            }
+            @Override public void onLayoutCancelled() {
+                result.onFailure("تم إلغاء تخطيط صفحات التقرير.");
+            }
+        }, new Bundle());
     }
 
     private void renderPdfPages(Activity activity, File pdf, String baseName, WebView webView, PluginCall call) {
