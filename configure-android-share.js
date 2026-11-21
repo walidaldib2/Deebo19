@@ -124,11 +124,14 @@ public class FileExportPlugin extends Plugin {
       root.addView(view,new FrameLayout.LayoutParams(794,1));
       view.setWebViewClient(new WebViewClient(){
         @Override public void onPageFinished(WebView v,String url){
-          v.evaluateJavascript("(function(){function collectPrintRules(rules,out){for(var i=0;i<rules.length;i++){var rule=rules[i];if(rule.type===4&&/print/i.test(rule.conditionText||rule.media&&rule.media.mediaText||\"\")){collectPrintRules(rule.cssRules,out);}else if(rule.type===12&&rule.cssRules){collectPrintRules(rule.cssRules,out);}else if(rule.type!==6&&!rule.cssRules&&rule.cssText){out.push(rule.cssText);}}}var printRules=[];for(var s=0;s<document.styleSheets.length;s++){try{collectPrintRules(document.styleSheets[s].cssRules,printRules);}catch(e){}}if(printRules.length){var printStyle=document.createElement(\"style\");printStyle.setAttribute(\"data-deeb-print-rules\",\"true\");printStyle.textContent=printRules.join(\"\\n\");document.head.appendChild(printStyle);}return document.fonts&&document.fonts.ready?document.fonts.ready.then(function(){return Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);}):Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);})()",heightValue->{
+          v.evaluateJavascript("(function(){function collectPrintRules(rules,out){for(var i=0;i<rules.length;i++){var rule=rules[i];if(rule.type===4&&/print/i.test(rule.conditionText||rule.media&&rule.media.mediaText||\"\")){collectPrintRules(rule.cssRules,out);}else if(rule.type===12&&rule.cssRules){collectPrintRules(rule.cssRules,out);}else if(rule.type!==6&&!rule.cssRules&&rule.cssText){out.push(rule.cssText);}}}var printRules=[];for(var s=0;s<document.styleSheets.length;s++){try{collectPrintRules(document.styleSheets[s].cssRules,printRules);}catch(e){}}if(printRules.length){var printStyle=document.createElement(\"style\");printStyle.setAttribute(\"data-deeb-print-rules\",\"true\");printStyle.textContent=printRules.join(\"\\n\");document.head.appendChild(printStyle);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){window.__deebFontsReady=true;});}else{window.__deebFontsReady=true;}return true;})()",ignored->{});
+          final Runnable[] measureTask=new Runnable[1];
+          measureTask[0]=()->v.evaluateJavascript("(function(){if(!window.__deebFontsReady)return -1;return Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);})()",heightValue->{
             if(finished.get())return;
             try{
               String raw=heightValue==null?"":heightValue.replace("\"","").trim();
               int contentHeight=(int)Math.ceil(Double.parseDouble(raw));
+              if(contentHeight==-1){handler.postDelayed(measureTask[0],100);return;}
               if(contentHeight<80)throw new Exception("تعذر قياس محتوى التقرير.");
               int pageCssHeight=(int)Math.round(794.0*297.0/210.0);
               int pageCount=(contentHeight+pageCssHeight-1)/pageCssHeight;
@@ -202,6 +205,7 @@ public class FileExportPlugin extends Plugin {
               }
             }catch(Exception error){fail.reject("تعذر تحويل صفحات التقرير إلى صور: "+error.getMessage());}
           });
+          handler.postDelayed(measureTask[0],100);
         }
         @Override public void onReceivedError(WebView v,android.webkit.WebResourceRequest request,android.webkit.WebResourceError error){
           if(request.isForMainFrame())fail.reject("تعذر تحميل التقرير قبل تحويله إلى صور.");
