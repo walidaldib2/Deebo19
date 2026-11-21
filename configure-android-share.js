@@ -460,9 +460,11 @@ public class FileExportPlugin extends Plugin {
               if(state.startsWith("image-error:")){if(settled.compareAndSet(false,true)){dispose.run();call.reject("تعذر تحميل "+state.replaceAll("[^0-9]","")+" صورة مرفقة بالتقرير؛ راجع المرفق ثم أعد الطباعة.");}return;}
               if(!"ready".equals(state)){if(settled.compareAndSet(false,true)){dispose.run();call.reject("لم تكتمل تهيئة الصور والخطوط قبل الطباعة ("+state+").");}return;}
               try{
+                // Keep the WebView at one A4 viewport. Android's WebView print adapter
+                // paginates the full document itself; expanding the view to the entire
+                // scroll height can distort print layout and produce clipped/blank pages.
                 int width=webWidth;
-                int contentCssHeight=Math.max(cssPageHeight,v.getContentHeight());
-                int height=(int)Math.ceil(contentCssHeight*density);
+                int height=webPageHeight;
                 v.setLayoutParams(new FrameLayout.LayoutParams(width,height));
                 v.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));
                 v.layout(0,0,width,height);
