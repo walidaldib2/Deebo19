@@ -123,7 +123,7 @@ public class FileExportPlugin extends Plugin {
                   if(pageCount>100)throw new Exception("عدد صفحات التقرير غير منطقي؛ راجع محتوى التقرير قبل الحفظ.");
                   v.measure(View.MeasureSpec.makeMeasureSpec(794,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(contentHeight,View.MeasureSpec.EXACTLY));
                   v.layout(0,0,794,contentHeight);
-                  android.graphics.pdf.PdfDocument document=new android.graphics.pdf.PdfDocument();
+                  // Render fixed A4 pages first, then rasterize each page separately to prevent blank or oversized images.\n                  android.graphics.pdf.PdfDocument document=new android.graphics.pdf.PdfDocument();
                   try{
                     for(int pageIndex=0;pageIndex<pageCount;pageIndex++){
                       android.graphics.pdf.PdfDocument.PageInfo info=new android.graphics.pdf.PdfDocument.PageInfo.Builder(595,842,pageIndex+1).create();
