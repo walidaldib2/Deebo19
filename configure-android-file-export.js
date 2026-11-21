@@ -214,13 +214,13 @@ public class FileExportPlugin extends Plugin {
                         result.put("started", true);
                         call.resolve(result);
                         handler.postDelayed(() -> {
-                            try { holder[0].destroy(); } catch (Exception ignored) {}
+                            cleanup(null, holder[0]);
                         }, 300000);
                     } catch (Exception error) {
                         call.reject("تعذرت تهيئة الطباعة: " + error.getMessage());
                         try { holder[0].destroy(); } catch (Exception ignored) {}
                     }
-                });
+                }, true);
                 adapterHolder[0] = holder[0].createPrintDocumentAdapter(name);
             } catch (Exception error) {
                 call.reject("تعذر تجهيز التقرير للطباعة: " + error.getMessage());
