@@ -136,6 +136,92 @@ public class FileExportPlugin extends Plugin {
       call.reject("تعذر حفظ الملف: "+e.getMessage(),e);
     }
   }
+  @PluginMethod public void saveScannedPdf(PluginCall call) {
+    if (Build.VERSION.SDK_INT < 29 &&
+        getContext().checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+      requestPermissionForAlias("legacyStorage", call, "scannedPdfStoragePermissionCallback");
+      return;
+    }
+    saveScannedPdfInternal(call);
+  }
+
+  @com.getcapacitor.annotation.PermissionCallback
+  private void scannedPdfStoragePermissionCallback(PluginCall call) {
+    if (Build.VERSION.SDK_INT < 29 &&
+        getContext().checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+      call.reject("إذن التخزين مطلوب لحفظ ملف المسح الضوئي.");
+      return;
+    }
+    saveScannedPdfInternal(call);
+  }
+
+  private void saveScannedPdfInternal(PluginCall call) {
+    JSONArray pages=call.getData().optJSONArray("pages");
+    if(pages==null||pages.length()==0){call.reject("أضف صفحة واحدة على الأقل قبل إنشاء PDF.");return;}
+    if(pages.length()>40){call.reject("الحد الأقصى 40 صفحة في ملف PDF واحد.");return;}
+    String name=call.getString("name","DEEB-Scan.pdf");
+    if(name==null||name.trim().isEmpty())name="DEEB-Scan.pdf";
+    name=name.replace("/","_").replace(String.valueOf((char)92),"_");
+    if(!name.toLowerCase(java.util.Locale.ROOT).endsWith(".pdf"))name+=".pdf";
+    File temp=null;
+    Uri insertedUri=null;
+    try{
+      temp=File.createTempFile("deeb-scan-",".pdf",getContext().getCacheDir());
+      PdfDocument document=new PdfDocument();
+      android.graphics.Paint paint=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG|android.graphics.Paint.FILTER_BITMAP_FLAG);
+      for(int i=0;i<pages.length();i++){
+        String encoded=pages.optString(i,"");
+        if(encoded.startsWith("data:")&&encoded.contains(","))encoded=encoded.substring(encoded.indexOf(",")+1);
+        byte[] bytes=Base64.decode(encoded,Base64.DEFAULT);
+        if(bytes.length==0||bytes.length>12*1024*1024)throw new Exception("حجم إحدى الصور غير صالح أو يتجاوز 12 ميجابايت.");
+        Bitmap bitmap=android.graphics.BitmapFactory.decodeByteArray(bytes,0,bytes.length);
+        if(bitmap==null)throw new Exception("تعذر قراءة صورة الصفحة رقم "+(i+1)+".");
+        try{
+          PdfDocument.PageInfo info=new PdfDocument.PageInfo.Builder(595,842,i+1).create();
+          PdfDocument.Page page=document.startPage(info);
+          Canvas canvas=page.getCanvas();
+          canvas.drawColor(Color.WHITE);
+          float scale=Math.min(555f/bitmap.getWidth(),802f/bitmap.getHeight());
+          float width=bitmap.getWidth()*scale,height=bitmap.getHeight()*scale;
+          float left=(595f-width)/2f,top=(842f-height)/2f;
+          canvas.drawBitmap(bitmap,null,new android.graphics.RectF(left,top,left+width,top+height),paint);
+          document.finishPage(page);
+        }finally{bitmap.recycle();}
+      }
+      try(FileOutputStream output=new FileOutputStream(temp)){document.writeTo(output);output.flush();}
+      finally{document.close();}
+      if(Build.VERSION.SDK_INT>=29){
+        ContentValues values=new ContentValues();
+        values.put(MediaStore.Downloads.DISPLAY_NAME,name);
+        values.put(MediaStore.Downloads.MIME_TYPE,"application/pdf");
+        values.put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/DEEB");
+        insertedUri=getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
+        if(insertedUri==null)throw new Exception("تعذر إنشاء ملف PDF في التنزيلات.");
+        try(java.io.InputStream input=new java.io.FileInputStream(temp);OutputStream output=getContext().getContentResolver().openOutputStream(insertedUri)){
+          if(output==null)throw new Exception("تعذر فتح ملف PDF للحفظ.");
+          byte[] buffer=new byte[32768];int count;
+          while((count=input.read(buffer))!=-1)output.write(buffer,0,count);
+          output.flush();
+        }
+      }else{
+        File directory=new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),"DEEB");
+        if(!directory.exists()&&!directory.mkdirs())throw new Exception("تعذر إنشاء مجلد DEEB داخل التنزيلات.");
+        File target=new File(directory,name);
+        try(java.io.InputStream input=new java.io.FileInputStream(temp);OutputStream output=new FileOutputStream(target)){
+          byte[] buffer=new byte[32768];int count;
+          while((count=input.read(buffer))!=-1)output.write(buffer,0,count);
+          output.flush();
+        }
+      }
+      JSObject result=new JSObject();result.put("saved",true);result.put("name",name);
+      result.put("pages",pages.length());result.put("location","Downloads/DEEB");
+      call.resolve(result);
+    }catch(Exception error){
+      if(insertedUri!=null){try{getContext().getContentResolver().delete(insertedUri,null,null);}catch(Exception ignored){}}
+      call.reject("تعذر إنشاء ملف PDF للمستند: "+error.getMessage(),error);
+    }finally{if(temp!=null&&temp.exists())temp.delete();}
+  }
+
   @PluginMethod public void saveHtmlAsImages(PluginCall call) {
     final String html=call.getString("html","");
     final String requestedName=call.getString("name","DEEB-report");
