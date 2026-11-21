@@ -279,7 +279,7 @@ public class FileExportPlugin extends Plugin {
         final PrintAttributes attributes = printAttributes();
         adapter.onLayout(null, attributes, cancellation, new PrintDocumentAdapter.LayoutResultCallback() {
             @Override public void onLayoutFinished(PrintDocumentInfo info, boolean changed) {
-                if (info == null || info.getPageCount() < 1 || info.getPageCount() > 100) {
+                if (info == null || info.getPageCount() == 0 || info.getPageCount() > 100) {
                     result.onFailure("عدد صفحات التقرير غير صالح أو يتجاوز 100 صفحة.");
                     return;
                 }
