@@ -587,7 +587,7 @@ function reports(){
       const weekday=dateObj&&!Number.isNaN(dateObj.getTime())?dateObj.toLocaleDateString("ar-EG",{weekday:"long"}):"—";
       const dateLabel=weekday+"<br>"+esc(date);
       const patrol=esc(v.time||"—");
-      const coordinates=esc(v.coordinates||"—").replace(/\\n/g,"<br>");
+      const coordinates=esc(v.coordinates||"—").replace(/\n/g,"<br>");
       const notes=esc(v.notes||"—");
       return '<tr><td>'+esc(v.site)+'</td><td class="bike-date">'+dateLabel+'</td><td class="bike-patrol-times">'+patrol+'</td><td class="bike-coordinates">'+coordinates+'</td><td class="bike-notes">'+notes+'</td></tr>';
      }).join("");
