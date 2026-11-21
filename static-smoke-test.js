@@ -214,6 +214,7 @@ const bikePrintStart=app.indexOf('if($("#reportType").value==="bike_patrols"){ '
 const bikePrintEnd=app.indexOf('\n  }\n  const rows=rowsFor(d)',bikePrintStart);
 const bikePrint=app.slice(bikePrintStart,bikePrintEnd);
 if (!bikePrint.includes('filter(Boolean).sort().join(" — ")')) throw new Error('Bike report date range must always print from the earlier date to the later date');
+if (!bikePrint.includes('const pageNumber=pages.length>1?') || !bikePrint.includes('صفحة \'+(pageIndex+1)+\' من \'+pages.length') || !bikePrint.includes('report-page-number') || !bikePrint.includes('يتبع في الصفحة التالية')) throw new Error('Motorcycle reports must number every page only when a bike report spans multiple pages, with approval retained on the final page');
 if (bikePrint.includes('تاريخ إصدار التقرير:') && bikePrint.indexOf('تاريخ إصدار التقرير:') < bikePrint.indexOf('const sections=')) throw new Error('Bike report must not create an orphan date-only page before the report sections');
 if (!bikePrint.includes('height:auto!important;max-height:none!important') || bikePrint.includes('height:280mm!important')) throw new Error('Bike report print pages must not stretch table rows to fill a fixed-height sheet');
 if (!bikePrint.includes('background:#073b28;color:#fff') || !bikePrint.includes('border:1px solid #c99a32') || !bikePrint.includes('background:#fbf4e6')) throw new Error('Bike report PDF and image exports must preserve DEEB green, gold, and beige visual identity');
