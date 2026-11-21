@@ -624,7 +624,7 @@ function reports(){
     const originalIndex=allGroups.indexOf(g);
     const sectionTitle="تقرير مرور دراجة "+(originalIndex+1);
     const entries=g.sites.flatMap(r=>r.entries.map(v=>({...v,site:r.site})));
-    const maxRowsPerPage=9,pageCount=Math.max(1,Math.ceil(entries.length/maxRowsPerPage));
+    const maxRowsPerPage=17,pageCount=Math.max(1,Math.ceil(entries.length/maxRowsPerPage));
     const pages=Array.from({length:pageCount},(_,page)=>entries.slice(page*maxRowsPerPage,(page+1)*maxRowsPerPage));
     return pages.map((pageRows,pageIndex)=>{
      const siteRows=pageRows.map(v=>{
