@@ -92,7 +92,7 @@ public class FileExportPlugin extends Plugin {
     final String html=call.getString("html","");
     final String requestedName=call.getString("name","DEEB-report");
     final String baseName=(requestedName==null||requestedName.trim().isEmpty()?"DEEB-report":requestedName.trim())
-      .replace("/","_").replace("\\","_");
+      .replace("/","_").replace("\\\\","_");
     if(html.trim().isEmpty()){call.reject("لا توجد بيانات لتحويلها إلى صور");return;}
     getActivity().runOnUiThread(()->{
       final WebView view=new WebView(getContext());
