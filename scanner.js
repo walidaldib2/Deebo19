@@ -7,7 +7,7 @@ function scannerMarkup(){
  const area=$("#contentArea");if(!area)return;
  area.innerHTML='<div class="page-head"><h1>ماسح المستندات</h1><button class="secondary" id="scannerBack">رجوع</button></div>'+
  '<div class="card scanner-card"><p class="muted">صوّر المستند أو اختر صورة، ثم اكشف حدود الورقة تلقائيًا أو حدد زواياها وصحح المنظور قبل الحفظ.</p>'+
- '<div class="actions"><label class="primary scanner-file-label" for="scannerCamera">📷 تصوير مستند</label><input id="scannerCamera" class="hidden" type="file" accept="image/*" capture="environment"><label class="secondary scanner-file-label" for="scannerGallery">اختيار صورة</label><input id="scannerGallery" class="hidden" type="file" accept="image/*"></div>'+
+ '<div class="actions"><button class="primary" id="scannerGoogleScan" type="button">فتح الماسح الاحترافي من Google</button><label class="primary scanner-file-label" for="scannerCamera">📷 تصوير مستند</label><input id="scannerCamera" class="hidden" type="file" accept="image/*" capture="environment"><label class="secondary scanner-file-label" for="scannerGallery">اختيار صورة</label><input id="scannerGallery" class="hidden" type="file" accept="image/*"></div>'+
  '<div id="scannerEditor" class="hidden"><div class="scanner-preview"><canvas id="scannerCanvas" aria-label="معاينة المستند"></canvas></div>'+
  '<div class="actions"><button class="primary" id="scannerAutoDetect">كشف حدود الورقة تلقائيًا</button><button class="secondary" id="scannerPickCorners">تحديد الزوايا يدويًا</button><button class="secondary" id="scannerClearCorners">إلغاء تحديد الزوايا</button></div>'+
  '<p id="scannerCornerHelp" class="muted">الكشف التلقائي مبدئي؛ راجع العلامات الأربع وعدّلها بالنقر على الصورة عند الحاجة.</p>'+
@@ -19,7 +19,7 @@ function scannerMarkup(){
  '<p id="scannerStatus" class="notice" aria-live="polite">ابدأ بتصوير المستند أو اختيار صورة.</p>'+
  '<p class="muted scanner-note">يمكن كشف حدود مستطيلة مبدئيًا، أو تحديد الزوايا الأربع يدويًا لتصحيح المنظور. راجع النتيجة قبل الحفظ. OCR العربي والإنجليزي لم يُضف بعد.</p></div>';
  $("#scannerBack").onclick=()=>{if(typeof window.DEebRender==="function")window.DEebRender("home");else document.querySelector('[data-page="home"]')?.click();};
- $("#scannerCamera").onchange=loadFile;$("#scannerGallery").onchange=loadFile;
+ $("#scannerCamera").onchange=loadFile;$("#scannerGallery").onchange=loadFile;$("#scannerGoogleScan").onclick=scanWithGoogle;
  ["cropLeft","cropTop","cropRight","cropBottom"].forEach(id=>$("#"+id).addEventListener("input",()=>{crop[id.replace("crop","").toLowerCase()]=Number($("#"+id).value);quad=[];drawPreview();}));
  document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{filter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>x.classList.toggle("active",x===b));drawPreview();});
  $("#scannerRotate").onclick=()=>{rotation=(rotation+90)%360;quad=[];drawPreview();};
@@ -28,6 +28,19 @@ function scannerMarkup(){
  $("#scannerClearCorners").onclick=()=>{quad=[];pickCorners=false;drawPreview();status("تم إلغاء تحديد الزوايا.");};
  $("#scannerCanvas").onclick=canvasPick;
  $("#scannerAddPage").onclick=addPage;$("#scannerSavePdf").onclick=savePdf;$("#scannerSaveImages").onclick=saveImages;$("#scannerClear").onclick=clearPages;renderPages();
+}
+async function scanWithGoogle(){
+ const plugin=window.DEEBNativePlugins?.DocumentScanner;
+ if(!plugin?.scanDocument){status("الماسح الاحترافي من Google متاح في نسخة Android فقط. يمكنك استخدام الماسح اليدوي أدناه.",true);return;}
+ const button=$("#scannerGoogleScan");button.disabled=true;status("جارٍ فتح الماسح الاحترافي. قد يحتاج أول استخدام إلى تنزيل مكونات Google Play Services.");
+ try{
+  const stamp=new Date().toISOString().slice(0,10);
+  const result=await plugin.scanDocument({name:"DEEB-Scan-"+stamp});
+  if(result?.cancelled){status("تم إلغاء المسح دون حفظ ملفات.");return;}
+  if(result?.saved!==true||!result.name||!Number.isInteger(result.pages)||result.pages<1)throw new Error("لم يؤكد النظام حفظ ملف PDF صالح.");
+  status("تم إنشاء PDF بجودة الماسح الاحترافي: "+result.pages+" صفحة.\nPDF: "+result.location+"\nصور الصفحات: "+(result.imagesSaved||0)+" داخل Pictures/DEEB.");
+ }catch(error){status(error?.message||"تعذر تشغيل الماسح الاحترافي.",true);}
+ finally{button.disabled=false;}
 }
 function loadFile(event){
  const file=event.target.files?.[0];event.target.value="";if(!file)return;
