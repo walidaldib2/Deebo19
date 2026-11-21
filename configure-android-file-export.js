@@ -106,32 +106,30 @@ public class FileExportPlugin extends Plugin {
         }
         activity.runOnUiThread(() -> {
             try {
-                WebView webView = createReportWebView(activity, html, name, () -> {
+                final WebView[] holder = new WebView[1];
+                final PrintDocumentAdapter[] adapterHolder = new PrintDocumentAdapter[1];
+                holder[0] = createReportWebView(activity, html, name, () -> {
                     try {
                         PrintManager manager = (PrintManager) activity.getSystemService(Activity.PRINT_SERVICE);
                         if (manager == null) throw new IllegalStateException("خدمة الطباعة غير متاحة.");
-                        manager.print(name, webViewAdapterHolder[0], printAttributes());
+                        manager.print(name, adapterHolder[0], printAttributes());
                         JSObject result = new JSObject();
                         result.put("started", true);
                         call.resolve(result);
                         handler.postDelayed(() -> {
-                            try { webViewHolder[0].destroy(); } catch (Exception ignored) {}
+                            try { holder[0].destroy(); } catch (Exception ignored) {}
                         }, 300000);
                     } catch (Exception error) {
                         call.reject("تعذرت تهيئة الطباعة: " + error.getMessage());
-                        try { webView.destroy(); } catch (Exception ignored) {}
+                        try { holder[0].destroy(); } catch (Exception ignored) {}
                     }
                 });
-                webViewHolder[0] = webView;
-                webViewAdapterHolder[0] = webView.createPrintDocumentAdapter(name);
+                adapterHolder[0] = holder[0].createPrintDocumentAdapter(name);
             } catch (Exception error) {
                 call.reject("تعذر تجهيز التقرير للطباعة: " + error.getMessage());
             }
         });
     }
-
-    private final WebView[] webViewHolder = new WebView[1];
-    private final PrintDocumentAdapter[] webViewAdapterHolder = new PrintDocumentAdapter[1];
 
     @PluginMethod
     public void saveHtmlAsImages(PluginCall call) {
