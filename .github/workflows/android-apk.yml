@@ -197,6 +197,14 @@ jobs:
           done
           exit 1
 
+      - name: Upload installable debug APK immediately
+        uses: actions/upload-artifact@v4
+        with:
+          name: DEEB-Android-Debug-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Build Play Store Android App Bundle
         timeout-minutes: 20
         working-directory: android
