@@ -248,3 +248,9 @@ if (writtenPrint.includes('height:277mm') || writtenPrint.includes('overflow:hid
 if (writtenPrint.includes('counter(page)') || (writtenPrint.match(/@bottom-center/g)||[]).length) throw new Error('Single-page written report must not have an unconditional page number; numbering is enabled only by the multi-page print hook');
 if (!app.includes('const pageNumbering=heightMm=>') || !app.includes('media="print" disabled') || !app.includes('window.addEventListener("beforeprint",update)') || !app.includes('style.disabled=h<=limit+12') || !app.includes('pageNumbering(269)') || !app.includes('pageNumbering(281)') || !app.includes('content:"صفحة " counter(page)')) throw new Error('Printed reports must enable numbered footers only when content exceeds one page');
 if (!app.includes('height:auto;max-width:none;margin:0;padding:0;overflow:visible;break-after:page')) throw new Error('Written report pages must grow naturally and preserve the original font size');
+
+
+ // Automatic-backup status must be visible to the user, including the attachment-size skip.
+ assert 'تم تحديث النسخة التلقائية لهذا اليوم بنجاح' in app
+ assert 'تجاوز 30 ميجابايت' in app
+ assert 'DebooDB.createAutoBackup()' in app
