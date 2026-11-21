@@ -116,7 +116,7 @@ public class FileExportPlugin extends Plugin {
                 if(finished.get())return;
                 java.io.File pdfFile=new java.io.File(getContext().getCacheDir(),"deeb-pages-"+System.currentTimeMillis()+".pdf");
                 try{
-                  String raw=value==null?"0":value.replace("\\\"","");
+                  String raw=value==null?"0":value.replace(String.valueOf((char)34),"");
                   int contentHeight=Math.max(1,(int)Math.ceil(Double.parseDouble(raw)));
                   int pageCssHeight=1123;
                   int pageCount=Math.max(1,(int)Math.ceil(contentHeight/(double)pageCssHeight));
