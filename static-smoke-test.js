@@ -69,7 +69,7 @@ if (!app.includes('filter(([k])=>k!=="bikes")')) throw new Error('Bike patrol re
 if (!app.includes('locationUrl=String(p.location_url??"").trim()') || !app.includes('lat?"خط العرض: "+lat:""') || !app.includes('lng?"خط الطول: "+lng:""') || !app.includes('replace(/\\n/g,"<br>")')) throw new Error('Bike report must print the exact latitude, longitude and location URL entered in the app without converting or replacing them');
 if (!app.includes('const displayRows=visible.flatMap') || !app.includes('continuation:i>0,visits:g.visits.slice(i*5,(i+1)*5)') || !app.includes('g.branch+(g.continuation?" — استكمال":"")')) throw new Error('Branch patrol continuation rows beyond five visits are missing from the screen or reports');
 if (!app.includes('تقرير متابعة الفروع') || !app.includes('data:') && !app.includes('branchGroupsFor(d)')) throw new Error('Branch report matrix is missing');
-const branchPrintStart=app.indexOf('const groups=branchGroupsFor(d),slots=5,title=');
+const branchPrintStart=app.indexOf('const groups=branchGroupsFor(d),slots=5,title=',app.indexOf('const printHtml='));
 const branchPrintEnd=app.indexOf('if($("#reportType").value==="bike_patrols")',branchPrintStart);
 const branchPrint=branchPrintStart>=0&&branchPrintEnd>branchPrintStart?app.slice(branchPrintStart,branchPrintEnd):"";
 if (!branchPrint.includes('<th>الفرع</th><th>المشرف</th>') || !branchPrint.includes("'متابعة '+(i+1)") || branchPrint.includes('<th>اليوم والتاريخ</th>')) throw new Error('Branch reports must show branch, supervisor and five follow-ups without a duplicate date column');
