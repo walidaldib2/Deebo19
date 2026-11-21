@@ -270,6 +270,11 @@ if (writtenPrint.includes('height:277mm') || writtenPrint.includes('overflow:hid
 if (writtenPrint.includes('counter(page)') || (writtenPrint.match(/@bottom-center/g)||[]).length) throw new Error('Single-page written report must not have an unconditional page number; numbering is enabled only by the multi-page print hook');
 if (!app.includes('const pageNumbering=heightMm=>') || !app.includes('media="print" disabled') || !app.includes('window.addEventListener("beforeprint",update)') || !app.includes('style.disabled=h<=limit+12') || !app.includes('pageNumbering(269)') || !app.includes('pageNumbering(281)') || !app.includes('content:"صفحة " counter(page)')) throw new Error('Printed reports must enable numbered footers only when content exceeds one page');
 if (!app.includes('height:auto;max-width:none;margin:0;padding:0;overflow:visible;break-after:page')) throw new Error('Written report pages must grow naturally and preserve the original font size');
+const sharedIdentity='repeating-linear-gradient(180deg,#f7df91 0 4px,#b88622 5px 8px,#f7df91 9px 11px)';
+if ((app.match(/DEEB shared official report identity — aligned with the approved motorcycle and daily-report references/g)||[]).length!==4) throw new Error('All four report templates must embed the same approved DEEB visual identity');
+for (const rule of ['.brand-name{font-family:Georgia','h1:before,h1:after{content:""!important','background:#073b28!important','background:#fbf4e6!important','border:1.5px solid #c99a32!important','background:#f6ead2!important']) if ((app.match(new RegExp(rule.replace(/[.*+?^${}()|[\]\\]/g,'\\if (!app.includes('height:auto;max-width:none;margin:0;padding:0;overflow:visible;break-after:page')) throw new Error('Written report pages must grow naturally and preserve the original font size');'),'g'))||[]).length<4) throw new Error('A report template is missing shared DEEB identity rule: '+rule);
+if (!app.includes(sharedIdentity) || !app.includes('h1{position:relative!important;isolation:isolate!important')) throw new Error('Report titles must use the gold winged burgundy banner from the approved reference');
+
 
 
  // Automatic-backup status must be visible to the user, including the attachment-size skip.
