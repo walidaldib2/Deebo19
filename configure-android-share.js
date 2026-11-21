@@ -305,21 +305,26 @@ public class FileExportPlugin extends Plugin {
                   return;
                 }
                 try{
-                  v.scrollTo(0,pageIndex[0]*v.getHeight());
-                  v.postDelayed(()->{
+                  final int currentPage=pageIndex[0];
+                  // scrollTo() on WebView uses device pixels while DOM page offsets are CSS pixels.
+                  // Scroll through JavaScript in CSS pixels to avoid skipped/blank pages on high-density phones.
+                  v.evaluateJavascript("window.scrollTo(0,"+(currentPage*pageHeightCss)+");true;",scrollResult->{
                     if(finished.get()){document.close();return;}
-                    android.graphics.pdf.PdfDocument.PageInfo info=new android.graphics.pdf.PdfDocument.PageInfo.Builder(595,842,pageIndex[0]+1).create();
-                    android.graphics.pdf.PdfDocument.Page page=document.startPage(info);
-                    Canvas canvas=page.getCanvas();
-                    canvas.drawColor(Color.WHITE);
-                    canvas.save();
-                    canvas.scale(595f/Math.max(1,v.getWidth()),842f/Math.max(1,v.getHeight()));
-                    v.draw(canvas);
-                    canvas.restore();
-                    document.finishPage(page);
-                    pageIndex[0]++;
-                    drawNext[0].run();
-                  },120);
+                    v.postDelayed(()->{
+                      if(finished.get()){document.close();return;}
+                      android.graphics.pdf.PdfDocument.PageInfo info=new android.graphics.pdf.PdfDocument.PageInfo.Builder(595,842,currentPage+1).create();
+                      android.graphics.pdf.PdfDocument.Page page=document.startPage(info);
+                      Canvas canvas=page.getCanvas();
+                      canvas.drawColor(Color.WHITE);
+                      canvas.save();
+                      canvas.scale(595f/Math.max(1,v.getWidth()),842f/Math.max(1,v.getHeight()));
+                      v.draw(canvas);
+                      canvas.restore();
+                      document.finishPage(page);
+                      pageIndex[0]++;
+                      drawNext[0].run();
+                    },120);
+                  });
                 }catch(Exception error){
                   try{document.close();}catch(Exception ignored){}
                   fail.reject("تعذر تجهيز صفحة التقرير رقم "+(pageIndex[0]+1)+": "+error.getMessage());
