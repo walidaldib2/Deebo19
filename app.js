@@ -471,7 +471,9 @@ function reports(){
   });
   const result=[...groups.values()].sort((a,b)=>a.bike.localeCompare(b.bike,"ar",{numeric:true})).map(g=>{
    const bp=g.bikeRecord?.payload||{};
-   g.visits.sort((a,b)=>dayOf(a).localeCompare(dayOf(b))||String(a.payload?.patrol_time||"").localeCompare(String(b.payload?.patrol_time||""))||String(a.created_at||"").localeCompare(String(b.created_at||"")));
+   const timeMinutes=value=>{const raw=String(value||"").trim().replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(/[۰-۹]/g,d=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));const match=raw.match(/^(\\d{1,2}):(\\d{2})(?::\\d{2})?\\s*(ص|م|AM|PM)?$/i);if(!match)return null;let hour=Number(match[1]),minute=Number(match[2]);const suffix=String(match[3]||"").toLowerCase();if(hour>23||minute>59)return null;if(suffix){if(hour<1||hour>12)return null;hour=hour%12+(suffix==="م"||suffix==="pm"?12:0);}return hour*60+minute;};
+   const compareVisitTime=(a,b)=>{const av=timeMinutes(a.payload?.patrol_time),bv=timeMinutes(b.payload?.patrol_time);if(av!==null&&bv!==null&&av!==bv)return av-bv;if(av!==null&&bv===null)return -1;if(av===null&&bv!==null)return 1;return String(a.payload?.patrol_time||"").localeCompare(String(b.payload?.patrol_time||""))||String(a.created_at||"").localeCompare(String(b.created_at||""))||String(a.id||"").localeCompare(String(b.id||""));};
+   g.visits.sort((a,b)=>dayOf(a).localeCompare(dayOf(b))||compareVisitTime(a,b));
    const sites=g.visits.map(v=>{
     const p=v.payload||{},site=String(p.site||p.branch||p.location||"غير محدد").trim();
     const lat=String(p.lat??"").trim(),lng=String(p.lng??"").trim(),locationUrl=String(p.location_url??"").trim();const coordinates=[lat?"خط العرض: "+lat:"",lng?"خط الطول: "+lng:"",locationUrl].filter(Boolean).join("\n")||"—";
