@@ -41,6 +41,7 @@ fs.writeFileSync(path.join(javaDir, "ShareIntentPlugin.java"), plugin);
 
 const exportPlugin = `package ${packageName};
 
+import android.Manifest;
 import android.content.ContentValues;
 import android.content.Context;
 import android.net.Uri;
@@ -99,6 +100,8 @@ public class FileExportPlugin extends Plugin {
 
   private void saveFileInternal(PluginCall call) {
     String name=call.getString("name","DEEB-export.txt");
+    if(name==null||name.trim().isEmpty()) name="DEEB-export.txt";
+    name=name.replace("/","_").replace(String.valueOf((char)92),"_");
     String mime=call.getString("mimeType","application/octet-stream");
     String data=call.getString("base64","");
     Uri insertedUri=null;
@@ -572,7 +575,7 @@ for (const [attribute, value] of [["android:allowBackup", "false"], ["android:us
 }
 // Android 9 and earlier require legacy public-storage permission; cap it at API 28.
 if (!manifest.includes('android.permission.WRITE_EXTERNAL_STORAGE')) {
-  manifest = manifest.replace(/(<manifest\\b[^>]*>)/, '$1\\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />');
+  manifest = manifest.replace(/(<manifest\b[^>]*>)/, '$1\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />');
 }
 for (const permission of ['android.permission.ACCESS_COARSE_LOCATION','android.permission.ACCESS_FINE_LOCATION']) {
   if (!manifest.includes('android:name="' + permission + '"')) {
