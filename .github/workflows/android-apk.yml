@@ -12,7 +12,7 @@ on:
       - feature/stronger-print-reports
 
 concurrency:
-  group: deeb-android-apk-${{ github.ref }}
+  group: deeb-android-apk-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
