@@ -216,7 +216,7 @@ public class FileExportPlugin extends Plugin {
         }
         private void writeWebViewToPdf(WebView v){
           if(finished.get())return;
-          android.graphics.pdf.PdfDocument document=null;
+          PrintDocumentAdapter adapter=null;
           try{
             final int width=webWidth;
             final int height=(int)Math.ceil(1123*density);
@@ -224,33 +224,59 @@ public class FileExportPlugin extends Plugin {
             v.setLayoutParams(new FrameLayout.LayoutParams(width,height));
             v.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));
             v.layout(0,0,width,height);
-            int contentHeight=(int)Math.ceil(v.getContentHeight()*v.getScale());
-            if(contentHeight<1)throw new Exception("تعذر تحديد ارتفاع محتوى التقرير.");
-            int pageCount=Math.max(1,(int)Math.ceil(contentHeight/(double)height));
-            if(pageCount>100)throw new Exception("عدد صفحات التقرير يتجاوز الحد الآمن ("+pageCount+").");
-            document=new android.graphics.pdf.PdfDocument();
-            for(int index=0;index<pageCount;index++){
-              if(finished.get())return;
-              int scrollY=Math.min(index*height,Math.max(0,contentHeight-height));
-              v.scrollTo(0,scrollY);
-              android.graphics.pdf.PdfDocument.PageInfo info=
-                new android.graphics.pdf.PdfDocument.PageInfo.Builder(width,height,index+1).create();
-              android.graphics.pdf.PdfDocument.Page page=document.startPage(info);
-              Canvas canvas=page.getCanvas();
-              canvas.drawColor(Color.WHITE);
-              v.draw(canvas);
-              document.finishPage(page);
-            }
-            try(FileOutputStream output=new FileOutputStream(tempPdf,false)){
-              document.writeTo(output);
-              output.flush();
-            }
-            document.close();
-            document=null;
-            v.scrollTo(0,0);
-            new Thread(()->renderPdfPages()).start();
+            PrintAttributes attributes=new PrintAttributes.Builder()
+              .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrait())
+              .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
+              .setResolution(new PrintAttributes.Resolution("DEEB-IMAGE","DEEB-IMAGE",300,300))
+              .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
+              .build();
+            adapter=v.createPrintDocumentAdapter("DEEB-image-export");
+            if(adapter==null)throw new Exception("تعذر إنشاء محرك تقسيم صفحات التقرير.");
+            final PrintDocumentAdapter nativeAdapter=adapter;
+            final CancellationSignal cancellation=new CancellationSignal();
+            nativeAdapter.onLayout(null,attributes,cancellation,new PrintDocumentAdapter.LayoutResultCallback(){
+              @Override public void onLayoutFinished(PrintDocumentInfo info,boolean changed){
+                if(finished.get())return;
+                if(info==null||info.getPageCount()<1||info.getPageCount()>100){fail.reject("عدد صفحات التقرير الناتج غير صالح.");return;}
+                ParcelFileDescriptor output=null;
+                try{
+                  output=ParcelFileDescriptor.open(tempPdf,ParcelFileDescriptor.MODE_WRITE_ONLY|ParcelFileDescriptor.MODE_TRUNCATE);
+                  final ParcelFileDescriptor pdfOutput=output;
+                  nativeAdapter.onWrite(new android.print.PageRange[]{android.print.PageRange.ALL_PAGES},pdfOutput,cancellation,new PrintDocumentAdapter.WriteResultCallback(){
+                    @Override public void onWriteFinished(android.print.PageRange[] pages){
+                      try{pdfOutput.close();}catch(Exception ignored){}
+                      try{nativeAdapter.onFinish();}catch(Exception ignored){}
+                      if(finished.get())return;
+                      new Thread(()->renderPdfPages()).start();
+                    }
+                    @Override public void onWriteFailed(CharSequence error){
+                      try{pdfOutput.close();}catch(Exception ignored){}
+                      try{nativeAdapter.onFinish();}catch(Exception ignored){}
+                      fail.reject("تعذر إنشاء PDF كامل للتقرير: "+String.valueOf(error));
+                    }
+                    @Override public void onWriteCancelled(){
+                      try{pdfOutput.close();}catch(Exception ignored){}
+                      try{nativeAdapter.onFinish();}catch(Exception ignored){}
+                      fail.reject("تم إلغاء تحويل التقرير إلى صور.");
+                    }
+                  });
+                }catch(Exception error){
+                  if(output!=null){try{output.close();}catch(Exception ignored){}}
+                  try{nativeAdapter.onFinish();}catch(Exception ignored){}
+                  fail.reject("تعذر تجهيز ملف PDF للتقرير: "+error.getMessage());
+                }
+              }
+              @Override public void onLayoutFailed(CharSequence error){
+                try{nativeAdapter.onFinish();}catch(Exception ignored){}
+                fail.reject("تعذر تقسيم التقرير إلى صفحات A4: "+String.valueOf(error));
+              }
+              @Override public void onLayoutCancelled(){
+                try{nativeAdapter.onFinish();}catch(Exception ignored){}
+                fail.reject("تم إلغاء تجهيز صفحات التقرير.");
+              }
+            },null);
           }catch(Exception error){
-            if(document!=null){try{document.close();}catch(Exception ignored){}}
+            if(adapter!=null){try{adapter.onFinish();}catch(Exception ignored){}}
             fail.reject("تعذر تجهيز صفحات التقرير قبل تحويلها إلى صور: "+error.getMessage());
           }
         }
