@@ -282,7 +282,7 @@ if (!app.includes(sharedIdentity) || !app.includes('h1{position:relative!importa
 if (!app.includes('تم تحديث النسخة التلقائية لهذا اليوم بنجاح') || !app.includes('تجاوز 30 ميجابايت') || !app.includes('DebooDB.createAutoBackup()')) throw new Error('Automatic backup status and attachment-size warning must be visible in settings');
 
 const scanner = fs.readFileSync(path.join(root,"scanner.js"),"utf8");
-if (!html.includes('src="scanner.js"') || !html.includes('data-page="scanner"') || !sw.includes('"./scanner.js"') || !app.includes('else if(p==="scanner")window.DEebScanner?.render()')) throw new Error("DEEB scanner must be reachable from navigation and included in the offline app cache");
+if (html.includes('src="scanner.js"') || html.includes('data-page="scanner"') || app.includes('else if(p==="scanner")window.DEebScanner?.render()')) throw new Error("Document scanner must remain removed from the user interface and navigation");
 const androidAssets = fs.readFileSync(path.join(root,"prepare-android.js"),"utf8");
 if (!androidAssets.includes('"scanner.js"')) throw new Error("Android staging must copy scanner.js into www/ before building the APK");
 for (const feature of ['capture="environment"',"cropLeft","cropTop","cropRight","cropBottom","grayscale(1)","scannerAddPage","saveScannedPdf","scannerSaveImages"]) if (!scanner.includes(feature)) throw new Error("Document scanner feature missing: "+feature);
