@@ -121,10 +121,14 @@ public class FileExportPlugin extends Plugin {
       view.setVerticalScrollBarEnabled(false);
       view.setHorizontalScrollBarEnabled(false);
       view.getSettings().setJavaScriptEnabled(true);
+      // Keep report layout in a fixed A4 CSS viewport, independent of phone density.
+      view.getSettings().setUseWideViewPort(true);
+      view.getSettings().setLoadWithOverviewMode(false);
+      view.setInitialScale(100);
       root.addView(view,new FrameLayout.LayoutParams(794,1));
       view.setWebViewClient(new WebViewClient(){
         @Override public void onPageFinished(WebView v,String url){
-          v.evaluateJavascript("(function(){function collectPrintRules(rules,out){for(var i=0;i<rules.length;i++){var rule=rules[i];if(rule.type===4&&/print/i.test(rule.conditionText||rule.media&&rule.media.mediaText||'')){collectPrintRules(rule.cssRules,out);}else if(rule.type===12&&rule.cssRules){collectPrintRules(rule.cssRules,out);}else if(rule.type!==6&&!rule.cssRules&&rule.cssText){out.push(rule.cssText);}}}var printRules=[];for(var s=0;s<document.styleSheets.length;s++){try{collectPrintRules(document.styleSheets[s].cssRules,printRules);}catch(e){}}if(printRules.length){var printStyle=document.createElement('style');printStyle.setAttribute('data-deeb-print-rules','true');printStyle.textContent=printRules.join(' ');document.head.appendChild(printStyle);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){window.__deebFontsReady=true;});}else{window.__deebFontsReady=true;}return true;})()",ignored->{});
+          v.evaluateJavascript("(function(){function collectPrintRules(rules,out){for(var i=0;i<rules.length;i++){var rule=rules[i];if(rule.type===4&&/print/i.test(rule.conditionText||rule.media&&rule.media.mediaText||'')){collectPrintRules(rule.cssRules,out);}else if(rule.type===12&&rule.cssRules){collectPrintRules(rule.cssRules,out);}else if(rule.type!==6&&!rule.cssRules&&rule.cssText){out.push(rule.cssText);}}}var printRules=[];for(var s=0;s<document.styleSheets.length;s++){try{collectPrintRules(document.styleSheets[s].cssRules,printRules);}catch(e){}}if(printRules.length){var printStyle=document.createElement('style');printStyle.setAttribute('data-deeb-print-rules','true');printStyle.textContent=printRules.join(' ');document.head.appendChild(printStyle);}var imageNumberStyle=document.createElement('style');imageNumberStyle.textContent='.report-page-number,.branch-page-number{display:none!important}';document.head.appendChild(imageNumberStyle);if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){window.__deebFontsReady=true;});}else{window.__deebFontsReady=true;}return true;})()",ignored->{});
           final Runnable[] measureTask=new Runnable[1];
           measureTask[0]=()->v.evaluateJavascript("(function(){if(!window.__deebFontsReady)return -1;var pageCssHeight=Math.round(794*297/210),nodes=document.querySelectorAll('.written-page,.bike-sheet-section,.branch-sheet-section'),pages=[];if(nodes.length){for(var i=0;i<nodes.length;i++){var node=nodes[i];node.style.setProperty('margin-top','0','important');node.style.setProperty('min-height',pageCssHeight+'px','important');var rect=node.getBoundingClientRect(),height=Math.max(1,Math.ceil(rect.height)),pageSpan=Math.max(1,Math.ceil(height/pageCssHeight));node.style.setProperty('margin-bottom',Math.max(0,pageSpan*pageCssHeight-height)+'px','important');rect=node.getBoundingClientRect();pages.push({top:Math.max(0,Math.round(rect.top+window.pageYOffset)),height:pageSpan*pageCssHeight});}}else{var contentHeight=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);pages.push({top:0,height:contentHeight});}var contentHeight=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);return JSON.stringify({contentHeight:contentHeight,pages:pages});})()",heightValue->{
             if(finished.get())return;
@@ -192,6 +196,23 @@ public class FileExportPlugin extends Plugin {
                     Canvas canvas=new Canvas(bitmap);
                     canvas.scale(2f,2f);
                     v.draw(canvas);
+                    // Add one report-wide page number to every exported page, only for multi-page reports.
+                    if(pageCount>1){
+                      android.widget.TextView pageNumberView=new android.widget.TextView(getContext());
+                      pageNumberView.setText("صفحة "+(currentPage+1)+" من "+pageCount);
+                      pageNumberView.setTextSize(11);
+                      pageNumberView.setTextColor(Color.rgb(16,39,91));
+                      pageNumberView.setGravity(android.view.Gravity.CENTER);
+                      pageNumberView.setBackgroundColor(Color.WHITE);
+                      int footerHeight=30;
+                      pageNumberView.measure(View.MeasureSpec.makeMeasureSpec(794,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(footerHeight,View.MeasureSpec.EXACTLY));
+                      pageNumberView.layout(0,pageCssHeight-footerHeight,794,pageCssHeight);
+                      pageNumberView.draw(canvas);
+                      android.graphics.Paint footerLine=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+                      footerLine.setColor(Color.rgb(201,154,50));
+                      footerLine.setStrokeWidth(1f);
+                      canvas.drawLine(0,pageCssHeight-footerHeight,794,pageCssHeight-footerHeight,footerLine);
+                    }
                     int nonWhite=0;
                     int stepX=Math.max(1,bitmap.getWidth()/512),stepY=Math.max(1,bitmap.getHeight()/512);
                     for(int y=0;y<bitmap.getHeight();y+=stepY){
@@ -246,7 +267,8 @@ public class FileExportPlugin extends Plugin {
           if(request.isForMainFrame())fail.reject("تعذر تحميل التقرير قبل تحويله إلى صور.");
         }
       });
-      view.loadDataWithBaseURL("https://localhost/",html,"text/html","UTF-8",null);
+      String imageHtml=html.replace("width=device-width,initial-scale=1","width=794,initial-scale=1,maximum-scale=1,user-scalable=no").replace("width=device-width, initial-scale=1","width=794, initial-scale=1, maximum-scale=1, user-scalable=no");
+      view.loadDataWithBaseURL("https://localhost/",imageHtml,"text/html","UTF-8",null);
       handler.postDelayed(()->{
         if(!finished.get())fail.reject("انتهت مهلة تجهيز صور التقرير بعد 90 ثانية. حاول مرة أخرى.");
       },90000);
