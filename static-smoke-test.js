@@ -168,6 +168,7 @@ const bikeReportEnd=app.indexOf('const branchGroupsFor=d=>',bikeReportStart);
 const bikeReportSource=app.slice(bikeReportStart,bikeReportEnd);
 if (bikeReportSource.includes('people:new Set()') || bikeReportSource.includes('group.people.add(') || bikeReportSource.includes('[...g.people]')) throw new Error('Bike report must not combine every patrol visitor into the assigned rider name');
 if (!bikeReportSource.includes('person:String(bp.person||\"\").trim()||\"—\"')) throw new Error('Bike report must show only the single assigned person on the registered bike record');
+if (!bikeReportSource.includes("replace(/[٠-٩]/g") || !bikeReportSource.includes("replace(/[۰-۹]/g") || !bikeReportSource.includes('suffix==="م"||suffix==="pm"') || !bikeReportSource.includes("compareVisitTime(a,b)")) throw new Error("Bike report must sort visits by real clock time, including Arabic digits and AM/PM formats");
 const bikeSectionStart=app.indexOf('const bikeGroupsFor=d=>');
 const bikeSectionEnd=app.indexOf('const branchGroupsFor=d=>',bikeSectionStart);
 const bikeSection=app.slice(bikeSectionStart,bikeSectionEnd);
