@@ -189,4 +189,11 @@ if (!app.includes('rows="14" style="width:100%;min-height:280px;line-height:1.9"
 if (!app.includes('written_reports:[["report_title","عنوان التقرير","text",1]') || !app.includes('["report_date","تاريخ التقرير","date",1]') || !app.includes('["shift","الشفت","select","صباحي|مسائي|ليلي",1]') || !app.includes('["report_text","نص التقرير","textarea",1]')) throw new Error('Independent written end-of-shift report fields are missing');
 if (!app.includes('written_reports:"التقرير الكتابي"') || !app.includes('"written_reports"]') || !app.includes('id="createWrittenReport"') || !app.includes('data-report-type="written_reports"')) throw new Error('Written report navigation and report-center shortcuts are missing');
 if (!app.includes('if(type==="written_reports"){const list=rows(type)') || !app.includes('data-edit="') || !app.includes('data-archive="')) throw new Error('Written report list must show saved reports with edit and archive actions');
+const bikePrintStart=app.indexOf('if($("#reportType").value==="bike_patrols"){');
+const bikePrintEnd=app.indexOf('const rows=rowsFor(d)',bikePrintStart);
+const bikePrint=app.slice(bikePrintStart,bikePrintEnd);
+if (!bikePrint.includes('filter(Boolean).sort().join(" — ")')) throw new Error('Bike report date range must always print from the earlier date to the later date');
+if (bikePrint.includes('تاريخ إصدار التقرير:') && bikePrint.indexOf('تاريخ إصدار التقرير:') < bikePrint.indexOf('const sections=')) throw new Error('Bike report must not create an orphan date-only page before the report sections');
+if (!bikePrint.includes('height:auto!important;max-height:none!important') || bikePrint.includes('height:280mm!important')) throw new Error('Bike report print pages must not stretch table rows to fill a fixed-height sheet');
+if (!bikePrint.includes('background:#073b28;color:#fff') || !bikePrint.includes('border:1px solid #c99a32') || !bikePrint.includes('background:#fbf4e6')) throw new Error('Bike report PDF and image exports must preserve DEEB green, gold, and beige visual identity');
 if (!app.includes('if($("#reportType").value==="written_reports")') || !app.includes('class="report-body"') || !app.includes('class="written-page"') || !app.includes('esc(p.report_text||"")')) throw new Error('Written reports must print each saved narrative as a standalone report');
