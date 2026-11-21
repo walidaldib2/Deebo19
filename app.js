@@ -471,15 +471,13 @@ function reports(){
   });
   const result=[...groups.values()].sort((a,b)=>a.bike.localeCompare(b.bike,"ar",{numeric:true})).map(g=>{
    const bp=g.bikeRecord?.payload||{};
-   const sites=new Map();
-   g.visits.sort((a,b)=>dayOf(a).localeCompare(dayOf(b))||String(a.payload?.patrol_time||"").localeCompare(String(b.payload?.patrol_time||"")));
-   g.visits.forEach(v=>{
+   g.visits.sort((a,b)=>dayOf(a).localeCompare(dayOf(b))||String(a.payload?.patrol_time||"").localeCompare(String(b.payload?.patrol_time||""))||String(a.created_at||"").localeCompare(String(b.created_at||"")));
+   const sites=g.visits.map(v=>{
     const p=v.payload||{},site=String(p.site||p.branch||p.location||"غير محدد").trim();
-    if(!sites.has(site))sites.set(site,[]);
     const lat=String(p.lat??"").trim(),lng=String(p.lng??"").trim(),locationUrl=String(p.location_url??"").trim();const coordinates=[lat?"خط العرض: "+lat:"",lng?"خط الطول: "+lng:"",locationUrl].filter(Boolean).join("\n")||"—";
-    sites.get(site).push({date:dayOf(v),time:String(p.patrol_time||"—"),coordinates,notes:String(p.notes||"").trim()});
+    return {site,entries:[{date:dayOf(v),time:String(p.patrol_time||"—"),coordinates,notes:String(p.notes||"").trim()}],times:[String(p.patrol_time||"—")]};
    });
-   return {date:g.date,bike:g.bike,person:String(bp.person||"").trim()||"—",code:bp.code||"—",type:bp.type||bp.description||"—",visits:g.visits,sites:[...sites.entries()].map(([site,entries])=>({site,entries,times:entries.map(v=>v.time)}))};
+   return {date:g.date,bike:g.bike,person:String(bp.person||"").trim()||"—",code:bp.code||"—",type:bp.type||bp.description||"—",visits:g.visits,sites};
   });
   return result;
  };
