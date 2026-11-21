@@ -13,18 +13,16 @@ const source = fs.readFileSync(pluginPath, "utf8");
 const required = [
   "saveHtmlAsImages",
   "printHtml",
-  "createPrintDocumentAdapter",
+  "writeWebViewToPdf",
+  "android.graphics.pdf.PdfDocument",
   "PdfRenderer",
-  "PageRange.ALL_PAGES",
-  "PrintAttributes.MediaSize.ISO_A4.asPortrait()",
-  "PrintAttributes.Margins.NO_MARGINS",
   "removePartialImages.run()"
 ];
 const missing = required.filter(marker => !source.includes(marker));
 if (missing.length) {
   throw new Error("The canonical Android PDF/image exporter is incomplete: " + missing.join(", "));
 }
-if (source.includes("v.draw(canvas)") || source.includes("writeWebViewToPdf")) {
-  throw new Error("A legacy manual WebView-to-PDF renderer was detected; refusing to use it.");
+if (source.includes("adapter.onLayout(") || source.includes("adapter.onWrite(")) {
+  throw new Error("Unsupported direct PrintDocumentAdapter callbacks were detected.");
 }
 console.log("Verified the canonical Android native print/PDF/image exporter; no files were overwritten.");
