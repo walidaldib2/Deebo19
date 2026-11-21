@@ -31,6 +31,7 @@ if (cap.appName !== 'DEEB') throw new Error('Android display name must be DEEB')
 if (pkg.name !== 'deeb-field-operations') throw new Error('Project package name must be deebo-field-operations');
 if (cap.webDir !== 'www') throw new Error('Capacitor webDir must be the staged www directory');
 const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
+if (!app.includes('const rowHeight=(row,ri)=>') || !app.includes('Math.min(409.5') || !app.includes('rowHeight(row,ri)')) throw new Error('Excel rows must expand to fit wrapped multi-line report content instead of clipping at a fixed height');
 if (!app.includes('$(\"#enableBiometric\").onclick=async()=>') || !app.includes('$(\"#disableBiometric\").onclick=()=>')) throw new Error('Biometric settings handlers are missing');
 if (!app.includes('localStorage.removeItem(BIOMETRIC_KEY)') || !app.includes('سيفتح التطبيق مباشرة دون PIN أو بصمة')) throw new Error('Direct unlock / biometric reset flow is missing');
 if (!app.includes('يمكنك الدخول باستخدام PIN')) throw new Error('Biometric PIN fallback message is missing');
