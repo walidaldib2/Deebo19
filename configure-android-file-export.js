@@ -149,7 +149,9 @@ public class FileExportPlugin extends Plugin {
             return;
         }
         activity.runOnUiThread(() -> {
-            final WebView webView = createReportWebView(activity, html, baseName, () -> {
+            final WebView[] webViewHolder = new WebView[1];
+            webViewHolder[0] = createReportWebView(activity, html, baseName, () -> {
+                final WebView webView = webViewHolder[0];
                 final File pdf = new File(activity.getCacheDir(), "deeb-export-" + System.currentTimeMillis() + ".pdf");
                 final PrintDocumentAdapter adapter = webView.createPrintDocumentAdapter(baseName);
                 final PrintAttributes attributes = printAttributes();
