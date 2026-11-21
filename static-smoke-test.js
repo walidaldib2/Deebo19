@@ -15,6 +15,12 @@ if (!pkg.dependencies['@capacitor/android'].startsWith('^8.') || !pkg.dependenci
 if (!pkg.dependencies?.['@aparajita/capacitor-biometric-auth']?.startsWith('^10.')) throw new Error('Capacitor 8 biometric plugin compatibility is required');
 if (!pkg.devDependencies?.sharp || !pkg.scripts?.['prepare:android:icons']) throw new Error('DEEB launcher icon generation dependency/script is missing');
 const androidSetup = fs.readFileSync(path.join(root,'configure-android-share.js'),'utf8');
+const activityTemplateStart=androidSetup.indexOf('const activity = `');
+const activityTemplateEnd=androidSetup.indexOf('`;\nfs.writeFileSync(path.join(javaDir, "MainActivity.java")',activityTemplateStart);
+const activityTemplate=activityTemplateStart>=0&&activityTemplateEnd>activityTemplateStart?androidSetup.slice(activityTemplateStart,activityTemplateEnd):'';
+const earlyDrawInit=activityTemplate.indexOf('WebView.enableSlowWholeDocumentDraw()');
+const bridgeInit=activityTemplate.indexOf('super.onCreate(savedInstanceState)');
+if (!activityTemplate.includes('import android.webkit.WebView;') || earlyDrawInit<0 || bridgeInit<0 || earlyDrawInit>bridgeInit) throw new Error('Whole-document WebView drawing must be enabled before BridgeActivity creates the primary WebView');
 const printHandlerStart=androidSetup.indexOf('@PluginMethod public void printHtml');
 const printHandlerEnd=androidSetup.indexOf('\n  }\n}',printHandlerStart);
 const printHandler=printHandlerStart>=0&&printHandlerEnd>printHandlerStart?androidSetup.slice(printHandlerStart,printHandlerEnd):'';
