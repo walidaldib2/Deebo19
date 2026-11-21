@@ -53,6 +53,7 @@ import android.provider.MediaStore;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;\nimport android.print.PrintDocumentInfo;\nimport android.os.CancellationSignal;\nimport android.os.ParcelFileDescriptor;\nimport android.graphics.pdf.PdfRenderer;
+import android.graphics.pdf.PdfDocument;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.util.Base64;
@@ -188,48 +189,59 @@ public class FileExportPlugin extends Plugin {
             String state=ready==null?"":ready.toString();
             if(state.contains("image-error")){fail.reject("تعذر تحميل "+state.replaceAll("[^0-9]","")+" صورة مرفقة بالتقرير؛ لم يتم حفظ صور ناقصة.");return;}
             if(!state.contains("ready")){fail.reject("لم تكتمل تهيئة الصور والخطوط قبل تحويل التقرير.");return;}
-            startPrintAdapter(v);
+            writeWebViewToPdf(v);
           });
         }
-        private void startPrintAdapter(WebView v){
+        private void writeWebViewToPdf(WebView v){
           if(finished.get())return;
-          try{
-            PrintAttributes attributes=new PrintAttributes.Builder()
-              .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrait())
-              .setResolution(new PrintAttributes.Resolution("DEEB","DEEB",300,300))
-              .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
-              .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
-              .build();
-            PrintDocumentAdapter adapter=v.createPrintDocumentAdapter("DEEB-report-images");
-            android.os.CancellationSignal cancellation=new android.os.CancellationSignal();
-            adapter.onLayout(null,attributes,cancellation,new PrintDocumentAdapter.LayoutResultCallback(){
-              @Override public void onLayoutFinished(android.print.PrintDocumentInfo info,boolean changed){
-                if(finished.get())return;
-                if(info==null||info.getPageCount()==0){fail.reject("محرك الطباعة لم يُنشئ صفحات للتقرير.");return;}
-                if(info.getPageCount()>100){fail.reject("التقرير يتجاوز 100 صفحة؛ قسّمه قبل حفظ الصور.");return;}
+          v.evaluateJavascript("(function(){return Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);})()",heightValue->{
+            if(finished.get())return;
+            try{
+              int cssHeight=(int)Math.ceil(Double.parseDouble(heightValue==null?"0":heightValue.replaceAll("[^0-9.]","")));
+              int pageHeightCss=1123;
+              int pageCount=Math.max(1,(int)Math.ceil(cssHeight/(double)pageHeightCss));
+              if(pageCount>100){fail.reject("التقرير يتجاوز 100 صفحة؛ قسّمه قبل حفظ الصور.");return;}
+              android.graphics.pdf.PdfDocument document=new android.graphics.pdf.PdfDocument();
+              final int[] pageIndex={0};
+              final Runnable[] drawNext={null};
+              drawNext[0]=()->{
+                if(finished.get()){document.close();return;}
+                if(pageIndex[0]>=pageCount){
+                  try(FileOutputStream output=new FileOutputStream(tempPdf)){
+                    document.writeTo(output);
+                    output.flush();
+                    document.close();
+                    new Thread(()->renderPdfPages()).start();
+                  }catch(Exception error){
+                    try{document.close();}catch(Exception ignored){}
+                    fail.reject("تعذر إنشاء ملف PDF مؤقت للتقرير: "+error.getMessage());
+                  }
+                  return;
+                }
                 try{
-                  android.os.ParcelFileDescriptor output=android.os.ParcelFileDescriptor.open(tempPdf,android.os.ParcelFileDescriptor.MODE_READ_WRITE|android.os.ParcelFileDescriptor.MODE_TRUNCATE);
-                  adapter.onWrite(new android.print.PageRange[]{android.print.PageRange.ALL_PAGES},output,cancellation,new PrintDocumentAdapter.WriteResultCallback(){
-                    @Override public void onWriteFinished(android.print.PageRange[] pages){
-                      try{output.close();}catch(Exception ignored){}
-                      if(finished.get())return;
-                      new Thread(()->renderPdfPages()).start();
-                    }
-                    @Override public void onWriteFailed(CharSequence error){
-                      try{output.close();}catch(Exception ignored){}
-                      fail.reject("تعذر تجهيز صفحات التقرير للطباعة كصور: "+String.valueOf(error));
-                    }
-                    @Override public void onWriteCancelled(){
-                      try{output.close();}catch(Exception ignored){}
-                      fail.reject("تم إلغاء تحويل التقرير إلى صور.");
-                    }
-                  },null);
-                }catch(Exception e){fail.reject("تعذر إنشاء PDF مؤقت للتقرير: "+e.getMessage());}
-              }
-              @Override public void onLayoutFailed(CharSequence error){fail.reject("تعذر ضبط صفحات التقرير على مقاس A4: "+String.valueOf(error));}
-              @Override public void onLayoutCancelled(){fail.reject("تم إلغاء تجهيز صفحات التقرير.");}
-            },null);
-          }catch(Exception e){fail.reject("تعذر تشغيل محرك تجهيز الصفحات: "+e.getMessage());}
+                  v.scrollTo(0,pageIndex[0]*v.getHeight());
+                  v.postDelayed(()->{
+                    if(finished.get()){document.close();return;}
+                    android.graphics.pdf.PdfDocument.PageInfo info=new android.graphics.pdf.PdfDocument.PageInfo.Builder(595,842,pageIndex[0]+1).create();
+                    android.graphics.pdf.PdfDocument.Page page=document.startPage(info);
+                    Canvas canvas=page.getCanvas();
+                    canvas.drawColor(Color.WHITE);
+                    canvas.save();
+                    canvas.scale(595f/Math.max(1,v.getWidth()),842f/Math.max(1,v.getHeight()));
+                    v.draw(canvas);
+                    canvas.restore();
+                    document.finishPage(page);
+                    pageIndex[0]++;
+                    drawNext[0].run();
+                  },120);
+                }catch(Exception error){
+                  try{document.close();}catch(Exception ignored){}
+                  fail.reject("تعذر تجهيز صفحة التقرير رقم "+(pageIndex[0]+1)+": "+error.getMessage());
+                }
+              };
+              drawNext[0].run();
+            }catch(Exception error){fail.reject("تعذر تحديد عدد صفحات التقرير: "+error.getMessage());}
+          });
         }
         private void renderPdfPages(){
           android.os.ParcelFileDescriptor input=null;
