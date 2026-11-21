@@ -52,7 +52,7 @@ import android.os.Looper;
 import android.provider.MediaStore;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
-import android.print.PrintManager;
+import android.print.PrintManager;\nimport android.print.PrintDocumentInfo;\nimport android.os.CancellationSignal;\nimport android.os.ParcelFileDescriptor;\nimport android.graphics.pdf.PdfRenderer;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.util.Base64;
@@ -138,194 +138,165 @@ public class FileExportPlugin extends Plugin {
   @PluginMethod public void saveHtmlAsImages(PluginCall call) {
     final String html=call.getString("html","");
     final String requestedName=call.getString("name","DEEB-report");
-    final String baseName=(requestedName==null||requestedName.trim().isEmpty()?"DEEB-report":requestedName.trim())
-      .replace("/","_").replace(String.valueOf((char)92),"_");
+    final String baseName=(requestedName==null||requestedName.trim().isEmpty()?"DEEB-report":requestedName.trim()).replace("/","_").replace(String.valueOf((char)92),"_");
     if(html.trim().isEmpty()){call.reject("لا توجد بيانات لتحويلها إلى صور");return;}
     getActivity().runOnUiThread(()->{
-      final WebView view=new WebView(getContext());
-      final ViewGroup root=(ViewGroup)getActivity().getWindow().getDecorView();
       final Handler handler=new Handler(Looper.getMainLooper());
       final float density=getContext().getResources().getDisplayMetrics().density;
-      final int cssPageHeight=(int)Math.round(794.0*297.0/210.0);
       final int webWidth=(int)Math.ceil(794.0*density);
-      final int webPageHeight=(int)Math.ceil(cssPageHeight*density);
+      final FrameLayout root=(FrameLayout)getActivity().getWindow().getDecorView().findViewById(android.R.id.content);
+      if(root==null){call.reject("تعذر تجهيز صفحة التقرير");return;}
+      final WebView view=new WebView(getContext());
       final java.util.concurrent.atomic.AtomicBoolean finished=new java.util.concurrent.atomic.AtomicBoolean(false);
       final java.util.ArrayList<Uri> createdUris=new java.util.ArrayList<>();
+      final File tempPdf;
+      try{tempPdf=File.createTempFile("deeb-report-",".pdf",getContext().getCacheDir());}
+      catch(Exception e){view.destroy();call.reject("تعذر إنشاء ملف مؤقت لتحويل التقرير: "+e.getMessage());return;}
       final Runnable cleanup=()->handler.post(()->{
         try{if(view.getParent() instanceof ViewGroup)((ViewGroup)view.getParent()).removeView(view);}catch(Exception ignored){}
         try{view.stopLoading();view.destroy();}catch(Exception ignored){}
+        try{if(tempPdf.exists())tempPdf.delete();}catch(Exception ignored){}
       });
       final Runnable removePartialImages=()->{
         for(Uri uri:createdUris){try{getContext().getContentResolver().delete(uri,null,null);}catch(Exception ignored){}}
         createdUris.clear();
       };
-      final class ImageExportFailure {
+      final class ExportFailure{
         void reject(String message){
           if(finished.compareAndSet(false,true)){
-            handler.post(()->{removePartialImages.run();cleanup.run();call.reject(message);});
+            removePartialImages.run();
+            cleanup.run();
+            call.reject(message);
           }
         }
       }
-      final ImageExportFailure fail=new ImageExportFailure();
+      final ExportFailure fail=new ExportFailure();
       view.setBackgroundColor(Color.WHITE);
-      view.setLayerType(View.LAYER_TYPE_SOFTWARE,null);
+      view.setLayerType(View.LAYER_TYPE_HARDWARE,null);
       view.setVerticalScrollBarEnabled(false);
       view.setHorizontalScrollBarEnabled(false);
       view.getSettings().setJavaScriptEnabled(true);
-      // Keep report layout in a fixed A4 CSS viewport, independent of phone density.
+      view.getSettings().setDomStorageEnabled(true);
       view.getSettings().setUseWideViewPort(true);
       view.getSettings().setLoadWithOverviewMode(false);
       view.setInitialScale(100);
-      root.addView(view,new FrameLayout.LayoutParams(webWidth,webPageHeight));
+      root.addView(view,new FrameLayout.LayoutParams(webWidth,(int)Math.ceil(1123*density)));
       view.setWebViewClient(new WebViewClient(){
         @Override public void onPageFinished(WebView v,String url){
-          v.evaluateJavascript("(function(){function collectPrintRules(rules,out){for(var i=0;i<rules.length;i++){var rule=rules[i];if(rule.type===4&&/print/i.test(rule.conditionText||rule.media&&rule.media.mediaText||'')){collectPrintRules(rule.cssRules,out);}else if(rule.type===12&&rule.cssRules){collectPrintRules(rule.cssRules,out);}else if(rule.type!==6&&!rule.cssRules&&rule.cssText){out.push(rule.cssText);}}}var printRules=[];for(var s=0;s<document.styleSheets.length;s++){try{collectPrintRules(document.styleSheets[s].cssRules,printRules);}catch(e){}}if(printRules.length){var printStyle=document.createElement('style');printStyle.setAttribute('data-deeb-print-rules','true');printStyle.textContent=printRules.join(' ');document.head.appendChild(printStyle);}var imageNumberStyle=document.createElement('style');imageNumberStyle.textContent='.report-page-number,.branch-page-number{display:none!important}';document.head.appendChild(imageNumberStyle);if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){window.__deebFontsReady=true;});}else{window.__deebFontsReady=true;}return true;})()",ignored->{});
-          final Runnable[] measureTask=new Runnable[1];
-          measureTask[0]=()->v.evaluateJavascript("(function(){if(!window.__deebFontsReady)return -1;var pageCssHeight=Math.round(794*297/210),nodes=document.querySelectorAll('.written-page,.bike-sheet-section,.branch-sheet-section'),pages=[];if(nodes.length){for(var i=0;i<nodes.length;i++){var node=nodes[i];node.style.setProperty('margin-top','0','important');node.style.setProperty('min-height',pageCssHeight+'px','important');var rect=node.getBoundingClientRect(),height=Math.max(1,Math.ceil(rect.height)),pageSpan=Math.max(1,Math.ceil(height/pageCssHeight));node.style.setProperty('margin-bottom',Math.max(0,pageSpan*pageCssHeight-height)+'px','important');rect=node.getBoundingClientRect();pages.push({top:Math.max(0,Math.round(rect.top+window.pageYOffset)),height:pageSpan*pageCssHeight});}}else{var contentHeight=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);pages.push({top:0,height:contentHeight});}var contentHeight=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);return JSON.stringify({contentHeight:contentHeight,pages:pages});})()",heightValue->{
+          v.evaluateJavascript("(function(){var imgs=Array.prototype.slice.call(document.images);var wait=imgs.map(function(i){if(i.complete)return Promise.resolve();return new Promise(function(resolve){i.addEventListener('load',resolve,{once:true});i.addEventListener('error',resolve,{once:true});setTimeout(resolve,15000);});});var fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();return Promise.all([fonts].concat(wait)).then(function(){return new Promise(function(resolve){requestAnimationFrame(function(){requestAnimationFrame(resolve);});});}).then(function(){return 'ready';});})()",ready->{
             if(finished.get())return;
-            try{
-              String raw=heightValue==null?"":heightValue.trim();
-              if("-1".equals(raw)){handler.postDelayed(measureTask[0],100);return;}
-              Object decoded=new JSONTokener(raw).nextValue();
-              if(!(decoded instanceof String))throw new Exception("تعذر قراءة تقسيم صفحات التقرير.");
-              JSONObject measurement=new JSONObject((String)decoded);
-              int contentHeight=measurement.getInt("contentHeight");
-              if(contentHeight<80)throw new Exception("تعذر قياس محتوى التقرير.");
-              int pageCssHeight=cssPageHeight;
-              JSONArray segments=measurement.getJSONArray("pages");
-              java.util.ArrayList<Integer> pageTops=new java.util.ArrayList<>();
-              for(int segmentIndex=0;segmentIndex<segments.length();segmentIndex++){
-                JSONObject segment=segments.getJSONObject(segmentIndex);
-                int segmentTop=Math.max(0,segment.getInt("top"));
-                int segmentHeight=Math.max(1,segment.getInt("height"));
-                for(int offset=0;offset<segmentHeight;offset+=pageCssHeight){
-                  pageTops.add(segmentTop+offset);
-                  if(pageTops.size()>100)throw new Exception("التقرير يتجاوز 100 صفحة؛ قسّمه قبل حفظ الصور.");
-                }
-              }
-              if(pageTops.isEmpty())throw new Exception("التقرير لا يحتوي على صفحات.");
-              int pageCount=pageTops.size();
-              v.setLayoutParams(new FrameLayout.LayoutParams(webWidth,webPageHeight));
-              v.measure(View.MeasureSpec.makeMeasureSpec(webWidth,View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(webPageHeight,View.MeasureSpec.EXACTLY));
-              v.layout(0,0,webWidth,webPageHeight);
-              final int[] pageIndex={0};
-              final int[] saved={0};
-              final Runnable[] capturePage=new Runnable[1];
-              capturePage[0]=()->{
-                if(finished.get())return;
-                if(pageIndex[0]>=pageCount){
-                  if(saved[0]<1){fail.reject("لم يتم إنشاء أي صورة للتقرير.");return;}
-                  if(finished.compareAndSet(false,true)){
-                    handler.removeCallbacksAndMessages(null);
-                    cleanup.run();
-                    JSObject result=new JSObject();
-                    result.put("count",saved[0]);
-                    result.put("saved",true);
-                    result.put("format","A4");
-                    result.put("source","Android WebView page rasterizer");
-                    call.resolve(result);
-                  }
-                  return;
-                }
-                final int currentPage=pageIndex[0];
-                final int top=pageTops.get(currentPage);
-                final int width=1588,height=pageCssHeight*2;
-                if(width<1||height<1||(long)width*height>12000000L){
-                  fail.reject("أبعاد صفحة التقرير أكبر من الحد الآمن للتحويل.");
-                  return;
-                }
-                // Let Chromium finish scrolling and paint the requested page before drawing it.
-                v.scrollTo(0,(int)Math.round(top*density));
-                v.invalidate();
-                v.postDelayed(()->{
-                  if(finished.get())return;
-                  Bitmap bitmap=null;
-                  try{
-                    bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
-                    bitmap.eraseColor(Color.WHITE);
-                    Canvas canvas=new Canvas(bitmap);
-                    // Convert physical Android pixels back to a stable 2x CSS-pixel A4 image.
-                    canvas.scale(2f/density,2f/density);
-                    v.draw(canvas);
-                    // Validate the report content before adding the native footer.
-                    // Otherwise the page number itself would make a blank page look non-empty.
-                    int nonWhite=0;
-                    int stepX=Math.max(1,bitmap.getWidth()/512),stepY=Math.max(1,bitmap.getHeight()/512);
-                    for(int y=0;y<bitmap.getHeight();y+=stepY){
-                      for(int x=0;x<bitmap.getWidth();x+=stepX){
-                        int pixel=bitmap.getPixel(x,y);
-                        if(Color.red(pixel)<248||Color.green(pixel)<248||Color.blue(pixel)<248){nonWhite++;break;}
-                      }
-                      if(nonWhite>0)break;
-                    }
-                    if(nonWhite==0)throw new Exception("صفحة التقرير رقم "+(currentPage+1)+" فارغة؛ تم إيقاف الحفظ.");
-                    // Add one report-wide page number to every exported page, only for multi-page reports.
-                    if(pageCount>1){
-                      android.widget.TextView pageNumberView=new android.widget.TextView(getContext());
-                      pageNumberView.setText("صفحة "+(currentPage+1)+" من "+pageCount);
-                      pageNumberView.setTextSize(11);
-                      pageNumberView.setTextColor(Color.rgb(16,39,91));
-                      pageNumberView.setGravity(android.view.Gravity.CENTER);
-                      pageNumberView.setBackgroundColor(Color.WHITE);
-                      int footerHeight=(int)Math.ceil(30*density);
-                      pageNumberView.measure(View.MeasureSpec.makeMeasureSpec(webWidth,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(footerHeight,View.MeasureSpec.EXACTLY));
-                      pageNumberView.layout(0,webPageHeight-footerHeight,webWidth,webPageHeight);
-                      pageNumberView.draw(canvas);
-                      android.graphics.Paint footerLine=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-                      footerLine.setColor(Color.rgb(201,154,50));
-                      footerLine.setStrokeWidth(1f);
-                      canvas.drawLine(0,pageCssHeight-30,794,pageCssHeight-30,footerLine);
-                    }
-                    ContentValues values=new ContentValues();
-                    values.put(MediaStore.Images.Media.DISPLAY_NAME,baseName+"-"+String.format(java.util.Locale.US,"%02d",currentPage+1)+".png");
-                    values.put(MediaStore.Images.Media.MIME_TYPE,"image/png");
-                    if(Build.VERSION.SDK_INT>=29){
-                      values.put(MediaStore.Images.Media.RELATIVE_PATH,Environment.DIRECTORY_PICTURES+"/DEEB");
-                      values.put(MediaStore.Images.Media.IS_PENDING,1);
-                    }
-                    Uri uri=getContext().getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values);
-                    if(uri==null)throw new Exception("تعذر إنشاء صورة التقرير رقم "+(currentPage+1));
-                    createdUris.add(uri);
-                    try(OutputStream imageOut=getContext().getContentResolver().openOutputStream(uri)){
-                      if(imageOut==null||!bitmap.compress(Bitmap.CompressFormat.PNG,100,imageOut))
-                        throw new Exception("تعذر كتابة صورة التقرير رقم "+(currentPage+1));
-                      imageOut.flush();
-                    }catch(Exception writeError){
-                      getContext().getContentResolver().delete(uri,null,null);
-                      createdUris.remove(uri);
-                      throw writeError;
-                    }
-                    if(Build.VERSION.SDK_INT>=29){
-                      ContentValues readyValues=new ContentValues();
-                      readyValues.put(MediaStore.Images.Media.IS_PENDING,0);
-                      getContext().getContentResolver().update(uri,readyValues,null,null);
-                    }
-                    saved[0]++;
-                    pageIndex[0]++;
-                    handler.post(capturePage[0]);
-                  }catch(Exception error){
-                    fail.reject("تعذر تحويل صفحات التقرير إلى صور: "+error.getMessage());
-                  }finally{
-                    if(bitmap!=null&&!bitmap.isRecycled())bitmap.recycle();
-                  }
-                },120);
-              };
-              capturePage[0].run();
-
-            }catch(Exception error){fail.reject("تعذر تحويل صفحات التقرير إلى صور: "+error.getMessage());}
+            String state=ready==null?"":ready.toString();
+            if(!state.contains("ready")){handler.postDelayed(()->v.evaluateJavascript("document.readyState",x->{if(!finished.get())startPrintAdapter(v);}),250);return;}
+            startPrintAdapter(v);
           });
-          handler.postDelayed(measureTask[0],100);
         }
-        @Override public void onReceivedError(WebView v,android.webkit.WebResourceRequest request,android.webkit.WebResourceError error){
-          if(request.isForMainFrame())fail.reject("تعذر تحميل التقرير قبل تحويله إلى صور.");
+        private void startPrintAdapter(WebView v){
+          if(finished.get())return;
+          try{
+            PrintAttributes attributes=new PrintAttributes.Builder()
+              .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrait())
+              .setResolution(new PrintAttributes.Resolution("DEEB","DEEB",300,300))
+              .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
+              .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
+              .build();
+            PrintDocumentAdapter adapter=v.createPrintDocumentAdapter("DEEB-report-images");
+            android.os.CancellationSignal cancellation=new android.os.CancellationSignal();
+            adapter.onLayout(null,attributes,cancellation,new PrintDocumentAdapter.LayoutResultCallback(){
+              @Override public void onLayoutFinished(android.print.PrintDocumentInfo info,boolean changed){
+                if(finished.get())return;
+                if(info==null||info.getPageCount()==0){fail.reject("محرك الطباعة لم يُنشئ صفحات للتقرير.");return;}
+                if(info.getPageCount()>100){fail.reject("التقرير يتجاوز 100 صفحة؛ قسّمه قبل حفظ الصور.");return;}
+                try{
+                  android.os.ParcelFileDescriptor output=android.os.ParcelFileDescriptor.open(tempPdf,android.os.ParcelFileDescriptor.MODE_READ_WRITE|android.os.ParcelFileDescriptor.MODE_TRUNCATE);
+                  adapter.onWrite(new android.print.PageRange[]{android.print.PageRange.ALL_PAGES},output,cancellation,new PrintDocumentAdapter.WriteResultCallback(){
+                    @Override public void onWriteFinished(android.print.PageRange[] pages){
+                      try{output.close();}catch(Exception ignored){}
+                      if(finished.get())return;
+                      new Thread(()->renderPdfPages()).start();
+                    }
+                    @Override public void onWriteFailed(CharSequence error){
+                      try{output.close();}catch(Exception ignored){}
+                      fail.reject("تعذر تجهيز صفحات التقرير للطباعة كصور: "+String.valueOf(error));
+                    }
+                    @Override public void onWriteCancelled(){
+                      try{output.close();}catch(Exception ignored){}
+                      fail.reject("تم إلغاء تحويل التقرير إلى صور.");
+                    }
+                  },null);
+                }catch(Exception e){fail.reject("تعذر إنشاء PDF مؤقت للتقرير: "+e.getMessage());}
+              }
+              @Override public void onLayoutFailed(CharSequence error){fail.reject("تعذر ضبط صفحات التقرير على مقاس A4: "+String.valueOf(error));}
+              @Override public void onLayoutCancelled(){fail.reject("تم إلغاء تجهيز صفحات التقرير.");}
+            },null);
+          }catch(Exception e){fail.reject("تعذر تشغيل محرك تجهيز الصفحات: "+e.getMessage());}
+        }
+        private void renderPdfPages(){
+          android.os.ParcelFileDescriptor input=null;
+          android.graphics.pdf.PdfRenderer renderer=null;
+          try{
+            input=android.os.ParcelFileDescriptor.open(tempPdf,android.os.ParcelFileDescriptor.MODE_READ_ONLY);
+            renderer=new android.graphics.pdf.PdfRenderer(input);
+            int pageCount=renderer.getPageCount();
+            if(pageCount<1||pageCount>100)throw new Exception("عدد صفحات PDF الناتج غير صالح ("+pageCount+").");
+            final int width=1588,height=2246;
+            for(int index=0;index<pageCount;index++){
+              if(finished.get())return;
+              android.graphics.pdf.PdfRenderer.Page page=renderer.openPage(index);
+              Bitmap bitmap=null;
+              try{
+                bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
+                bitmap.eraseColor(Color.WHITE);
+                page.render(bitmap,null,new android.graphics.Rect(0,0,width,height),android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_PRINT);
+                int nonWhite=0;
+                int stepX=Math.max(1,width/400),stepY=Math.max(1,height/400);
+                for(int y=0;y<height&&nonWhite==0;y+=stepY)for(int x=0;x<width;x+=stepX){
+                  int pixel=bitmap.getPixel(x,y);
+                  if(Color.red(pixel)<248||Color.green(pixel)<248||Color.blue(pixel)<248){nonWhite++;break;}
+                }
+                if(nonWhite==0)throw new Exception("صفحة التقرير رقم "+(index+1)+" فارغة؛ تم إيقاف الحفظ.");
+                if(pageCount>1){
+                  Canvas canvas=new Canvas(bitmap);
+                  android.graphics.Paint line=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+                  line.setColor(Color.rgb(201,154,50));line.setStrokeWidth(2f);
+                  canvas.drawLine(70,height-95,width-70,height-95,line);
+                  android.graphics.Paint text=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+                  text.setColor(Color.rgb(16,39,91));text.setTextSize(28);text.setTextAlign(android.graphics.Paint.Align.CENTER);
+                  canvas.drawText("صفحة "+(index+1)+" من "+pageCount,width/2f,height-48,text);
+                }
+                ContentValues values=new ContentValues();
+                values.put(MediaStore.Images.Media.DISPLAY_NAME,baseName+"-"+String.format(java.util.Locale.US,"%02d",index+1)+".png");
+                values.put(MediaStore.Images.Media.MIME_TYPE,"image/png");
+                if(Build.VERSION.SDK_INT>=29){
+                  values.put(MediaStore.Images.Media.RELATIVE_PATH,Environment.DIRECTORY_PICTURES+"/DEEB");
+                  values.put(MediaStore.Images.Media.IS_PENDING,1);
+                }
+                Uri uri=getContext().getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values);
+                if(uri==null)throw new Exception("تعذر إنشاء صورة التقرير رقم "+(index+1)+".");
+                createdUris.add(uri);
+                try(OutputStream out=getContext().getContentResolver().openOutputStream(uri)){
+                  if(out==null||!bitmap.compress(Bitmap.CompressFormat.PNG,100,out))throw new Exception("تعذر كتابة صورة التقرير رقم "+(index+1)+".");
+                  out.flush();
+                }catch(Exception writeError){
+                  getContext().getContentResolver().delete(uri,null,null);createdUris.remove(uri);throw writeError;
+                }
+                if(Build.VERSION.SDK_INT>=29){
+                  ContentValues ready=new ContentValues();ready.put(MediaStore.Images.Media.IS_PENDING,0);
+                  getContext().getContentResolver().update(uri,ready,null,null);
+                }
+              }finally{if(bitmap!=null&&!bitmap.isRecycled())bitmap.recycle();page.close();}
+            }
+            if(finished.compareAndSet(false,true)){
+              cleanup.run();
+              JSObject result=new JSObject();result.put("count",pageCount);result.put("saved",true);result.put("format","A4 PNG");result.put("source","Android PrintDocumentAdapter + PdfRenderer");
+              call.resolve(result);
+            }
+          }catch(Exception e){fail.reject("تعذر تحويل صفحات التقرير إلى صور: "+e.getMessage());}
+          finally{try{if(renderer!=null)renderer.close();}catch(Exception ignored){}try{if(input!=null)input.close();}catch(Exception ignored){}}
         }
       });
       String imageHtml=html.replace("width=device-width,initial-scale=1","width=794,initial-scale=1,maximum-scale=1,user-scalable=no").replace("width=device-width, initial-scale=1","width=794, initial-scale=1, maximum-scale=1, user-scalable=no");
       view.loadDataWithBaseURL("https://localhost/",imageHtml,"text/html","UTF-8",null);
-      handler.postDelayed(()->{
-        if(!finished.get())fail.reject("انتهت مهلة تجهيز صور التقرير بعد 90 ثانية. حاول مرة أخرى.");
-      },90000);
+      handler.postDelayed(()->{if(!finished.get())fail.reject("انتهت مهلة تجهيز صور التقرير بعد 120 ثانية. حاول مرة أخرى.");},120000);
     });
   }
   @PluginMethod public void printHtml(PluginCall call) {
