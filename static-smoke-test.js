@@ -211,7 +211,8 @@ if (!app.includes('rows="14" style="width:100%;min-height:280px;line-height:1.9"
 if (!app.includes('written_reports:[["report_title","عنوان التقرير","text",1]') || !app.includes('["report_date","تاريخ التقرير","date",1]') || !app.includes('["shift","الشفت","select","صباحي|مسائي|ليلي",1]') || !app.includes('["report_text","نص التقرير","textarea",1]')) throw new Error('Independent written end-of-shift report fields are missing');
 if (!app.includes('written_reports:"التقرير اليومي"') || !app.includes('"written_reports"]') || !app.includes('id="createWrittenReport"') || !app.includes('data-report-type="written_reports"')) throw new Error('Written report navigation and report-center shortcuts are missing');
 if (!app.includes('if(type==="written_reports"){const list=rows(type)') || !app.includes('data-edit="') || !app.includes('data-archive="')) throw new Error('Written report list must show saved reports with edit and archive actions');
-if (!branchPrint.includes('class="branch-page-number"')) throw new Error('Branch report page number must be addressable so PNG export can replace local counters with report-wide numbering');
+if (branchPrint.includes('class="branch-page-number"') || !branchPrint.includes("pageNumbering(269)")) throw new Error("Branch PDF pagination must use one report-wide footer counter, including overflow pages");
+if (!app.includes('const pageNumber=""') || !app.includes("pageNumbering(281)")) throw new Error("Bike PDF pagination must use the report-wide footer counter without duplicate per-bike numbering");
 const bikePrintStart=app.indexOf('if($("#reportType").value==="bike_patrols"){ '.trim(),app.indexOf("const printHtml="));
 const bikePrintEnd=app.indexOf('\n  }\n  const rows=rowsFor(d)',bikePrintStart);
 const bikePrint=app.slice(bikePrintStart,bikePrintEnd);
