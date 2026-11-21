@@ -584,7 +584,7 @@ public class CurrentLocationPlugin extends Plugin {
 fs.writeFileSync(path.join(javaDir, "CurrentLocationPlugin.java"), locationPlugin);
 
 
-const documentScannerPlugin = \`package \${packageName};
+const documentScannerPlugin = `package ${packageName};
 
 import android.app.Activity;
 import android.content.ContentValues;
