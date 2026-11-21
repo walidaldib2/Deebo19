@@ -601,7 +601,7 @@ function reports(){
    const pageSize=8,reportPages=Array.from({length:Math.max(1,Math.ceil(groups.length/pageSize))},(_,i)=>groups.slice(i*pageSize,(i+1)*pageSize)),branchSheets=reportPages.map((page,pageIndex)=>{
     const continuation=pageIndex>0,pageTitle=continuation?"باقي "+title:title;
     const rows=page.map(g=>'<tr><td>'+esc(g.branch+(g.continuation?" — استكمال":""))+'</td><td>'+esc(g.supervisor)+'</td>'+Array.from({length:slots},(_,i)=>'<td>'+esc(g.visits[i]?.payload?.patrol_time||"—")+'</td>').join("")+'</tr>').join("");
-    const pageFooter=reportPages.length>1?'<span>صفحة '+(pageIndex+1)+' من '+reportPages.length+'</span>':"";
+    const pageFooter=reportPages.length>1?'<span class="branch-page-number">صفحة '+(pageIndex+1)+' من '+reportPages.length+'</span>':"";
     const approval=pageIndex===reportPages.length-1?'<span>اعتماد المسؤول: __________________</span>':"";
     return '<main class="sheet branch-sheet-section"><div class="brand"><div class="brand-left"><div class="brand-name">DEEB</div><div class="official-tag">تقارير رسمي</div></div><div class="brand-tag">نظام متابعة التشغيل والدوريات</div></div><div class="bike-report-heading"><span class="bike-report-kicker">تقرير رسمي • متابعة ميدانية</span><h1>'+pageTitle+'</h1></div><p class="period">الفترة: '+esc(period)+' • تاريخ الإصدار: '+esc(issued)+' • إجمالي المتابعات: '+groups.length+'</p><div class="branch-table-wrap"><table class="branch-table"><thead><tr><th>الفرع</th><th>المشرف</th>'+Array.from({length:slots},(_,i)=>'<th>متابعة '+(i+1)+'</th>').join("")+'</tr></thead><tbody>'+rows+'</tbody></table></div><div class="foot"><span>تم إنشاء التقرير بواسطة DEEB</span>'+pageFooter+approval+'</div></main>';
    }).join("");
