@@ -237,7 +237,7 @@ public class FileExportPlugin extends Plugin {
             nativeAdapter.onLayout(null,attributes,cancellation,new PrintDocumentAdapter.LayoutResultCallback(){
               @Override public void onLayoutFinished(PrintDocumentInfo info,boolean changed){
                 if(finished.get())return;
-                if(info==null||info.getPageCount()<1||info.getPageCount()>100){fail.reject("عدد صفحات التقرير الناتج غير صالح.");return;}
+                if(info==null){fail.reject("محرك الطباعة لم يرجع بيانات الصفحات.");return;}
                 ParcelFileDescriptor output=null;
                 try{
                   output=ParcelFileDescriptor.open(tempPdf,ParcelFileDescriptor.MODE_WRITE_ONLY|ParcelFileDescriptor.MODE_TRUNCATE);
