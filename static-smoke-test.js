@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const root = __dirname;
-const required = ['index.html','app.js','scanner.js','db.js','style.css','sw.js','manifest.json','icon.svg','qrcode.js','capacitor.config.json','package.json','biometric.bundle.js','prepare-android.js','configure-android-share.js','prepare-android-icons.js'];
+const required = ['index.html','app.js','db.js','style.css','sw.js','manifest.json','icon.svg','qrcode.js','capacitor.config.json','package.json','biometric.bundle.js','prepare-android.js','configure-android-share.js','prepare-android-icons.js'];
 const missing = required.filter(f => !fs.existsSync(path.join(root,f)));
 if (missing.length) throw new Error('Missing required files: '+missing.join(', '));
 const html = fs.readFileSync(path.join(root,'index.html'),'utf8');
@@ -35,12 +35,11 @@ const bikeReportDateTemplateEnd=appSource.indexOf('\n  }\n  const rows=rowsFor(d
 const bikeReportDateTemplate=bikeReportDateTemplateStart>=0&&bikeReportDateTemplateEnd>bikeReportDateTemplateStart?appSource.slice(bikeReportDateTemplateStart,bikeReportDateTemplateEnd):'';
 if (!bikeReportDateTemplate.includes('class="bike-meta-date"') || !bikeReportDateTemplate.includes('<th>الموقع</th><th>توقيت المرور</th><th>الإحداثيات</th>') || bikeReportDateTemplate.includes('<th>التاريخ</th>') || !bikeReportDateTemplate.includes('عدد مرات المرور') || !bikeReportDateTemplate.includes('نوع الدراجة') || !bikeReportDateTemplate.includes('رقم الدراجة') || !bikeReportDateTemplate.includes('كود الدراجة') || !bikeReportDateTemplate.includes('class="bike-coordinates"') || bikeReportDateTemplate.includes('class="bike-notes"')) throw new Error('Bike patrol report metadata must contain one date field and the table must contain site, time and coordinates only');
 const scannerBridgeSource = fs.readFileSync(path.join(root,'native-plugins-entry.js'),'utf8');
-if (!scannerBridgeSource.includes("DocumentScanner: registerPlugin('DocumentScanner')")) throw new Error('Google document scanner JavaScript bridge is missing');
-if (!androidSetup.includes('int expectedPages = scan.getPdf().getPageCount()') || !androidSetup.includes('pages.size() != expectedPages')) throw new Error('Google scanner must validate that the PDF page count matches the exported page images');
-if (!androidSetup.includes('List<Uri> createdUris') || !androidSetup.includes('List<File> createdFiles') || !androidSetup.includes('createdUris, createdFiles') || !androidSetup.includes('for (Uri uri : createdUris)') || !androidSetup.includes('for (File file : createdFiles)')) throw new Error('Google scanner must roll back the PDF and all page images if any save step fails');
-if (!androidSetup.includes('DocumentScannerPlugin.java') || !androidSetup.includes('registerPlugin(DocumentScannerPlugin.class)') || !androidSetup.includes('play-services-mlkit-document-scanner:16.0.0') || !androidSetup.includes('SCANNER_MODE_FULL') || !androidSetup.includes('RESULT_FORMAT_PDF') || !androidSetup.includes('RESULT_FORMAT_JPEG') || !androidSetup.includes('copyToPublicStore')) throw new Error('Native Google ML Kit scanner, full enhancement mode, PDF/JPEG outputs, or storage integration is missing');
-const scannerUi = fs.readFileSync(path.join(root,'scanner.js'),'utf8');
-if (!scannerUi.includes('id="scannerGoogleScan"') || !scannerUi.includes('DEEBNativePlugins?.DocumentScanner') || !scannerUi.includes('plugin?.scanDocument') || !scannerUi.includes('result?.saved!==true') || !scannerUi.includes('result.pages<1')) throw new Error('Professional Google scanner UI action or output validation is missing');
+const androidAssetsSource = fs.readFileSync(path.join(root,'prepare-android.js'),'utf8');
+const serviceWorkerSource = fs.readFileSync(path.join(root,'sw.js'),'utf8');
+const androidWorkflowSource = fs.readFileSync(path.join(root,'.github/workflows/android-apk.yml'),'utf8');
+if (scannerBridgeSource.includes('DocumentScanner') || androidAssetsSource.includes('"scanner.js"') || serviceWorkerSource.includes('./scanner.js') || androidWorkflowSource.includes('scanner.js') || androidSetup.includes('const documentScannerPlugin =') || androidSetup.includes('@CapacitorPlugin(name = "DocumentScanner")') || androidSetup.includes('implementation "com.google.android.gms:play-services-mlkit-document-scanner')) throw new Error('Document scanning must be fully excluded from the app bundle, Android plugins, dependencies, and service-worker cache');
+if (html.includes('src="scanner.js"') || html.includes('data-page="scanner"') || app.includes('DEEBNativePlugins?.DocumentScanner') || app.includes('window.DEebScanner')) throw new Error('Document scanner must remain removed from the user interface and navigation');
 if (!androidSetup.includes('["android:allowBackup", "false"]') || !androidSetup.includes('["android:usesCleartextTraffic", "false"]')) throw new Error('Android backup/network hardening is missing');
 const iconBuilder = fs.readFileSync(path.join(root,'prepare-android-icons.js'),'utf8');
 if (!iconBuilder.includes('ic_launcher_foreground.png') || !iconBuilder.includes('icon-512.png')) throw new Error('DEEB Play Store and adaptive launcher icon generation is missing');
@@ -288,12 +287,5 @@ if (!app.includes(sharedIdentity) || !app.includes('h1{position:relative!importa
  // Automatic-backup status must be visible to the user, including the attachment-size skip.
 if (!app.includes('تم تحديث النسخة التلقائية لهذا اليوم بنجاح') || !app.includes('تجاوز 30 ميجابايت') || !app.includes('DebooDB.createAutoBackup()')) throw new Error('Automatic backup status and attachment-size warning must be visible in settings');
 
-const scanner = fs.readFileSync(path.join(root,"scanner.js"),"utf8");
-if (html.includes('src="scanner.js"') || html.includes('data-page="scanner"') || app.includes('else if(p==="scanner")window.DEebScanner?.render()')) throw new Error("Document scanner must remain removed from the user interface and navigation");
-const androidAssets = fs.readFileSync(path.join(root,"prepare-android.js"),"utf8");
-if (!androidAssets.includes('"scanner.js"')) throw new Error("Android staging must copy scanner.js into www/ before building the APK");
-for (const feature of ['capture="environment"',"cropLeft","cropTop","cropRight","cropBottom","grayscale(1)","scannerAddPage","saveScannedPdf","scannerSaveImages"]) if (!scanner.includes(feature)) throw new Error("Document scanner feature missing: "+feature);
-if (!androidSetup.includes("@PluginMethod public void saveScannedPdf") || !androidSetup.includes("PdfDocument.PageInfo.Builder(595,842,i+1)") || !androidSetup.includes("MediaStore.Downloads.RELATIVE_PATH")) throw new Error("Native multi-page scanned PDF export is missing");
-
-for (const feature of ["validateQuad(src,points)","ترتيب الزوايا متقاطع أو غير صالح","المساحة المحددة صغيرة جدًا","scannerAutoDetect","function autoDetect()","function warpPerspective(","function solveLinear(","تحديد الزوايا يدويًا","تصحيح المنظور","scannerPickCorners","scannerClearCorners"]) if (!scanner.includes(feature)) throw new Error("Document edge detection and perspective correction feature missing: "+feature);
-if (!scanner.includes("4500000/(w*h)") || !scanner.includes("quad.length===4")) throw new Error("Perspective correction must cap output pixels and require four ordered corners");
+const androidAssets = fs.readFileSync(path.join(root,'prepare-android.js'),'utf8');
+if (androidAssets.includes('"scanner.js"') || html.includes('src="scanner.js"') || sw.includes('./scanner.js')) throw new Error('Document scanner assets must not be staged or cached');
