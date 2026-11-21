@@ -22,7 +22,7 @@ if (!printHandler.includes('setJavaScriptEnabled(true)') || !printHandler.includ
 const imageExportStart=androidSetup.indexOf('@PluginMethod public void saveHtmlAsImages');
 const imageExportEnd=androidSetup.indexOf('@PluginMethod public void printHtml',imageExportStart);
 const imageExport=imageExportStart>=0&&imageExportEnd>imageExportStart?androidSetup.slice(imageExportStart,imageExportEnd):'';
-for (const required of ['createPrintDocumentAdapter(baseName)','PdfRenderer','MediaSize.ISO_A4.asPortrait()','RENDER_MODE_FOR_DISPLAY','صفحة التقرير رقم','Pictures+"/DEEB"']) if (!imageExport.includes(required)) throw new Error('Image export must render real A4 PDF pages and validate each saved page: '+required);
+for (const required of ['createPrintDocumentAdapter(baseName)','PdfRenderer','MediaSize.ISO_A4.asPortrait()','RENDER_MODE_FOR_DISPLAY','صفحة التقرير رقم','Environment.DIRECTORY_PICTURES+"/DEEB"']) if (!imageExport.includes(required)) throw new Error('Image export must render real A4 PDF pages and validate each saved page: '+required);
 if (imageExport.includes("querySelectorAll(selectors)") || imageExport.includes('new JSONArray(json)')) throw new Error('Image export must not fall back to one oversized screenshot or arbitrary DOM slicing');
 if (!androidSetup.includes('["android:allowBackup", "false"]') || !androidSetup.includes('["android:usesCleartextTraffic", "false"]')) throw new Error('Android backup/network hardening is missing');
 const iconBuilder = fs.readFileSync(path.join(root,'prepare-android-icons.js'),'utf8');
