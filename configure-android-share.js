@@ -85,7 +85,10 @@ public class FileExportPlugin extends Plugin {
   // resource wait in JavaScript, then poll a synchronous status value from Java.
   private void waitForReportResources(WebView view, Handler handler, long timeoutMs, ReportResourceCallback callback) {
     final long deadline = System.currentTimeMillis() + timeoutMs;
-    final String startScript = "(function(){window.__DEEB_REPORT_READY='pending';var imgs=Array.prototype.slice.call(document.images).filter(function(i){return !!(i.currentSrc||i.src);});var waits=imgs.map(function(i){if(i.complete)return Promise.resolve(i.naturalWidth>0);return new Promise(function(resolve){var done=function(){resolve(i.naturalWidth>0);};i.addEventListener('load',done,{once:true});i.addEventListener('error',function(){resolve(false);},{once:true});setTimeout(function(){resolve(i.complete&&i.naturalWidth>0);},20000);});});var fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();Promise.all([fonts].concat(waits)).then(function(results){var failed=results.slice(1).filter(function(ok){return !ok;}).length;if(failed)return 'image-error:'+failed;return new Promise(function(resolve){requestAnimationFrame(function(){requestAnimationFrame(function(){resolve('ready');});});});}).then(function(state){window.__DEEB_REPORT_READY=state;}).catch(function(){window.__DEEB_REPORT_READY='resource-error';});return 'started';})()";
+    // Wait for both ordinary <img> elements and CSS background images (including
+    // pseudo-elements). Report templates are backgrounds, so document.images alone
+    // can report ready while the actual reference artwork is still missing.
+    final String startScript = "(function(){window.__DEEB_REPORT_READY='pending';var urls=[];Array.prototype.forEach.call(document.images,function(i){var u=i.currentSrc||i.src;if(u)urls.push(u);});function addBg(el,p){try{var v=getComputedStyle(el,p).backgroundImage;if(!v||v==='none')return;var re=/url\\((?:\\\"|')?(.*?)(?:\\\"|')?\\)/g,m;while((m=re.exec(v))!==null){if(m[1]&&m[1].indexOf('data:')!==0)urls.push(m[1]);}}catch(e){}}var all=document.querySelectorAll('*');Array.prototype.forEach.call(all,function(el){addBg(el,null);addBg(el,'::before');addBg(el,'::after');});urls=Array.from(new Set(urls));var waits=urls.map(function(url){return new Promise(function(resolve){var im=new Image(),done=false,t=setTimeout(function(){finish(false);},20000);function finish(ok){if(done)return;done=true;clearTimeout(t);resolve(ok);}im.onload=function(){finish(true);};im.onerror=function(){finish(false);};im.src=url;if(im.complete)finish(im.naturalWidth>0);});});var fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();Promise.all([fonts].concat(waits)).then(function(results){var failed=results.slice(1).filter(function(ok){return !ok;}).length;if(failed)return 'image-error:'+failed;return new Promise(function(resolve){requestAnimationFrame(function(){requestAnimationFrame(function(){resolve('ready');});});});}).then(function(state){window.__DEEB_REPORT_READY=state;}).catch(function(){window.__DEEB_REPORT_READY='resource-error';});return 'started';})()";
     view.evaluateJavascript(startScript, started -> {
       final Runnable[] poll = new Runnable[1];
       poll[0] = () -> view.evaluateJavascript("window.__DEEB_REPORT_READY||'pending'", value -> {
@@ -100,7 +103,6 @@ public class FileExportPlugin extends Plugin {
       poll[0].run();
     });
   }
-
   @PluginMethod public void saveFile(PluginCall call) {
     if (Build.VERSION.SDK_INT < 29 &&
         getContext().checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
