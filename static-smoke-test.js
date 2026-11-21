@@ -263,3 +263,6 @@ const androidAssets = fs.readFileSync(path.join(root,"prepare-android.js"),"utf8
 if (!androidAssets.includes('"scanner.js"')) throw new Error("Android staging must copy scanner.js into www/ before building the APK");
 for (const feature of ['capture="environment"',"cropLeft","cropTop","cropRight","cropBottom","grayscale(1)","scannerAddPage","saveScannedPdf","scannerSaveImages"]) if (!scanner.includes(feature)) throw new Error("Document scanner feature missing: "+feature);
 if (!androidSetup.includes("@PluginMethod public void saveScannedPdf") || !androidSetup.includes("PdfDocument.PageInfo.Builder(595,842,i+1)") || !androidSetup.includes("MediaStore.Downloads.RELATIVE_PATH")) throw new Error("Native multi-page scanned PDF export is missing");
+
+for (const feature of ["scannerAutoDetect","function autoDetect()","function warpPerspective(","function solveLinear(","تحديد الزوايا يدويًا","تصحيح المنظور","scannerPickCorners","scannerClearCorners"]) if (!scanner.includes(feature)) throw new Error("Document edge detection and perspective correction feature missing: "+feature);
+if (!scanner.includes("4500000/(w*h)") || !scanner.includes("quad.length===4")) throw new Error("Perspective correction must cap output pixels and require four ordered corners");
