@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const root = __dirname;
-const required = ['index.html','app.js','db.js','style.css','sw.js','manifest.json','icon.svg','qrcode.js','capacitor.config.json','package.json','biometric.bundle.js','prepare-android.js','configure-android-share.js','prepare-android-icons.js'];
+const required = ['index.html','app.js','scanner.js','db.js','style.css','sw.js','manifest.json','icon.svg','qrcode.js','capacitor.config.json','package.json','biometric.bundle.js','prepare-android.js','configure-android-share.js','prepare-android-icons.js'];
 const missing = required.filter(f => !fs.existsSync(path.join(root,f)));
 if (missing.length) throw new Error('Missing required files: '+missing.join(', '));
 const html = fs.readFileSync(path.join(root,'index.html'),'utf8');
@@ -256,3 +256,8 @@ if (!app.includes('height:auto;max-width:none;margin:0;padding:0;overflow:visibl
 
  // Automatic-backup status must be visible to the user, including the attachment-size skip.
 if (!app.includes('تم تحديث النسخة التلقائية لهذا اليوم بنجاح') || !app.includes('تجاوز 30 ميجابايت') || !app.includes('DebooDB.createAutoBackup()')) throw new Error('Automatic backup status and attachment-size warning must be visible in settings');
+
+const scanner = fs.readFileSync(path.join(root,"scanner.js"),"utf8");
+if (!html.includes('src="scanner.js"') || !html.includes('data-page="scanner"') || !sw.includes('"./scanner.js"') || !app.includes('else if(p==="scanner")window.DEebScanner?.render()')) throw new Error("DEEB scanner must be reachable from navigation and included in the offline app cache");
+for (const feature of ['capture="environment"',"cropLeft","cropTop","cropRight","cropBottom","grayscale(1)","scannerAddPage","saveScannedPdf","scannerSaveImages"]) if (!scanner.includes(feature)) throw new Error("Document scanner feature missing: "+feature);
+if (!androidSetup.includes("@PluginMethod public void saveScannedPdf") || !androidSetup.includes("PdfDocument.PageInfo.Builder(595,842,i+1)") || !androidSetup.includes("MediaStore.Downloads.RELATIVE_PATH")) throw new Error("Native multi-page scanned PDF export is missing");
