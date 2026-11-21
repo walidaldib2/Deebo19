@@ -19,6 +19,11 @@ const printHandlerStart=androidSetup.indexOf('@PluginMethod public void printHtm
 const printHandlerEnd=androidSetup.indexOf('\n  }\n}',printHandlerStart);
 const printHandler=printHandlerStart>=0&&printHandlerEnd>printHandlerStart?androidSetup.slice(printHandlerStart,printHandlerEnd):'';
 if (!printHandler.includes('setJavaScriptEnabled(true)') || !printHandler.includes('createPrintDocumentAdapter(jobName)')) throw new Error('Android print WebView must execute the conditional page-number hook and use the native print adapter');
+const imageExportStart=androidSetup.indexOf('@PluginMethod public void saveHtmlAsImages');
+const imageExportEnd=androidSetup.indexOf('@PluginMethod public void printHtml',imageExportStart);
+const imageExport=imageExportStart>=0&&imageExportEnd>imageExportStart?androidSetup.slice(imageExportStart,imageExportEnd):'';
+for (const required of ['createPrintDocumentAdapter(baseName)','PdfRenderer','MediaSize.ISO_A4.asPortrait()','RENDER_MODE_FOR_DISPLAY','صفحة التقرير رقم','Pictures+"/DEEB"']) if (!imageExport.includes(required)) throw new Error('Image export must render real A4 PDF pages and validate each saved page: '+required);
+if (imageExport.includes("querySelectorAll(selectors)") || imageExport.includes('new JSONArray(json)')) throw new Error('Image export must not fall back to one oversized screenshot or arbitrary DOM slicing');
 if (!androidSetup.includes('["android:allowBackup", "false"]') || !androidSetup.includes('["android:usesCleartextTraffic", "false"]')) throw new Error('Android backup/network hardening is missing');
 const iconBuilder = fs.readFileSync(path.join(root,'prepare-android-icons.js'),'utf8');
 if (!iconBuilder.includes('ic_launcher_foreground.png') || !iconBuilder.includes('icon-512.png')) throw new Error('DEEB Play Store and adaptive launcher icon generation is missing');
