@@ -91,47 +91,70 @@ public class FileExportPlugin extends Plugin {
     String baseName=call.getString("name","DEEB-report");
     if(html.isEmpty()){call.reject("لا توجد بيانات لتحويلها إلى صور");return;}
     getActivity().runOnUiThread(()->{
-      WebView view=new WebView(getContext());
+      final WebView view=new WebView(getContext());
+      final ViewGroup root=(ViewGroup)getActivity().getWindow().getDecorView();
+      final int width=getContext().getResources().getDisplayMetrics().widthPixels;
       view.setBackgroundColor(Color.WHITE);
+      view.setLayerType(View.LAYER_TYPE_SOFTWARE,null);
       view.setVerticalScrollBarEnabled(false);
       view.setHorizontalScrollBarEnabled(false);
       view.getSettings().setJavaScriptEnabled(true);
+      FrameLayout.LayoutParams initial=new FrameLayout.LayoutParams(width,1);
+      root.addView(view,initial);
+      view.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(1,View.MeasureSpec.EXACTLY));
+      view.layout(0,0,width,1);
+      final Runnable cleanup=()->{try{root.removeView(view);}catch(Exception ignored){}view.stopLoading();view.destroy();};
       view.setWebViewClient(new WebViewClient(){
         @Override public void onPageFinished(WebView v,String url){
-          v.evaluateJavascript("(function(){var selectors='.bike-sheet-section,.written-page';var nodes=Array.prototype.slice.call(document.querySelectorAll(selectors));var h=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);if(!nodes.length)return JSON.stringify([{top:0,height:h}]);return JSON.stringify(nodes.map(function(el){var r=el.getBoundingClientRect();return {top:Math.max(0,Math.round(r.top+window.scrollY)),height:Math.max(1,Math.ceil(r.height))};}));})()",value->{
-            try{
-              String json=value;
-              if(json==null||json.equals("null"))throw new Exception("تعذر تحديد صفحات التقرير.");
-              if(json.startsWith("\"")&&json.endsWith("\""))json=json.substring(1,json.length()-1).replace("\\\"","\"").replace("\\\\","\\");
-              JSONArray pages=new JSONArray(json);
-              int width=1080;
-              if(pages.length()==0)throw new Exception("التقرير لا يحتوي على صفحات.");
-              int totalHeight=0;
-              for(int i=0;i<pages.length();i++){JSONObject page=pages.getJSONObject(i);totalHeight=Math.max(totalHeight,page.getInt("top")+page.getInt("height"));}
-              if(totalHeight<100)throw new Exception("تعذر تحديد طول التقرير.");
-              v.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(totalHeight,View.MeasureSpec.EXACTLY));
-              v.layout(0,0,width,totalHeight);
-              for(int page=0;page<pages.length();page++){
-                JSONObject bounds=pages.getJSONObject(page);
-                int top=bounds.getInt("top"),partHeight=bounds.getInt("height");
-                Bitmap bitmap=Bitmap.createBitmap(width,partHeight,Bitmap.Config.ARGB_8888);
-                Canvas canvas=new Canvas(bitmap);canvas.drawColor(Color.WHITE);canvas.save();canvas.translate(0,-top);v.draw(canvas);canvas.restore();
-                ContentValues values=new ContentValues();
-                values.put(MediaStore.Images.Media.DISPLAY_NAME,baseName+"-"+String.format(java.util.Locale.US,"%02d",page+1)+".png");
-                values.put(MediaStore.Images.Media.MIME_TYPE,"image/png");
-                if(Build.VERSION.SDK_INT>=29){values.put(MediaStore.Images.Media.RELATIVE_PATH,Environment.DIRECTORY_PICTURES+"/DEEB");values.put(MediaStore.Images.Media.IS_PENDING,1);}
-                Uri uri=getContext().getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values);
-                if(uri==null){bitmap.recycle();throw new Exception("تعذر إنشاء صورة التقرير رقم "+(page+1));}
-                try(OutputStream out=getContext().getContentResolver().openOutputStream(uri)){
-                  if(out==null||!bitmap.compress(Bitmap.CompressFormat.PNG,100,out))throw new Exception("تعذر كتابة صورة التقرير رقم "+(page+1));
-                  out.flush();
-                } finally { bitmap.recycle(); }
-                if(Build.VERSION.SDK_INT>=29){ContentValues ready=new ContentValues();ready.put(MediaStore.Images.Media.IS_PENDING,0);getContext().getContentResolver().update(uri,ready,null,null);}
-              }
-              view.destroy();
-              JSObject result=new JSObject();result.put("count",pages.length());result.put("saved",true);call.resolve(result);
-            }catch(Exception e){view.destroy();call.reject("تعذر حفظ صور التقرير: "+e.getMessage(),e);}
-          });
+          new Handler(Looper.getMainLooper()).postDelayed(()->{
+            String script="(function(){return new Promise(function(resolve){var ready=function(){requestAnimationFrame(function(){requestAnimationFrame(function(){var selectors='.bike-sheet-section,.written-page';var nodes=Array.prototype.slice.call(document.querySelectorAll(selectors));var h=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);resolve(JSON.stringify(nodes.length?nodes.map(function(el){var r=el.getBoundingClientRect();return {top:Math.max(0,Math.round(r.top+window.scrollY)),height:Math.max(1,Math.ceil(r.height))};}):[{top:0,height:h}]));});});};if(document.fonts&&document.fonts.ready){document.fonts.ready.then(ready);}else{ready();}});})()";
+            v.evaluateJavascript(script,value->{
+              try{
+                String json=value;
+                if(json==null||json.equals("null"))throw new Exception("تعذر تجهيز صفحات التقرير.");
+                if(json.startsWith("\\"")&&json.endsWith("\\""))json=json.substring(1,json.length()-1).replace("\\\\\"","\\"").replace("\\\\\\\\","\\\\");
+                JSONArray pages=new JSONArray(json);
+                if(pages.length()==0)throw new Exception("التقرير لا يحتوي على صفحات.");
+                int totalHeight=0;
+                for(int i=0;i<pages.length();i++){JSONObject page=pages.getJSONObject(i);totalHeight=Math.max(totalHeight,page.getInt("top")+page.getInt("height"));}
+                if(totalHeight<100)throw new Exception("ارتفاع صفحات التقرير غير صالح.");
+                v.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(totalHeight,View.MeasureSpec.EXACTLY));
+                v.layout(0,0,width,totalHeight);
+                v.post(()->{
+                  try{
+                    int saved=0;
+                    for(int page=0;page<pages.length();page++){
+                      JSONObject bounds=pages.getJSONObject(page);
+                      int top=bounds.getInt("top"),partHeight=bounds.getInt("height");
+                      if(partHeight<100)throw new Exception("ارتفاع الصورة رقم "+(page+1)+" غير صالح.");
+                      Bitmap bitmap=Bitmap.createBitmap(width,partHeight,Bitmap.Config.ARGB_8888);
+                      Canvas canvas=new Canvas(bitmap);canvas.drawColor(Color.WHITE);canvas.save();canvas.translate(0,-top);v.draw(canvas);canvas.restore();
+                      int sample=bitmap.getPixel(Math.min(width-1,width/2),Math.min(partHeight-1,partHeight/2));
+                      if(sample==Color.WHITE && bitmap.getByteCount()>0){
+                        int nonWhite=0;
+                        for(int y=0;y<partHeight;y+=Math.max(1,partHeight/30))for(int x=0;x<width;x+=Math.max(1,width/30))if(bitmap.getPixel(x,y)!=Color.WHITE)nonWhite++;
+                        if(nonWhite==0){bitmap.recycle();throw new Exception("الصورة الناتجة فارغة؛ تم إيقاف الحفظ بدل إنشاء صورة بيضاء.");}
+                      }
+                      ContentValues values=new ContentValues();
+                      values.put(MediaStore.Images.Media.DISPLAY_NAME,baseName+"-"+String.format(java.util.Locale.US,"%02d",page+1)+".png");
+                      values.put(MediaStore.Images.Media.MIME_TYPE,"image/png");
+                      if(Build.VERSION.SDK_INT>=29){values.put(MediaStore.Images.Media.RELATIVE_PATH,Environment.DIRECTORY_PICTURES+"/DEEB");values.put(MediaStore.Images.Media.IS_PENDING,1);}
+                      Uri uri=getContext().getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values);
+                      if(uri==null){bitmap.recycle();throw new Exception("تعذر إنشاء صورة التقرير رقم "+(page+1));}
+                      try(OutputStream out=getContext().getContentResolver().openOutputStream(uri)){
+                        if(out==null||!bitmap.compress(Bitmap.CompressFormat.PNG,100,out))throw new Exception("تعذر كتابة صورة التقرير رقم "+(page+1));
+                        out.flush();
+                      } finally {bitmap.recycle();}
+                      if(Build.VERSION.SDK_INT>=29){ContentValues ready=new ContentValues();ready.put(MediaStore.Images.Media.IS_PENDING,0);getContext().getContentResolver().update(uri,ready,null,null);}
+                      saved++;
+                    }
+                    cleanup.run();
+                    JSObject result=new JSObject();result.put("count",saved);result.put("saved",true);call.resolve(result);
+                  }catch(Exception e){cleanup.run();call.reject("تعذر حفظ صور التقرير: "+e.getMessage(),e);}
+                });
+              }catch(Exception e){cleanup.run();call.reject("تعذر تجهيز صور التقرير: "+e.getMessage(),e);}
+            });
+          },350);
         }
       });
       view.loadDataWithBaseURL(null,html,"text/html","UTF-8",null);
