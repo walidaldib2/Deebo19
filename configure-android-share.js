@@ -118,9 +118,10 @@ public class FileExportPlugin extends Plugin {
                 int totalHeight=0;
                 for(int i=0;i<pages.length();i++){JSONObject page=pages.getJSONObject(i);totalHeight=Math.max(totalHeight,page.getInt("top")+page.getInt("height"));}
                 if(totalHeight<100)throw new Exception("ارتفاع صفحات التقرير غير صالح.");
+                ViewGroup.LayoutParams pageLayout=v.getLayoutParams();if(pageLayout!=null){pageLayout.width=width;pageLayout.height=totalHeight;v.setLayoutParams(pageLayout);}
                 v.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(totalHeight,View.MeasureSpec.EXACTLY));
-                v.layout(0,0,width,totalHeight);
-                v.post(()->{
+                v.layout(0,0,width,totalHeight);v.requestLayout();
+                v.postDelayed(()->{
                   try{
                     int saved=0;
                     for(int page=0;page<pages.length();page++){
@@ -151,13 +152,13 @@ public class FileExportPlugin extends Plugin {
                     cleanup.run();
                     JSObject result=new JSObject();result.put("count",saved);result.put("saved",true);call.resolve(result);
                   }catch(Exception e){cleanup.run();call.reject("تعذر حفظ صور التقرير: "+e.getMessage(),e);}
-                });
+                },250);
               }catch(Exception e){cleanup.run();call.reject("تعذر تجهيز صور التقرير: "+e.getMessage(),e);}
             });
           },350);
         }
       });
-      view.loadDataWithBaseURL(null,html,"text/html","UTF-8",null);
+      view.loadDataWithBaseURL("https://localhost/",html,"text/html","UTF-8",null);
     });
   }
   @PluginMethod public void printHtml(PluginCall call) {
