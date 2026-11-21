@@ -108,7 +108,7 @@ public class FileExportPlugin extends Plugin {
       view.setWebViewClient(new WebViewClient(){
         @Override public void onPageFinished(WebView v,String url){
           new Handler(Looper.getMainLooper()).postDelayed(()->{
-            String script="(function(){return new Promise(function(resolve){var ready=function(){requestAnimationFrame(function(){requestAnimationFrame(function(){var selectors='.bike-sheet-section,.written-page';var nodes=Array.prototype.slice.call(document.querySelectorAll(selectors));var h=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);resolve(JSON.stringify(nodes.length?nodes.map(function(el){var r=el.getBoundingClientRect();return {top:Math.max(0,Math.round(r.top+window.scrollY)),height:Math.max(1,Math.ceil(r.height))};}):[{top:0,height:h}]));});});};if(document.fonts&&document.fonts.ready){document.fonts.ready.then(ready);}else{ready();}});})()";
+            String script="(function(){var selectors='.bike-sheet-section,.written-page';var nodes=Array.prototype.slice.call(document.querySelectorAll(selectors));var h=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);var pages=nodes.length?nodes.map(function(el){var r=el.getBoundingClientRect();return {top:Math.max(0,Math.round(r.top+window.scrollY)),height:Math.max(1,Math.ceil(r.height))};}):[{top:0,height:h}];return JSON.stringify(pages);})()";
             v.evaluateJavascript(script,value->{
               try{
                 if(value==null||value.equals("null"))throw new Exception("تعذر تجهيز صفحات التقرير.");
