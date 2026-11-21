@@ -80,6 +80,26 @@ import org.json.JSONTokener;
   @com.getcapacitor.annotation.Permission(alias = "legacyStorage", strings = { Manifest.permission.WRITE_EXTERNAL_STORAGE })
 })
 public class FileExportPlugin extends Plugin {
+  private interface ReportResourceCallback { void onResult(String state); }
+  // evaluateJavascript returns immediately for Promise objects. Start the async
+  // resource wait in JavaScript, then poll a synchronous status value from Java.
+  private void waitForReportResources(WebView view, Handler handler, long timeoutMs, ReportResourceCallback callback) {
+    final long deadline = System.currentTimeMillis() + timeoutMs;
+    final String startScript = "(function(){window.__DEEB_REPORT_READY='pending';var imgs=Array.prototype.slice.call(document.images).filter(function(i){return !!(i.currentSrc||i.src);});var waits=imgs.map(function(i){if(i.complete)return Promise.resolve(i.naturalWidth>0);return new Promise(function(resolve){var done=function(){resolve(i.naturalWidth>0);};i.addEventListener('load',done,{once:true});i.addEventListener('error',function(){resolve(false);},{once:true});setTimeout(function(){resolve(i.complete&&i.naturalWidth>0);},20000);});});var fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();Promise.all([fonts].concat(waits)).then(function(results){var failed=results.slice(1).filter(function(ok){return !ok;}).length;if(failed)return 'image-error:'+failed;return new Promise(function(resolve){requestAnimationFrame(function(){requestAnimationFrame(function(){resolve('ready');});});});}).then(function(state){window.__DEEB_REPORT_READY=state;}).catch(function(){window.__DEEB_REPORT_READY='resource-error';});return 'started';})()";
+    view.evaluateJavascript(startScript, started -> {
+      final Runnable[] poll = new Runnable[1];
+      poll[0] = () -> view.evaluateJavascript("window.__DEEB_REPORT_READY||'pending'", value -> {
+        String state = value == null ? "" : value.replace("\\"", "");
+        if ("pending".equals(state) && System.currentTimeMillis() < deadline) {
+          handler.postDelayed(poll[0], 100);
+        } else {
+          callback.onResult("pending".equals(state) ? "timeout" : state);
+        }
+      });
+      poll[0].run();
+    });
+  }
+
   @PluginMethod public void saveFile(PluginCall call) {
     if (Build.VERSION.SDK_INT < 29 &&
         getContext().checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
@@ -270,11 +290,10 @@ public class FileExportPlugin extends Plugin {
       root.addView(view,new FrameLayout.LayoutParams(webWidth,(int)Math.ceil(1123*density)));
       view.setWebViewClient(new WebViewClient(){
         @Override public void onPageFinished(WebView v,String url){
-          v.evaluateJavascript("(function(){var imgs=Array.prototype.slice.call(document.images).filter(function(i){return !!(i.currentSrc||i.src);});var wait=imgs.map(function(i){if(i.complete)return Promise.resolve(i.naturalWidth>0);return new Promise(function(resolve){var done=function(){resolve(i.naturalWidth>0);};i.addEventListener('load',done,{once:true});i.addEventListener('error',function(){resolve(false);},{once:true});setTimeout(function(){resolve(i.complete&&i.naturalWidth>0);},20000);});});var fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();return Promise.all([fonts].concat(wait)).then(function(results){var failed=results.slice(1).filter(function(ok){return !ok;}).length;if(failed)return 'image-error:'+failed;return new Promise(function(resolve){requestAnimationFrame(function(){requestAnimationFrame(function(){resolve('ready');});});});});})()",ready->{
+          waitForReportResources(v, handler, 30000, state->{
             if(finished.get())return;
-            String state=ready==null?"":ready.toString();
-            if(state.contains("image-error")){fail.reject("تعذر تحميل "+state.replaceAll("[^0-9]","")+" صورة مرفقة بالتقرير؛ لم يتم حفظ صور ناقصة.");return;}
-            if(!state.contains("ready")){fail.reject("لم تكتمل تهيئة الصور والخطوط قبل تحويل التقرير.");return;}
+            if(state.startsWith("image-error:")){fail.reject("تعذر تحميل "+state.replaceAll("[^0-9]","")+" صورة مرفقة بالتقرير؛ لم يتم حفظ صور ناقصة.");return;}
+            if(!"ready".equals(state)){fail.reject("لم تكتمل تهيئة الصور والخطوط قبل تحويل التقرير ("+state+").");return;}
             writeWebViewToPdf(v);
           });
         }
@@ -435,11 +454,10 @@ public class FileExportPlugin extends Plugin {
         view.setWebViewClient(new WebViewClient(){
           @Override public void onPageFinished(WebView v,String url){
             if(!pageReady.compareAndSet(false,true))return;
-            v.evaluateJavascript("(function(){var imgs=Array.prototype.slice.call(document.images).filter(function(i){return !!(i.currentSrc||i.src);});var waits=imgs.map(function(i){if(i.complete)return Promise.resolve(i.naturalWidth>0);return new Promise(function(resolve){var done=function(){resolve(i.naturalWidth>0);};i.addEventListener('load',done,{once:true});i.addEventListener('error',function(){resolve(false);},{once:true});setTimeout(function(){resolve(i.complete&&i.naturalWidth>0);},20000);});});var fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();return Promise.all([fonts].concat(waits)).then(function(results){var failed=results.slice(1).filter(function(ok){return !ok;}).length;if(failed)return 'image-error:'+failed;return new Promise(function(resolve){requestAnimationFrame(function(){requestAnimationFrame(function(){resolve('ready');});});});});})()",resourceState->{
+            waitForReportResources(v, handler, 30000, state->{
               if(settled.get())return;
-              String state=resourceState==null?"":resourceState.toString();
-              if(state.contains("image-error")){if(settled.compareAndSet(false,true)){dispose.run();call.reject("تعذر تحميل "+state.replaceAll("[^0-9]","")+" صورة مرفقة بالتقرير؛ راجع اتصال الإنترنت أو المرفق ثم أعد الطباعة.");}return;}
-              if(!state.contains("ready")){if(settled.compareAndSet(false,true)){dispose.run();call.reject("لم تكتمل تهيئة الصور والخطوط قبل الطباعة.");}return;}
+              if(state.startsWith("image-error:")){if(settled.compareAndSet(false,true)){dispose.run();call.reject("تعذر تحميل "+state.replaceAll("[^0-9]","")+" صورة مرفقة بالتقرير؛ راجع المرفق ثم أعد الطباعة.");}return;}
+              if(!"ready".equals(state)){if(settled.compareAndSet(false,true)){dispose.run();call.reject("لم تكتمل تهيئة الصور والخطوط قبل الطباعة ("+state+").");}return;}
               try{
                 int width=webWidth;
                 int contentCssHeight=Math.max(cssPageHeight,v.getContentHeight());
