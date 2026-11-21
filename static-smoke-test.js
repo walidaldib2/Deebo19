@@ -70,6 +70,10 @@ const buttonBindingChecks = [
   ['$("#saveReportImage").onclick=async()=>', 'Save-report-image button is not wired']
 ];
 for (const [needle,message] of buttonBindingChecks) if (!app.includes(needle)) throw new Error(message);
+const imageSaveStart=app.indexOf('$("#saveReportImage").onclick=async()=>');
+const imageSaveEnd=app.indexOf('$("#pdfReport").onclick=',imageSaveStart);
+const imageSaveHandler=imageSaveStart>=0&&imageSaveEnd>imageSaveStart?app.slice(imageSaveStart,imageSaveEnd):"";
+if (!imageSaveHandler.includes('native.saveHtmlAsImages({html:printHtml(d),name:"DEEB-report"})') || !imageSaveHandler.includes("result?.saved!==true") || !imageSaveHandler.includes("Number.isInteger(result.count)") || !imageSaveHandler.includes("result.count<1") || !imageSaveHandler.includes("finally{button.disabled=false;button.textContent=\"حفظ التقرير صورة\"}")) throw new Error("Report image export must confirm at least one saved image and always restore the button state");
 if (/\bwolf\b|ذئب/i.test(app)) throw new Error('Printed DEEB reports must not contain a wolf icon or wolf branding');
 if (app.split('DEEB</div>').length - 1 < 2) throw new Error('Both printed report templates must retain DEEB branding');
 
