@@ -682,6 +682,10 @@ public class DocumentScannerPlugin extends Plugin {
             }
             String pdfName = baseName + ".pdf";
             List<GmsDocumentScanningResult.Page> pages = scan.getPages();
+            int expectedPages = scan.getPdf().getPageCount();
+            if (expectedPages < 1 || pages == null || pages.size() != expectedPages) {
+                throw new Exception("عدد صفحات PDF لا يطابق صور الصفحات التي أعادها الماسح.");
+            }
             List<Uri> createdUris = new java.util.ArrayList<>();
             List<File> createdFiles = new java.util.ArrayList<>();
             try {
