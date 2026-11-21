@@ -98,6 +98,10 @@ public class FileExportPlugin extends Plugin {
       final WebView view=new WebView(getContext());
       final ViewGroup root=(ViewGroup)getActivity().getWindow().getDecorView();
       final Handler handler=new Handler(Looper.getMainLooper());
+      final float density=getResources().getDisplayMetrics().density;
+      final int cssPageHeight=(int)Math.round(794.0*297.0/210.0);
+      final int webWidth=(int)Math.ceil(794.0*density);
+      final int webPageHeight=(int)Math.ceil(cssPageHeight*density);
       final java.util.concurrent.atomic.AtomicBoolean finished=new java.util.concurrent.atomic.AtomicBoolean(false);
       final java.util.ArrayList<Uri> createdUris=new java.util.ArrayList<>();
       final Runnable cleanup=()->handler.post(()->{
@@ -125,7 +129,7 @@ public class FileExportPlugin extends Plugin {
       view.getSettings().setUseWideViewPort(true);
       view.getSettings().setLoadWithOverviewMode(false);
       view.setInitialScale(100);
-      root.addView(view,new FrameLayout.LayoutParams(794,1));
+      root.addView(view,new FrameLayout.LayoutParams(webWidth,1));
       view.setWebViewClient(new WebViewClient(){
         @Override public void onPageFinished(WebView v,String url){
           v.evaluateJavascript("(function(){function collectPrintRules(rules,out){for(var i=0;i<rules.length;i++){var rule=rules[i];if(rule.type===4&&/print/i.test(rule.conditionText||rule.media&&rule.media.mediaText||'')){collectPrintRules(rule.cssRules,out);}else if(rule.type===12&&rule.cssRules){collectPrintRules(rule.cssRules,out);}else if(rule.type!==6&&!rule.cssRules&&rule.cssText){out.push(rule.cssText);}}}var printRules=[];for(var s=0;s<document.styleSheets.length;s++){try{collectPrintRules(document.styleSheets[s].cssRules,printRules);}catch(e){}}if(printRules.length){var printStyle=document.createElement('style');printStyle.setAttribute('data-deeb-print-rules','true');printStyle.textContent=printRules.join(' ');document.head.appendChild(printStyle);}var imageNumberStyle=document.createElement('style');imageNumberStyle.textContent='.report-page-number,.branch-page-number{display:none!important}';document.head.appendChild(imageNumberStyle);if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){window.__deebFontsReady=true;});}else{window.__deebFontsReady=true;}return true;})()",ignored->{});
@@ -140,7 +144,7 @@ public class FileExportPlugin extends Plugin {
               JSONObject measurement=new JSONObject((String)decoded);
               int contentHeight=measurement.getInt("contentHeight");
               if(contentHeight<80)throw new Exception("تعذر قياس محتوى التقرير.");
-              int pageCssHeight=(int)Math.round(794.0*297.0/210.0);
+              int pageCssHeight=cssPageHeight;
               JSONArray segments=measurement.getJSONArray("pages");
               java.util.ArrayList<Integer> pageTops=new java.util.ArrayList<>();
               for(int segmentIndex=0;segmentIndex<segments.length();segmentIndex++){
@@ -154,10 +158,10 @@ public class FileExportPlugin extends Plugin {
               }
               if(pageTops.isEmpty())throw new Exception("التقرير لا يحتوي على صفحات.");
               int pageCount=pageTops.size();
-              v.setLayoutParams(new FrameLayout.LayoutParams(794,pageCssHeight));
-              v.measure(View.MeasureSpec.makeMeasureSpec(794,View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(pageCssHeight,View.MeasureSpec.EXACTLY));
-              v.layout(0,0,794,pageCssHeight);
+              v.setLayoutParams(new FrameLayout.LayoutParams(webWidth,webPageHeight));
+              v.measure(View.MeasureSpec.makeMeasureSpec(webWidth,View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(webPageHeight,View.MeasureSpec.EXACTLY));
+              v.layout(0,0,webWidth,webPageHeight);
               final int[] pageIndex={0};
               final int[] saved={0};
               final Runnable[] capturePage=new Runnable[1];
@@ -185,7 +189,7 @@ public class FileExportPlugin extends Plugin {
                   return;
                 }
                 // Let Chromium finish scrolling and paint the requested page before drawing it.
-                v.scrollTo(0,top);
+                v.scrollTo(0,(int)Math.round(top*density));
                 v.invalidate();
                 v.postDelayed(()->{
                   if(finished.get())return;
@@ -194,7 +198,8 @@ public class FileExportPlugin extends Plugin {
                     bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
                     bitmap.eraseColor(Color.WHITE);
                     Canvas canvas=new Canvas(bitmap);
-                    canvas.scale(2f,2f);
+                    // Convert physical Android pixels back to a stable 2x CSS-pixel A4 image.
+                    canvas.scale(2f/density,2f/density);
                     v.draw(canvas);
                     // Add one report-wide page number to every exported page, only for multi-page reports.
                     if(pageCount>1){
@@ -204,9 +209,9 @@ public class FileExportPlugin extends Plugin {
                       pageNumberView.setTextColor(Color.rgb(16,39,91));
                       pageNumberView.setGravity(android.view.Gravity.CENTER);
                       pageNumberView.setBackgroundColor(Color.WHITE);
-                      int footerHeight=30;
-                      pageNumberView.measure(View.MeasureSpec.makeMeasureSpec(794,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(footerHeight,View.MeasureSpec.EXACTLY));
-                      pageNumberView.layout(0,pageCssHeight-footerHeight,794,pageCssHeight);
+                      int footerHeight=(int)Math.ceil(30*density);
+                      pageNumberView.measure(View.MeasureSpec.makeMeasureSpec(webWidth,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(footerHeight,View.MeasureSpec.EXACTLY));
+                      pageNumberView.layout(0,webPageHeight-footerHeight,webWidth,webPageHeight);
                       pageNumberView.draw(canvas);
                       android.graphics.Paint footerLine=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
                       footerLine.setColor(Color.rgb(201,154,50));
@@ -281,6 +286,11 @@ public class FileExportPlugin extends Plugin {
       final java.util.concurrent.atomic.AtomicBoolean settled=new java.util.concurrent.atomic.AtomicBoolean(false);
       final java.util.concurrent.atomic.AtomicBoolean pageReady=new java.util.concurrent.atomic.AtomicBoolean(false);
       final Handler handler=new Handler(Looper.getMainLooper());
+      final float density=getResources().getDisplayMetrics().density;
+      final int cssPageWidth=794;
+      final int cssPageHeight=(int)Math.round(794.0*297.0/210.0);
+      final int webWidth=(int)Math.ceil(cssPageWidth*density);
+      final int webPageHeight=(int)Math.ceil(cssPageHeight*density);
       final FrameLayout root=(FrameLayout)getActivity().findViewById(android.R.id.content);
       if(root==null){call.reject("تعذر الوصول إلى نافذة التطبيق لبدء الطباعة");return;}
       final WebView view=new WebView(getContext());
@@ -293,16 +303,22 @@ public class FileExportPlugin extends Plugin {
         view.setFocusable(false);
         // Run the report print hook that enables page numbers only for multi-page reports.
         view.getSettings().setJavaScriptEnabled(true);
-        root.addView(view,new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
+        view.getSettings().setUseWideViewPort(true);
+        view.getSettings().setLoadWithOverviewMode(false);
+        view.setInitialScale(100);
+        root.addView(view,new FrameLayout.LayoutParams(webWidth,webPageHeight));
         view.setWebViewClient(new WebViewClient(){
           @Override public void onPageFinished(WebView v,String url){
             if(!pageReady.compareAndSet(false,true))return;
             v.postDelayed(()->{
               if(settled.get())return;
               try{
-                int width=Math.max(1,root.getWidth()),height=Math.max(1,root.getHeight());
-                v.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.AT_MOST));
-                v.layout(0,0,width,Math.max(height,v.getMeasuredHeight()));
+                int width=webWidth;
+                int contentCssHeight=Math.max(cssPageHeight,v.getContentHeight());
+                int height=(int)Math.ceil(contentCssHeight*density);
+                v.setLayoutParams(new FrameLayout.LayoutParams(width,height));
+                v.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));
+                v.layout(0,0,width,height);
                 PrintManager pm=(PrintManager)getContext().getSystemService(Context.PRINT_SERVICE);
                 if(pm==null)throw new Exception("خدمة الطباعة غير متاحة على الجهاز");
                 String jobName="DEEB-"+System.currentTimeMillis();
@@ -328,7 +344,8 @@ public class FileExportPlugin extends Plugin {
             if(request.isForMainFrame()&&settled.compareAndSet(false,true)){dispose.run();call.reject("تعذر تجهيز التقرير للطباعة: "+error.getDescription());}
           }
         });
-        view.loadDataWithBaseURL("https://localhost/",html,"text/html","UTF-8",null);
+        String printHtml=html.replace("width=device-width,initial-scale=1","width=794,initial-scale=1,maximum-scale=1,user-scalable=no").replace("width=device-width, initial-scale=1","width=794, initial-scale=1, maximum-scale=1, user-scalable=no");
+        view.loadDataWithBaseURL("https://localhost/",printHtml,"text/html","UTF-8",null);
         handler.postDelayed(()->{if(settled.compareAndSet(false,true)){dispose.run();call.reject("انتهت مهلة تجهيز التقرير للطباعة بعد 60 ثانية. تحقق من خدمة الطباعة وحاول مرة أخرى.");}},60000);
       }catch(Exception e){if(settled.compareAndSet(false,true)){dispose.run();call.reject("تعذرت الطباعة: "+e.getClass().getSimpleName()+": "+e.getMessage(),e);}}
     });
