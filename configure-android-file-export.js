@@ -29,6 +29,7 @@ const pluginPath = path.join(packageDir, "FileExportPlugin.java");
 
 const pluginSource = String.raw`package ${packageName};
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.ContentValues;
 import android.graphics.Bitmap;
@@ -49,6 +50,7 @@ import android.print.PageRange;
 import android.provider.MediaStore;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.util.Base64;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -64,10 +66,77 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@CapacitorPlugin(name = "FileExport")
+@CapacitorPlugin(name = "FileExport", permissions = { @com.getcapacitor.annotation.Permission(alias = "legacyStorage", strings = { Manifest.permission.WRITE_EXTERNAL_STORAGE }) })
 public class FileExportPlugin extends Plugin {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ExecutorService exportExecutor = Executors.newSingleThreadExecutor();
+
+    @PluginMethod
+    public void saveFile(PluginCall call) {
+        if (Build.VERSION.SDK_INT < 29 &&
+            getContext().checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissionForAlias("legacyStorage", call, "legacyStoragePermissionCallback");
+            return;
+        }
+        saveFileInternal(call);
+    }
+
+    @com.getcapacitor.annotation.PermissionCallback
+    private void legacyStoragePermissionCallback(PluginCall call) {
+        if (Build.VERSION.SDK_INT < 29 &&
+            getContext().checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            call.reject("إذن التخزين مطلوب لحفظ الملف على إصدارات أندرويد القديمة.");
+            return;
+        }
+        saveFileInternal(call);
+    }
+
+    private void saveFileInternal(PluginCall call) {
+        String name = call.getString("name", "DEEB-export.txt");
+        if (name == null || name.trim().isEmpty()) name = "DEEB-export.txt";
+        name = name.replace("/", "_").replace(String.valueOf((char) 92), "_");
+        String mime = call.getString("mimeType", "application/octet-stream");
+        String data = call.getString("base64", "");
+        Uri insertedUri = null;
+        File legacyFile = null;
+        try {
+            byte[] bytes = Base64.decode(data, Base64.DEFAULT);
+            if (Build.VERSION.SDK_INT >= 29) {
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.Downloads.DISPLAY_NAME, name);
+                values.put(MediaStore.Downloads.MIME_TYPE, mime);
+                values.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/DEEB");
+                insertedUri = getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                if (insertedUri == null) throw new Exception("تعذر إنشاء الملف في التنزيلات");
+                try (OutputStream out = getContext().getContentResolver().openOutputStream(insertedUri)) {
+                    if (out == null) throw new Exception("تعذر فتح الملف للحفظ");
+                    out.write(bytes);
+                    out.flush();
+                }
+            } else {
+                File downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                File directory = new File(downloads, "DEEB");
+                if (!directory.exists() && !directory.mkdirs()) throw new Exception("تعذر إنشاء مجلد DEEB داخل التنزيلات");
+                legacyFile = new File(directory, name);
+                try (FileOutputStream out = new FileOutputStream(legacyFile)) {
+                    out.write(bytes);
+                    out.flush();
+                }
+            }
+            JSObject result = new JSObject();
+            result.put("saved", true);
+            result.put("name", name);
+            result.put("location", Build.VERSION.SDK_INT >= 29 ? "Downloads/DEEB" : legacyFile.getAbsolutePath());
+            call.resolve(result);
+        } catch (Exception error) {
+            if (insertedUri != null) {
+                try { getContext().getContentResolver().delete(insertedUri, null, null); } catch (Exception ignored) {}
+            }
+            if (legacyFile != null && legacyFile.exists()) legacyFile.delete();
+            call.reject("تعذر حفظ الملف: " + error.getMessage(), error);
+        }
+    }
+
 
     private PrintAttributes printAttributes() {
         return new PrintAttributes.Builder()
@@ -260,18 +329,9 @@ public class FileExportPlugin extends Plugin {
 `;
 
 fs.writeFileSync(pluginPath, pluginSource, "utf8");
-const replacement = `package ${packageName};
-
-import android.os.Bundle;
-import com.getcapacitor.BridgeActivity;
-
-public class MainActivity extends BridgeActivity {
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        registerPlugin(FileExportPlugin.class);
-        super.onCreate(savedInstanceState);
-    }
+const registeredActivity = fs.readFileSync(mainPath, "utf8");
+if (!registeredActivity.includes("registerPlugin(FileExportPlugin.class)")) {
+  throw new Error("FileExportPlugin must be registered by the Android integration setup before installing the exporter.");
 }
-`;
-fs.writeFileSync(mainPath, replacement, "utf8");
+console.log("Installed native FileExport plugin without replacing the existing Android activity.");
 console.log("Installed native FileExport Capacitor plugin and registered it in " + path.relative(androidRoot, mainPath));
