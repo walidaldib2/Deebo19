@@ -5,6 +5,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 window.DEEBNativePlugins = Capacitor.isNativePlatform()
   ? {
       FileExport: registerPlugin('FileExport'),
+      DocumentScanner: registerPlugin('DocumentScanner'),
       CurrentLocation: registerPlugin('CurrentLocation'),
       ShareIntent: registerPlugin('ShareIntent')
     }
