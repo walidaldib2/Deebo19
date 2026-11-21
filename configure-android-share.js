@@ -323,6 +323,7 @@ public class FileExportPlugin extends Plugin {
         view.setFocusable(false);
         // Run the report print hook that enables page numbers only for multi-page reports.
         view.getSettings().setJavaScriptEnabled(true);
+        view.getSettings().setDomStorageEnabled(true);
         view.getSettings().setUseWideViewPort(true);
         view.getSettings().setLoadWithOverviewMode(false);
         view.setInitialScale(100);
@@ -330,8 +331,11 @@ public class FileExportPlugin extends Plugin {
         view.setWebViewClient(new WebViewClient(){
           @Override public void onPageFinished(WebView v,String url){
             if(!pageReady.compareAndSet(false,true))return;
-            v.postDelayed(()->{
+            v.evaluateJavascript("(function(){var imgs=Array.prototype.slice.call(document.images).filter(function(i){return !!(i.currentSrc||i.src);});var waits=imgs.map(function(i){if(i.complete)return Promise.resolve(i.naturalWidth>0);return new Promise(function(resolve){var done=function(){resolve(i.naturalWidth>0);};i.addEventListener('load',done,{once:true});i.addEventListener('error',function(){resolve(false);},{once:true});setTimeout(function(){resolve(i.complete&&i.naturalWidth>0);},20000);});});var fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();return Promise.all([fonts].concat(waits)).then(function(results){var failed=results.slice(1).filter(function(ok){return !ok;}).length;if(failed)return 'image-error:'+failed;return new Promise(function(resolve){requestAnimationFrame(function(){requestAnimationFrame(function(){resolve('ready');});});});});})()",resourceState->{
               if(settled.get())return;
+              String state=resourceState==null?"":resourceState.toString();
+              if(state.contains("image-error")){if(settled.compareAndSet(false,true)){dispose.run();call.reject("تعذر تحميل "+state.replaceAll("[^0-9]","")+" صورة مرفقة بالتقرير؛ راجع اتصال الإنترنت أو المرفق ثم أعد الطباعة.");}return;}
+              if(!state.contains("ready")){if(settled.compareAndSet(false,true)){dispose.run();call.reject("لم تكتمل تهيئة الصور والخطوط قبل الطباعة.");}return;}
               try{
                 int width=webWidth;
                 int contentCssHeight=Math.max(cssPageHeight,v.getContentHeight());
@@ -359,7 +363,7 @@ public class FileExportPlugin extends Plugin {
                   handler.postDelayed(cleanup,1500);
                 }
               }catch(Exception e){if(settled.compareAndSet(false,true)){dispose.run();call.reject("تعذرت تهيئة الطباعة: "+e.getClass().getSimpleName()+": "+e.getMessage(),e);}}
-            },700);
+            });
           }
           @Override public void onReceivedError(WebView v,android.webkit.WebResourceRequest request,android.webkit.WebResourceError error){
             if(request.isForMainFrame()&&settled.compareAndSet(false,true)){dispose.run();call.reject("تعذر تجهيز التقرير للطباعة: "+error.getDescription());}
