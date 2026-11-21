@@ -685,35 +685,48 @@ public class DocumentScannerPlugin extends Plugin {
                 scan.getPdf().getUri(), pdfName, "application/pdf", true
             );
             List<GmsDocumentScanningResult.Page> pages = scan.getPages();
-            JSArray savedImages = new JSArray();
-            int savedImageCount = 0;
-            if (pages != null) {
-                for (int i = 0; i < pages.size(); i++) {
-                    String imageName = baseName + "-" + String.format(java.util.Locale.US, "%02d", i + 1) + ".jpg";
-                    String imageLocation = copyToPublicStore(
-                        pages.get(i).getImageUri(), imageName, "image/jpeg", false
-                    );
-                    savedImages.put(imageLocation);
-                    savedImageCount++;
+            List<Uri> createdUris = new java.util.ArrayList<>();
+            List<File> createdFiles = new java.util.ArrayList<>();
+            try {
+                JSArray savedImages = new JSArray();
+                int savedImageCount = 0;
+                if (pages != null) {
+                    for (int i = 0; i < pages.size(); i++) {
+                        String imageName = baseName + "-" + String.format(java.util.Locale.US, "%02d", i + 1) + ".jpg";
+                        String imageLocation = copyToPublicStore(
+                            pages.get(i).getImageUri(), imageName, "image/jpeg", false, createdUris, createdFiles
+                        );
+                        savedImages.put(imageLocation);
+                        savedImageCount++;
+                    }
                 }
+                JSObject result = new JSObject();
+                result.put("saved", true);
+                result.put("cancelled", false);
+                result.put("name", pdfName);
+                result.put("pages", scan.getPdf().getPageCount());
+                result.put("location", pdfLocation);
+                result.put("imagesSaved", savedImageCount);
+                result.put("images", savedImages);
+                pendingCall = null;
+                call.resolve(result);
+            } catch (Exception saveError) {
+                for (Uri uri : createdUris) {
+                    try { getContext().getContentResolver().delete(uri, null, null); } catch (Exception ignored) {}
+                }
+                for (File file : createdFiles) {
+                    try { if (file.exists()) file.delete(); } catch (Exception ignored) {}
+                }
+                throw saveError;
             }
-            JSObject result = new JSObject();
-            result.put("saved", true);
-            result.put("cancelled", false);
-            result.put("name", pdfName);
-            result.put("pages", scan.getPdf().getPageCount());
-            result.put("location", pdfLocation);
-            result.put("imagesSaved", savedImageCount);
-            result.put("images", savedImages);
-            pendingCall = null;
-            call.resolve(result);
         } catch (Exception error) {
             pendingCall = null;
             call.reject("اكتمل المسح لكن تعذر حفظ ملفه: " + error.getMessage(), error);
         }
     }
 
-    private String copyToPublicStore(Uri source, String name, String mime, boolean pdf) throws Exception {
+    private String copyToPublicStore(Uri source, String name, String mime, boolean pdf,
+                                     List<Uri> createdUris, List<File> createdFiles) throws Exception {
         if (source == null) throw new Exception("مصدر إحدى صفحات المستند غير متاح.");
         if (Build.VERSION.SDK_INT >= 29) {
             ContentValues values = new ContentValues();
@@ -727,6 +740,7 @@ public class DocumentScannerPlugin extends Plugin {
                 values
             );
             if (destination == null) throw new Exception("تعذر إنشاء الملف " + name);
+            createdUris.add(destination);
             try (InputStream input = getContext().getContentResolver().openInputStream(source);
                  OutputStream output = getContext().getContentResolver().openOutputStream(destination)) {
                 if (input == null || output == null) throw new Exception("تعذر فتح ملف المصدر أو الوجهة.");
@@ -736,6 +750,7 @@ public class DocumentScannerPlugin extends Plugin {
                 output.flush();
             } catch (Exception error) {
                 getContext().getContentResolver().delete(destination, null, null);
+                createdUris.remove(destination);
                 throw error;
             }
             ContentValues ready = new ContentValues();
@@ -747,6 +762,7 @@ public class DocumentScannerPlugin extends Plugin {
         if (directory == null) throw new Exception("مساحة تخزين التطبيق غير متاحة.");
         if (!directory.exists() && !directory.mkdirs()) throw new Exception("تعذر إنشاء مجلد المستندات.");
         File target = new File(directory, name);
+        createdFiles.add(target);
         try (InputStream input = getContext().getContentResolver().openInputStream(source);
              OutputStream output = new FileOutputStream(target)) {
             if (input == null) throw new Exception("تعذر قراءة الملف الناتج من الماسح.");
