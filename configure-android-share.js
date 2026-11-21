@@ -195,6 +195,7 @@ public class FileExportPlugin extends Plugin {
                                   }
                                   Uri uri=getContext().getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values);
                                   if(uri==null)throw new Exception("تعذر إنشاء صورة التقرير رقم "+(pageIndex+1));
+                                  createdUris.add(uri);
                                   try(OutputStream imageOut=getContext().getContentResolver().openOutputStream(uri)){
                                     if(imageOut==null||!bitmap.compress(Bitmap.CompressFormat.PNG,100,imageOut))
                                       throw new Exception("تعذر كتابة صورة التقرير رقم "+(pageIndex+1));
@@ -208,7 +209,6 @@ public class FileExportPlugin extends Plugin {
                                     readyValues.put(MediaStore.Images.Media.IS_PENDING,0);
                                     getContext().getContentResolver().update(uri,readyValues,null,null);
                                   }
-                                  createdUris.add(uri);
                                   saved++;
                                 }finally{if(bitmap!=null&&!bitmap.isRecycled())bitmap.recycle();}
                               }
