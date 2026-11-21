@@ -67,6 +67,8 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import java.io.OutputStream;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 @CapacitorPlugin(name = "FileExport")
 public class FileExportPlugin extends Plugin {
@@ -96,17 +98,22 @@ public class FileExportPlugin extends Plugin {
       view.getSettings().setJavaScriptEnabled(true);
       view.setWebViewClient(new WebViewClient(){
         @Override public void onPageFinished(WebView v,String url){
-          v.evaluateJavascript("(function(){return Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);})()",value->{
+          v.evaluateJavascript("(function(){var selectors='.bike-sheet-section,.written-page';var nodes=Array.prototype.slice.call(document.querySelectorAll(selectors));var h=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);if(!nodes.length)return JSON.stringify([{top:0,height:h}]);return JSON.stringify(nodes.map(function(el){var r=el.getBoundingClientRect();return {top:Math.max(0,Math.round(r.top+window.scrollY)),height:Math.max(1,Math.ceil(r.height))};}));})()",value->{
             try{
-              int contentHeight=Integer.parseInt(value.replace("\\\"","").trim());
+              String json=value;
+              if(json==null||json.equals("null"))throw new Exception("تعذر تحديد صفحات التقرير.");
+              if(json.startsWith("\"")&&json.endsWith("\""))json=json.substring(1,json.length()-1).replace("\\\"","\"").replace("\\\\","\\");
+              JSONArray pages=new JSONArray(json);
               int width=1080;
-              if(contentHeight<100)throw new Exception("تعذر تحديد طول التقرير.");
-              v.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(contentHeight,View.MeasureSpec.EXACTLY));
-              v.layout(0,0,width,contentHeight);
-              int pageHeight=2600;
-              int count=(contentHeight+pageHeight-1)/pageHeight;
-              for(int page=0;page<count;page++){
-                int top=page*pageHeight,partHeight=Math.min(pageHeight,contentHeight-top);
+              if(pages.length()==0)throw new Exception("التقرير لا يحتوي على صفحات.");
+              int totalHeight=0;
+              for(int i=0;i<pages.length();i++){JSONObject page=pages.getJSONObject(i);totalHeight=Math.max(totalHeight,page.getInt("top")+page.getInt("height"));}
+              if(totalHeight<100)throw new Exception("تعذر تحديد طول التقرير.");
+              v.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(totalHeight,View.MeasureSpec.EXACTLY));
+              v.layout(0,0,width,totalHeight);
+              for(int page=0;page<pages.length();page++){
+                JSONObject bounds=pages.getJSONObject(page);
+                int top=bounds.getInt("top"),partHeight=bounds.getInt("height");
                 Bitmap bitmap=Bitmap.createBitmap(width,partHeight,Bitmap.Config.ARGB_8888);
                 Canvas canvas=new Canvas(bitmap);canvas.drawColor(Color.WHITE);canvas.save();canvas.translate(0,-top);v.draw(canvas);canvas.restore();
                 ContentValues values=new ContentValues();
@@ -114,16 +121,15 @@ public class FileExportPlugin extends Plugin {
                 values.put(MediaStore.Images.Media.MIME_TYPE,"image/png");
                 if(Build.VERSION.SDK_INT>=29){values.put(MediaStore.Images.Media.RELATIVE_PATH,Environment.DIRECTORY_PICTURES+"/DEEB");values.put(MediaStore.Images.Media.IS_PENDING,1);}
                 Uri uri=getContext().getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values);
-                if(uri==null)throw new Exception("تعذر إنشاء صورة التقرير رقم "+(page+1));
+                if(uri==null){bitmap.recycle();throw new Exception("تعذر إنشاء صورة التقرير رقم "+(page+1));}
                 try(OutputStream out=getContext().getContentResolver().openOutputStream(uri)){
                   if(out==null||!bitmap.compress(Bitmap.CompressFormat.PNG,100,out))throw new Exception("تعذر كتابة صورة التقرير رقم "+(page+1));
                   out.flush();
-                }
+                } finally { bitmap.recycle(); }
                 if(Build.VERSION.SDK_INT>=29){ContentValues ready=new ContentValues();ready.put(MediaStore.Images.Media.IS_PENDING,0);getContext().getContentResolver().update(uri,ready,null,null);}
-                bitmap.recycle();
               }
               view.destroy();
-              JSObject result=new JSObject();result.put("count",count);result.put("saved",true);call.resolve(result);
+              JSObject result=new JSObject();result.put("count",pages.length());result.put("saved",true);call.resolve(result);
             }catch(Exception e){view.destroy();call.reject("تعذر حفظ صور التقرير: "+e.getMessage(),e);}
           });
         }
