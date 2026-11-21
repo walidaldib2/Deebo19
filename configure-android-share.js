@@ -753,7 +753,7 @@ public class DocumentScannerPlugin extends Plugin {
         return target.getAbsolutePath();
     }
 }
-\`;
+`;
 fs.writeFileSync(path.join(javaDir, "DocumentScannerPlugin.java"), documentScannerPlugin);
 
 const activity = `package ${packageName};
