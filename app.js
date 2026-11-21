@@ -731,7 +731,7 @@ $("#backupBtn").onclick=async()=>{const button=$("#backupBtn");button.disabled=t
 }
 function render(p){currentPage=p;currentType=null;document.querySelector(".app-shell")?.classList.toggle("page-open",p!=="home");$$(".tile").forEach(b=>b.classList.toggle("active",b.dataset.page===p));searchTerm=$("#globalSearch").value||"";if(p==="home")home();else if(p==="follow")groupPage(p);else if(p==="emergency")emergencyPage();else if(p==="map")mapPage();else if(p==="reports")reports();else if(p==="settings")settings();else if(p==="scanner")window.DEebScanner?.render();window.scrollTo({top:$("#contentArea").offsetTop-12,behavior:"smooth"})}
 window.DEebRender=render;
-$("[data-page]").forEach(b=>b.onclick=()=>render(b.dataset.page));
+$$("[data-page]").forEach(b=>b.onclick=()=>render(b.dataset.page));
 document.addEventListener("click",e=>{if(e.target.closest("[data-back-home]"))render("home")});
 bindGlobalSearchSuggestions();$("#globalSearch").addEventListener("input",e=>{const value=e.target.value,caret=e.target.selectionStart;searchTerm=value;if(currentType){renderEntity(currentType);const next=$("#globalSearch");if(next){next.focus();next.setSelectionRange(caret,caret)}}});
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;if(currentPage==="settings")settings();});
