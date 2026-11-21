@@ -77,9 +77,6 @@ jobs:
       - name: Generate Android project
         run: npx cap add android
 
-      - name: Install native report print and image export plugin
-        run: node configure-android-file-export.js
-
       - name: Generate DEEB Android launcher and Play Store icons
         run: |
           npm run prepare:android:icons
@@ -90,6 +87,9 @@ jobs:
 
       - name: Configure native WhatsApp share receiver
         run: npm run configure:android:share
+
+      - name: Install native report print and image export plugin
+        run: node configure-android-file-export.js
 
       - name: Verify Play Store Android configuration
         env:
