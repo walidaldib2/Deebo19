@@ -46,6 +46,7 @@ import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
 import android.print.PrintDocumentInfo;
 import android.print.PrintManager;
+import android.print.PrintJob;
 import android.print.PageRange;
 import android.provider.MediaStore;
 import android.webkit.WebView;
@@ -209,16 +210,21 @@ public class FileExportPlugin extends Plugin {
                         PrintManager manager = (PrintManager) activity.getSystemService(Activity.PRINT_SERVICE);
                         if (manager == null) throw new IllegalStateException("خدمة الطباعة غير متاحة.");
                         PrintDocumentAdapter adapter = holder[0].createPrintDocumentAdapter(name);
-                        manager.print(name, adapter, printAttributes());
+                        PrintJob job = manager.print(name, adapter, printAttributes());
+                        if (job == null) throw new IllegalStateException("لم يستطع أندرويد إنشاء مهمة الطباعة.");
                         JSObject result = new JSObject();
                         result.put("started", true);
                         call.resolve(result);
-                        handler.postDelayed(() -> {
-                            cleanup(null, holder[0]);
-                        }, 300000);
+                        Runnable disposeWhenFinished = new Runnable() {
+                            @Override public void run() {
+                                if (job.isCompleted() || job.isCancelled() || job.isFailed()) cleanup(null, holder[0]);
+                                else handler.postDelayed(this, 1500);
+                            }
+                        };
+                        handler.postDelayed(disposeWhenFinished, 1500);
                     } catch (Exception error) {
                         call.reject("تعذرت تهيئة الطباعة: " + error.getMessage());
-                        try { holder[0].destroy(); } catch (Exception ignored) {}
+                        cleanup(null, holder[0]);
                     }
                 }, true);
             } catch (Exception error) {
