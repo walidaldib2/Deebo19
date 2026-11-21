@@ -142,8 +142,7 @@ public class FileExportPlugin extends Plugin {
               for(int pageIndex=0;pageIndex<pageCount;pageIndex++){
                 if(finished.get())return;
                 int top=pageIndex*pageCssHeight;
-                int cssHeight=Math.min(pageCssHeight,contentHeight-top);
-                int width=1588,height=cssHeight*2;
+                int width=1588,height=pageCssHeight*2;
                 if(width<1||height<1||(long)width*height>12000000L)
                   throw new Exception("أبعاد صفحة التقرير أكبر من الحد الآمن للتحويل.");
                 Bitmap bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
