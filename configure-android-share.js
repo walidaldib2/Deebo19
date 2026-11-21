@@ -282,7 +282,7 @@ public class FileExportPlugin extends Plugin {
       }
       final ExportFailure fail=new ExportFailure();
       view.setBackgroundColor(Color.WHITE);
-      view.setLayerType(View.LAYER_TYPE_HARDWARE,null);
+      view.setLayerType(View.LAYER_TYPE_SOFTWARE,null);
       view.setVerticalScrollBarEnabled(false);
       view.setHorizontalScrollBarEnabled(false);
       view.getSettings().setJavaScriptEnabled(true);
@@ -302,59 +302,48 @@ public class FileExportPlugin extends Plugin {
         }
         private void writeWebViewToPdf(WebView v){
           if(finished.get())return;
-          v.evaluateJavascript("(function(){return Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);})()",heightValue->{
-            if(finished.get())return;
-            try{
-              int cssHeight=(int)Math.ceil(Double.parseDouble(heightValue==null?"0":heightValue.replaceAll("[^0-9.]","")));
-              int pageHeightCss=1123;
-              int pageCount=Math.max(1,(int)Math.ceil(cssHeight/(double)pageHeightCss));
-              if(pageCount>100){fail.reject("التقرير يتجاوز 100 صفحة؛ قسّمه قبل حفظ الصور.");return;}
-              android.graphics.pdf.PdfDocument document=new android.graphics.pdf.PdfDocument();
-              final int[] pageIndex={0};
-              final Runnable[] drawNext={null};
-              drawNext[0]=()->{
-                if(finished.get()){document.close();return;}
-                if(pageIndex[0]>=pageCount){
-                  try(FileOutputStream output=new FileOutputStream(tempPdf)){
-                    document.writeTo(output);
-                    output.flush();
-                    document.close();
-                    new Thread(()->renderPdfPages()).start();
-                  }catch(Exception error){
-                    try{document.close();}catch(Exception ignored){}
-                    fail.reject("تعذر إنشاء ملف PDF مؤقت للتقرير: "+error.getMessage());
-                  }
-                  return;
-                }
+          try{
+            int width=webWidth;
+            int height=(int)Math.ceil(1123*density);
+            v.setLayerType(View.LAYER_TYPE_SOFTWARE,null);
+            v.setLayoutParams(new FrameLayout.LayoutParams(width,height));
+            v.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));
+            v.layout(0,0,width,height);
+            PrintAttributes attributes=new PrintAttributes.Builder()
+              .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrait())
+              .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
+              .setResolution(new PrintAttributes.Resolution("DEEB","DEEB",300,300))
+              .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
+              .build();
+            PrintDocumentAdapter adapter=v.createPrintDocumentAdapter(baseName);
+            CancellationSignal cancellation=new CancellationSignal();
+            adapter.onLayout(null,attributes,cancellation,new PrintDocumentAdapter.LayoutResultCallback(){
+              @Override public void onLayoutFinished(PrintDocumentInfo info,boolean changed){
+                if(finished.get())return;
+                if(info==null||info.getPageCount()<1){fail.reject("محرك الطباعة لم يُنتج صفحات للتقرير.");return;}
                 try{
-                  final int currentPage=pageIndex[0];
-                  // scrollTo() on WebView uses device pixels while DOM page offsets are CSS pixels.
-                  // Scroll through JavaScript in CSS pixels to avoid skipped/blank pages on high-density phones.
-                  v.evaluateJavascript("window.scrollTo(0,"+(currentPage*pageHeightCss)+");true;",scrollResult->{
-                    if(finished.get()){document.close();return;}
-                    v.postDelayed(()->{
-                      if(finished.get()){document.close();return;}
-                      android.graphics.pdf.PdfDocument.PageInfo info=new android.graphics.pdf.PdfDocument.PageInfo.Builder(595,842,currentPage+1).create();
-                      android.graphics.pdf.PdfDocument.Page page=document.startPage(info);
-                      Canvas canvas=page.getCanvas();
-                      canvas.drawColor(Color.WHITE);
-                      canvas.save();
-                      canvas.scale(595f/Math.max(1,v.getWidth()),842f/Math.max(1,v.getHeight()));
-                      v.draw(canvas);
-                      canvas.restore();
-                      document.finishPage(page);
-                      pageIndex[0]++;
-                      drawNext[0].run();
-                    },120);
+                  ParcelFileDescriptor output=ParcelFileDescriptor.open(tempPdf,ParcelFileDescriptor.MODE_TRUNCATE|ParcelFileDescriptor.MODE_READ_WRITE);
+                  adapter.onWrite(new android.print.PageRange[]{android.print.PageRange.ALL_PAGES},output,cancellation,new PrintDocumentAdapter.WriteResultCallback(){
+                    @Override public void onWriteFinished(android.print.PageRange[] pages){
+                      try{output.close();}catch(Exception ignored){}
+                      if(finished.get())return;
+                      new Thread(()->renderPdfPages()).start();
+                    }
+                    @Override public void onWriteFailed(CharSequence error){
+                      try{output.close();}catch(Exception ignored){}
+                      fail.reject("محرك الطباعة فشل في تجهيز صفحات الصور: "+String.valueOf(error));
+                    }
+                    @Override public void onWriteCancelled(){
+                      try{output.close();}catch(Exception ignored){}
+                      fail.reject("تم إلغاء تجهيز صور التقرير.");
+                    }
                   });
-                }catch(Exception error){
-                  try{document.close();}catch(Exception ignored){}
-                  fail.reject("تعذر تجهيز صفحة التقرير رقم "+(pageIndex[0]+1)+": "+error.getMessage());
-                }
-              };
-              drawNext[0].run();
-            }catch(Exception error){fail.reject("تعذر تحديد عدد صفحات التقرير: "+error.getMessage());}
-          });
+                }catch(Exception error){fail.reject("تعذر فتح ملف PDF المؤقت: "+error.getMessage());}
+              }
+              @Override public void onLayoutFailed(CharSequence error){fail.reject("تعذر تقسيم التقرير إلى صفحات A4: "+String.valueOf(error));}
+              @Override public void onLayoutCancelled(){fail.reject("تم إلغاء تقسيم التقرير إلى صفحات.");}
+            },new android.os.Bundle());
+          }catch(Exception error){fail.reject("تعذر بدء محرك الطباعة لتحويل التقرير إلى صور: "+error.getMessage());}
         }
         private void renderPdfPages(){
           android.os.ParcelFileDescriptor input=null;
