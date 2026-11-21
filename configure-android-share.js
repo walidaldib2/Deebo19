@@ -246,7 +246,7 @@ public class FileExportPlugin extends Plugin {
               try{
                 bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
                 bitmap.eraseColor(Color.WHITE);
-                page.render(bitmap,null,new android.graphics.Rect(0,0,width,height),android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_PRINT);
+                page.render(bitmap,new android.graphics.Rect(0,0,width,height),null,android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_PRINT);
                 int nonWhite=0;
                 int stepX=Math.max(1,width/400),stepY=Math.max(1,height/400);
                 for(int y=0;y<height&&nonWhite==0;y+=stepY)for(int x=0;x<width;x+=stepX){
