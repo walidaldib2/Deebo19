@@ -191,7 +191,7 @@ if (!app.includes('written_reports:[["report_title","عنوان التقرير",
 if (!app.includes('written_reports:"التقرير اليومي"') || !app.includes('"written_reports"]') || !app.includes('id="createWrittenReport"') || !app.includes('data-report-type="written_reports"')) throw new Error('Written report navigation and report-center shortcuts are missing');
 if (!app.includes('if(type==="written_reports"){const list=rows(type)') || !app.includes('data-edit="') || !app.includes('data-archive="')) throw new Error('Written report list must show saved reports with edit and archive actions');
 const bikePrintStart=app.indexOf('if($("#reportType").value==="bike_patrols"){ '.trim(),app.indexOf("const printHtml="));
-const bikePrintEnd=app.indexOf('const rows=rowsFor(d)',bikePrintStart);
+const bikePrintEnd=app.indexOf('\n  }\n  const rows=rowsFor(d)',bikePrintStart);
 const bikePrint=app.slice(bikePrintStart,bikePrintEnd);
 if (!bikePrint.includes('filter(Boolean).sort().join(" — ")')) throw new Error('Bike report date range must always print from the earlier date to the later date');
 if (bikePrint.includes('تاريخ إصدار التقرير:') && bikePrint.indexOf('تاريخ إصدار التقرير:') < bikePrint.indexOf('const sections=')) throw new Error('Bike report must not create an orphan date-only page before the report sections');
