@@ -129,7 +129,7 @@ public class FileExportPlugin extends Plugin {
           measureTask[0]=()->v.evaluateJavascript("(function(){if(!window.__deebFontsReady)return -1;return Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);})()",heightValue->{
             if(finished.get())return;
             try{
-              String raw=heightValue==null?"":heightValue.replace("\"","").trim();
+              String raw=heightValue==null?"":heightValue.replace(String.valueOf((char)34),"").trim();
               int contentHeight=(int)Math.ceil(Double.parseDouble(raw));
               if(contentHeight==-1){handler.postDelayed(measureTask[0],100);return;}
               if(contentHeight<80)throw new Exception("تعذر قياس محتوى التقرير.");
