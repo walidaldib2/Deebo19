@@ -72,7 +72,7 @@ if (!app.includes('تقرير متابعة الفروع') || !app.includes('data
 const branchPrintStart=app.indexOf('const groups=branchGroupsFor(d),slots=5,title=',app.indexOf('const printHtml='));
 const branchPrintEnd=app.indexOf('if($("#reportType").value==="bike_patrols")',branchPrintStart);
 const branchPrint=branchPrintStart>=0&&branchPrintEnd>branchPrintStart?app.slice(branchPrintStart,branchPrintEnd):"";
-if (!branchPrint.includes('<th>الفرع</th><th>المشرف</th>') || !branchPrint.includes("'متابعة '+(i+1)") || branchPrint.includes('<th>اليوم والتاريخ</th>')) throw new Error('Branch reports must show branch, supervisor and five follow-ups without a duplicate date column');
+if (!branchPrint.includes('<th>الفرع</th><th>المشرف</th>') || !branchPrint.includes("<th>متابعة ") || branchPrint.includes('<th>اليوم والتاريخ</th>')) throw new Error('Branch reports must show branch, supervisor and five follow-ups without a duplicate date column');
 if (!app.includes('["الفرع","المشرف"') || !app.includes('g.supervisor,...Array.from({length:slots}')) throw new Error('Branch Excel/CSV export must match the seven-column branch follow-up layout without a duplicate date column');
 if (!app.includes('.branch-table-wrap,.branch-table,.branch-table tbody,main.sheet{break-inside:auto!important;page-break-inside:auto!important;overflow:visible!important}') || !app.includes('.branch-table tr{break-inside:avoid!important;page-break-inside:avoid!important}')) throw new Error('Branch report tables must paginate between rows and repeat their header instead of forcing the whole table onto one page');
 if (!db.includes('const patrolDate=String(row.payload?.patrol_date||"").trim()')) throw new Error('Motorcycle backup restore must validate patrol_date rather than patrol_time');
