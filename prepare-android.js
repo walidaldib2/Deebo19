@@ -6,6 +6,7 @@ const output = path.join(root, "www");
 const assets = [
   "index.html",
   "app.js",
+  "scanner.js",
   "db.js",
   "qrcode.js",
   "biometric.bundle.js",
