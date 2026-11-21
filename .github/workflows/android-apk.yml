@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - feature/deboo-pro-upgrade
+      - feature/stronger-print-reports
 
 concurrency:
   group: deeb-android-apk-${{ github.ref }}
