@@ -126,17 +126,30 @@ public class FileExportPlugin extends Plugin {
         @Override public void onPageFinished(WebView v,String url){
           v.evaluateJavascript("(function(){function collectPrintRules(rules,out){for(var i=0;i<rules.length;i++){var rule=rules[i];if(rule.type===4&&/print/i.test(rule.conditionText||rule.media&&rule.media.mediaText||'')){collectPrintRules(rule.cssRules,out);}else if(rule.type===12&&rule.cssRules){collectPrintRules(rule.cssRules,out);}else if(rule.type!==6&&!rule.cssRules&&rule.cssText){out.push(rule.cssText);}}}var printRules=[];for(var s=0;s<document.styleSheets.length;s++){try{collectPrintRules(document.styleSheets[s].cssRules,printRules);}catch(e){}}if(printRules.length){var printStyle=document.createElement('style');printStyle.setAttribute('data-deeb-print-rules','true');printStyle.textContent=printRules.join(' ');document.head.appendChild(printStyle);}if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){window.__deebFontsReady=true;});}else{window.__deebFontsReady=true;}return true;})()",ignored->{});
           final Runnable[] measureTask=new Runnable[1];
-          measureTask[0]=()->v.evaluateJavascript("(function(){if(!window.__deebFontsReady)return -1;return Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);})()",heightValue->{
+          measureTask[0]=()->v.evaluateJavascript("(function(){if(!window.__deebFontsReady)return -1;var contentHeight=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0),nodes=document.querySelectorAll('.written-page,.bike-sheet-section'),pages=[];if(nodes.length){for(var i=0;i<nodes.length;i++){var rect=nodes[i].getBoundingClientRect();pages.push({top:Math.max(0,Math.round(rect.top+window.pageYOffset)),height:Math.max(1,Math.ceil(rect.height))});}}else{pages.push({top:0,height:contentHeight});}return JSON.stringify({contentHeight:contentHeight,pages:pages});})()",heightValue->{
             if(finished.get())return;
             try{
-              String raw=heightValue==null?"":heightValue.replace(String.valueOf((char)34),"").trim();
-              int contentHeight=(int)Math.ceil(Double.parseDouble(raw));
-              if(contentHeight==-1){handler.postDelayed(measureTask[0],100);return;}
+              String raw=heightValue==null?"":heightValue.trim();
+              if("-1".equals(raw)){handler.postDelayed(measureTask[0],100);return;}
+              Object decoded=new JSONTokener(raw).nextValue();
+              if(!(decoded instanceof String))throw new Exception("تعذر قراءة تقسيم صفحات التقرير.");
+              JSONObject measurement=new JSONObject((String)decoded);
+              int contentHeight=measurement.getInt("contentHeight");
               if(contentHeight<80)throw new Exception("تعذر قياس محتوى التقرير.");
               int pageCssHeight=(int)Math.round(794.0*297.0/210.0);
-              int pageCount=(contentHeight+pageCssHeight-1)/pageCssHeight;
-              if(pageCount<1)throw new Exception("التقرير لا يحتوي على صفحات.");
-              if(pageCount>100)throw new Exception("التقرير يتجاوز 100 صفحة؛ قسّمه قبل حفظ الصور.");
+              JSONArray segments=measurement.getJSONArray("pages");
+              java.util.ArrayList<Integer> pageTops=new java.util.ArrayList<>();
+              for(int segmentIndex=0;segmentIndex<segments.length();segmentIndex++){
+                JSONObject segment=segments.getJSONObject(segmentIndex);
+                int segmentTop=Math.max(0,segment.getInt("top"));
+                int segmentHeight=Math.max(1,segment.getInt("height"));
+                for(int offset=0;offset<segmentHeight;offset+=pageCssHeight){
+                  pageTops.add(segmentTop+offset);
+                  if(pageTops.size()>100)throw new Exception("التقرير يتجاوز 100 صفحة؛ قسّمه قبل حفظ الصور.");
+                }
+              }
+              if(pageTops.isEmpty())throw new Exception("التقرير لا يحتوي على صفحات.");
+              int pageCount=pageTops.size();
               v.setLayoutParams(new FrameLayout.LayoutParams(794,contentHeight));
               v.measure(View.MeasureSpec.makeMeasureSpec(794,View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(contentHeight,View.MeasureSpec.EXACTLY));
@@ -144,7 +157,7 @@ public class FileExportPlugin extends Plugin {
               int saved=0;
               for(int pageIndex=0;pageIndex<pageCount;pageIndex++){
                 if(finished.get())return;
-                int top=pageIndex*pageCssHeight;
+                int top=pageTops.get(pageIndex);
                 int width=1588,height=pageCssHeight*2;
                 if(width<1||height<1||(long)width*height>12000000L)
                   throw new Exception("أبعاد صفحة التقرير أكبر من الحد الآمن للتحويل.");
