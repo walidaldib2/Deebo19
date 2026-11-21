@@ -27,7 +27,7 @@ const packageName = packageMatch[1];
 const packageDir = path.dirname(mainPath);
 const pluginPath = path.join(packageDir, "FileExportPlugin.java");
 
-const pluginSource = String.raw\`package \${packageName};
+const pluginSource = String.raw`package ${packageName};
 
 import android.app.Activity;
 import android.content.ContentValues;
@@ -257,10 +257,10 @@ public class FileExportPlugin extends Plugin {
         });
     }
 }
-\`;
+`;
 
 fs.writeFileSync(pluginPath, pluginSource, "utf8");
-const replacement = \`package \${packageName};
+const replacement = `package ${packageName};
 
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
@@ -272,6 +272,6 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
     }
 }
-\`;
+`;
 fs.writeFileSync(mainPath, replacement, "utf8");
 console.log("Installed native FileExport Capacitor plugin and registered it in " + path.relative(androidRoot, mainPath));
