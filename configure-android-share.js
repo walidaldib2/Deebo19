@@ -181,7 +181,8 @@ public class FileExportPlugin extends Plugin {
         view.setBackgroundColor(Color.WHITE);
         view.setAlpha(1f);
         view.setFocusable(false);
-        view.getSettings().setJavaScriptEnabled(false);
+        // Run the report print hook that enables page numbers only for multi-page reports.
+        view.getSettings().setJavaScriptEnabled(true);
         root.addView(view,new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
         view.setWebViewClient(new WebViewClient(){
           @Override public void onPageFinished(WebView v,String url){
