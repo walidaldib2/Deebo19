@@ -197,3 +197,9 @@ if (bikePrint.includes('تاريخ إصدار التقرير:') && bikePrint.ind
 if (!bikePrint.includes('height:auto!important;max-height:none!important') || bikePrint.includes('height:280mm!important')) throw new Error('Bike report print pages must not stretch table rows to fill a fixed-height sheet');
 if (!bikePrint.includes('background:#073b28;color:#fff') || !bikePrint.includes('border:1px solid #c99a32') || !bikePrint.includes('background:#fbf4e6')) throw new Error('Bike report PDF and image exports must preserve DEEB green, gold, and beige visual identity');
 if (!app.includes('if($("#reportType").value==="written_reports")') || !app.includes('class="report-body"') || !app.includes('class="written-page"') || !app.includes('esc(p.report_text||"")')) throw new Error('Written reports must print each saved narrative as a standalone report');
+const writtenPrintStart=app.indexOf('if($("#reportType").value==="written_reports"){',app.indexOf('const printHtml='));
+const writtenPrintEnd=app.indexOf('if($("#reportType").value==="branch_patrols")',writtenPrintStart);
+const writtenPrint=app.slice(writtenPrintStart,writtenPrintEnd);
+if (!writtenPrint.includes('background:#073b28') || !writtenPrint.includes('background:#7b1022') || !writtenPrint.includes('border:1.5px solid #c99a32')) throw new Error('Written report print must use DEEB green, burgundy, and gold identity');
+if (writtenPrint.includes('min-height:275mm') || writtenPrint.includes('min-height:135mm')) throw new Error('Written report must not force oversized blank page areas');
+if (!writtenPrint.includes('orphans:3;widows:3') || !writtenPrint.includes('break-inside:avoid;page-break-inside:avoid')) throw new Error('Written report pagination safeguards are missing');
