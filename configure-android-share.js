@@ -404,7 +404,7 @@ public class FileExportPlugin extends Plugin {
           finally{try{if(renderer!=null)renderer.close();}catch(Exception ignored){}try{if(input!=null)input.close();}catch(Exception ignored){}}
         }
       });
-      String imageHtml=html.replace("width=device-width,initial-scale=1","width=794,initial-scale=1,maximum-scale=1,user-scalable=no").replace("width=device-width, initial-scale=1","width=794, initial-scale=1, maximum-scale=1, user-scalable=no");
+      String imageHtml=html.replace("width=device-width,initial-scale=1","width=794,initial-scale=1,maximum-scale=1,user-scalable=no").replace("width=device-width, initial-scale=1","width=794, initial-scale=1, maximum-scale=1, user-scalable=no").replace("@media print","@media all");
       view.loadDataWithBaseURL("https://localhost/",imageHtml,"text/html","UTF-8",null);
       handler.postDelayed(()->{if(!finished.get())fail.reject("انتهت مهلة تجهيز صور التقرير بعد 120 ثانية. حاول مرة أخرى.");},120000);
     });
