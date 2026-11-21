@@ -167,9 +167,9 @@ jobs:
               source = path.read_text(encoding="utf-8")
               # Replace mavenCentral() itself so Gradle cannot fall through to
               # repo.maven.apache.org when that endpoint rate-limits CI.
-              source = source.replace("mavenCentral()", primary + "\\n        " + fallback)
+              source = source.replace("mavenCentral()", primary + "\n        " + fallback)
               if primary not in source and "repositories {" in source:
-                  source = source.replace("repositories {", "repositories {\\n        " + primary + "\\n        " + fallback, 1)
+                  source = source.replace("repositories {", "repositories {\n        " + primary + "\n        " + fallback, 1)
               path.write_text(source, encoding="utf-8")
           PY
 
