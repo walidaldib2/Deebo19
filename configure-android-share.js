@@ -337,7 +337,7 @@ public class FileExportPlugin extends Plugin {
             }
             if(finished.compareAndSet(false,true)){
               cleanup.run();
-              JSObject result=new JSObject();result.put("count",pageCount);result.put("saved",true);result.put("format","A4 PNG");result.put("source","Android PdfDocument + PdfRenderer");
+              JSObject result=new JSObject();result.put("count",pageCount);result.put("saved",true);result.put("format","A4 PNG");result.put("source","Android PrintDocumentAdapter + PdfRenderer");
               call.resolve(result);
             }
           }catch(Exception e){fail.reject("تعذر تحويل صفحات التقرير إلى صور: "+e.getMessage());}
