@@ -259,5 +259,7 @@ if (!app.includes('تم تحديث النسخة التلقائية لهذا ال
 
 const scanner = fs.readFileSync(path.join(root,"scanner.js"),"utf8");
 if (!html.includes('src="scanner.js"') || !html.includes('data-page="scanner"') || !sw.includes('"./scanner.js"') || !app.includes('else if(p==="scanner")window.DEebScanner?.render()')) throw new Error("DEEB scanner must be reachable from navigation and included in the offline app cache");
+const androidAssets = fs.readFileSync(path.join(root,"prepare-android.js"),"utf8");
+if (!androidAssets.includes('"scanner.js"')) throw new Error("Android staging must copy scanner.js into www/ before building the APK");
 for (const feature of ['capture="environment"',"cropLeft","cropTop","cropRight","cropBottom","grayscale(1)","scannerAddPage","saveScannedPdf","scannerSaveImages"]) if (!scanner.includes(feature)) throw new Error("Document scanner feature missing: "+feature);
 if (!androidSetup.includes("@PluginMethod public void saveScannedPdf") || !androidSetup.includes("PdfDocument.PageInfo.Builder(595,842,i+1)") || !androidSetup.includes("MediaStore.Downloads.RELATIVE_PATH")) throw new Error("Native multi-page scanned PDF export is missing");
