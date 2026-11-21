@@ -50,6 +50,9 @@ import android.print.PageRange;
 import android.provider.MediaStore;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.util.Base64;
 
 import com.getcapacitor.JSObject;
@@ -146,17 +149,42 @@ public class FileExportPlugin extends Plugin {
             .build();
     }
 
-    private WebView createReportWebView(Activity activity, String html, String name, Runnable ready) {
+    private WebView createReportWebView(Activity activity, String html, String name, Runnable ready, boolean expandToContent) {
         WebView view = new WebView(activity);
-        view.getSettings().setJavaScriptEnabled(false);
+        float density = activity.getResources().getDisplayMetrics().density;
+        int width = (int) Math.ceil(794.0 * density);
+        int pageHeight = (int) Math.ceil(1123.0 * density);
+        FrameLayout root = (FrameLayout) activity.findViewById(android.R.id.content);
+        if (root == null) throw new IllegalStateException("تعذر الوصول إلى نافذة التقرير.");
         view.setBackgroundColor(android.graphics.Color.WHITE);
+        view.getSettings().setJavaScriptEnabled(true);
+        view.getSettings().setDomStorageEnabled(true);
+        view.getSettings().setUseWideViewPort(true);
+        view.getSettings().setLoadWithOverviewMode(false);
+        view.setInitialScale(100);
+        root.addView(view, new FrameLayout.LayoutParams(width, pageHeight));
         view.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView webView, String url) {
-                handler.postDelayed(ready, 450);
+                String waitForAssets = "(function(){var imgs=Array.prototype.slice.call(document.images).filter(function(i){return !!(i.currentSrc||i.src);});var waits=imgs.map(function(i){if(i.complete)return Promise.resolve(i.naturalWidth>0);return new Promise(function(resolve){var done=function(){resolve(i.naturalWidth>0);};i.addEventListener('load',done,{once:true});i.addEventListener('error',function(){resolve(false);},{once:true});setTimeout(function(){resolve(i.complete&&i.naturalWidth>0);},20000);});});var fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();return Promise.all([fonts].concat(waits)).then(function(){return new Promise(function(resolve){requestAnimationFrame(function(){requestAnimationFrame(function(){resolve('ready');});});});});})()";
+                webView.evaluateJavascript(waitForAssets, result -> {
+                    if (result == null || !result.contains("ready")) {
+                        handler.postDelayed(ready, 450);
+                        return;
+                    }
+                    int cssHeight = expandToContent ? Math.max(1123, webView.getContentHeight()) : 1123;
+                    int height = (int) Math.ceil(cssHeight * density);
+                    webView.setLayoutParams(new FrameLayout.LayoutParams(width, height));
+                    webView.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                        View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
+                    webView.layout(0, 0, width, height);
+                    handler.postDelayed(ready, 250);
+                });
             }
         });
-        view.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
+        String printHtml = html.replace("width=device-width,initial-scale=1", "width=794,initial-scale=1,maximum-scale=1,user-scalable=no")
+            .replace("width=device-width, initial-scale=1", "width=794, initial-scale=1, maximum-scale=1, user-scalable=no");
+        view.loadDataWithBaseURL("https://localhost/", printHtml, "text/html", "UTF-8", null);
         return view;
     }
 
@@ -261,7 +289,7 @@ public class FileExportPlugin extends Plugin {
                         call.reject("تعذر تخطيط صفحات التقرير: " + error);
                     }
                 }, new Bundle());
-            });
+            }, false);
         });
     }
 
@@ -269,12 +297,25 @@ public class FileExportPlugin extends Plugin {
         List<Uri> saved = new ArrayList<>();
         try (ParcelFileDescriptor descriptor = ParcelFileDescriptor.open(pdf, ParcelFileDescriptor.MODE_READ_ONLY);
              PdfRenderer renderer = new PdfRenderer(descriptor)) {
-            if (renderer.getPageCount() < 1) throw new IllegalStateException("ملف التقرير لا يحتوي على صفحات.");
+            if (renderer.getPageCount() < 1 || renderer.getPageCount() > 100) throw new IllegalStateException("عدد صفحات التقرير غير صالح أو يتجاوز 100 صفحة.");
             for (int index = 0; index < renderer.getPageCount(); index++) {
                 try (PdfRenderer.Page page = renderer.openPage(index)) {
                     Bitmap bitmap = Bitmap.createBitmap(page.getWidth() * 2, page.getHeight() * 2, Bitmap.Config.ARGB_8888);
                     bitmap.eraseColor(android.graphics.Color.WHITE);
                     page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT);
+                    int nonWhite = 0;
+                    int stepX = Math.max(1, bitmap.getWidth() / 400);
+                    int stepY = Math.max(1, bitmap.getHeight() / 400);
+                    for (int y = 0; y < bitmap.getHeight() && nonWhite == 0; y += stepY) {
+                        for (int x = 0; x < bitmap.getWidth(); x += stepX) {
+                            int pixel = bitmap.getPixel(x, y);
+                            if (android.graphics.Color.red(pixel) < 248 || android.graphics.Color.green(pixel) < 248 || android.graphics.Color.blue(pixel) < 248) {
+                                nonWhite++;
+                                break;
+                            }
+                        }
+                    }
+                    if (nonWhite == 0) throw new IllegalStateException("صفحة التقرير رقم " + (index + 1) + " فارغة؛ أوقفنا الحفظ حتى لا تظهر صور بيضاء.");
                     ContentValues values = new ContentValues();
                     String fileName = safeName(baseName) + "-" + String.format(java.util.Locale.US, "%02d", index + 1) + ".png";
                     values.put(MediaStore.Images.Media.DISPLAY_NAME, fileName);
@@ -320,9 +361,9 @@ public class FileExportPlugin extends Plugin {
     }
 
     private void cleanup(File pdf, WebView webView) {
-        try { if (pdf.exists()) pdf.delete(); } catch (Exception ignored) {}
+        try { if (pdf != null && pdf.exists()) pdf.delete(); } catch (Exception ignored) {}
         handler.post(() -> {
-            try { webView.stopLoading(); webView.destroy(); } catch (Exception ignored) {}
+            try { if (webView.getParent() instanceof ViewGroup) ((ViewGroup) webView.getParent()).removeView(webView); webView.stopLoading(); webView.destroy(); } catch (Exception ignored) {}
         });
     }
 }
