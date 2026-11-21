@@ -680,8 +680,17 @@ async function settings(){area.innerHTML=`${pageHead("الإعدادات")}<div 
  qrDownload.onclick=async()=>{if(!qrReady)return;qrDownload.disabled=true;try{const data=qrCanvas.toDataURL("image/png"),raw=atob(data.split(",")[1]),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);await DebooDB.downloadBlob(new Blob([bytes],{type:"image/png"}),"DEEB-QR.png");qrStatus.textContent="تم حفظ صورة QR في التنزيلات."; }catch(error){qrStatus.textContent="تعذر حفظ صورة QR: "+(error.message||error);}finally{qrDownload.disabled=false;}};
  (async()=>{
  try{
-  const backups=await DebooDB.automaticBackups(),host=$("#autoBackupArea");
-  host.innerHTML=backups.length?'<b>النسخ التلقائية المحفوظة على هذا الجهاز:</b>'+backups.map(x=>'<div class="notice">'+esc(x.date)+' — '+x.record_count+' سجل — '+x.attachment_count+' مرفق <button class="tiny" data-auto-restore="'+x.id+'">استعادة هذه النسخة</button></div>').join(""):"لا توجد نسخة تلقائية بعد.";
+  const host=$("#autoBackupArea");
+  const latest=await DebooDB.createAutoBackup();
+  const backups=await DebooDB.automaticBackups();
+  const backupStatus=latest.reason==="attachments-over-limit"
+   ? '<div class="notice">تنبيه: لم تُحدّث النسخة التلقائية لأن حجم المرفقات تجاوز 30 ميجابايت. نزّل نسخة خارجية JSON الآن.</div>'
+   : latest.updated
+    ? '<div class="notice">تم تحديث النسخة التلقائية لهذا اليوم بنجاح.</div>'
+    : latest.created
+     ? '<div class="notice">تم إنشاء النسخة التلقائية لهذا اليوم بنجاح.</div>'
+     : '<div class="notice">حالة النسخ التلقائي: لم يتم تأكيد تحديث نسخة جديدة.</div>';
+  host.innerHTML=backupStatus+(backups.length?'<b>النسخ التلقائية المحفوظة على هذا الجهاز:</b>'+backups.map(x=>'<div class="notice">'+esc(x.date)+' — '+x.record_count+' سجل — '+x.attachment_count+' مرفق <button class="tiny" data-auto-restore="'+x.id+'">استعادة هذه النسخة</button></div>').join(""):"لا توجد نسخة تلقائية بعد.");
   host.querySelectorAll("[data-auto-restore]").forEach(btn=>btn.onclick=async()=>{
    if(!confirm("سيتم استبدال بيانات العمل الحالية بهذه النسخة المحلية. هل أنشأت نسخة خارجية حديثة؟ هل تريد المتابعة؟"))return;
    btn.disabled=true;
