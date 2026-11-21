@@ -69,6 +69,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import java.io.OutputStream;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 
 @CapacitorPlugin(name = "FileExport")
 public class FileExportPlugin extends Plugin {
@@ -110,9 +111,11 @@ public class FileExportPlugin extends Plugin {
             String script="(function(){return new Promise(function(resolve){var ready=function(){requestAnimationFrame(function(){requestAnimationFrame(function(){var selectors='.bike-sheet-section,.written-page';var nodes=Array.prototype.slice.call(document.querySelectorAll(selectors));var h=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);resolve(JSON.stringify(nodes.length?nodes.map(function(el){var r=el.getBoundingClientRect();return {top:Math.max(0,Math.round(r.top+window.scrollY)),height:Math.max(1,Math.ceil(r.height))};}):[{top:0,height:h}]));});});};if(document.fonts&&document.fonts.ready){document.fonts.ready.then(ready);}else{ready();}});})()";
             v.evaluateJavascript(script,value->{
               try{
-                String json=value;
-                if(json==null||json.equals("null"))throw new Exception("تعذر تجهيز صفحات التقرير.");
-                if(json.startsWith("\"")&&json.endsWith("\""))json=json.substring(1,json.length()-1).replace("\\\"","\"").replace("\\\\","\\");
+                if(value==null||value.equals("null"))throw new Exception("تعذر تجهيز صفحات التقرير.");
+                Object decoded=new JSONTokener(value).nextValue();
+                String json=decoded instanceof String?(String)decoded:value;
+
+
                 JSONArray pages=new JSONArray(json);
                 if(pages.length()==0)throw new Exception("التقرير لا يحتوي على صفحات.");
                 int totalHeight=0;
@@ -335,6 +338,7 @@ import android.os.Bundle;
 import android.content.Context;
 import android.content.SharedPreferences;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
