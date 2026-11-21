@@ -583,7 +583,7 @@ function reports(){
     return pages.map((pageRows,pageIndex)=>{
      const siteRows=pageRows.map(v=>{
       const date=String(v.date||"—");
-      const dateObj=/^\\d{4}-\\d{2}-\\d{2}$/.test(date)?new Date(date+"T12:00:00"):null;
+      const dateObj=/^\d{4}-\d{2}-\d{2}$/.test(date)?new Date(date+"T12:00:00"):null;
       const weekday=dateObj&&!Number.isNaN(dateObj.getTime())?dateObj.toLocaleDateString("ar-EG",{weekday:"long"}):"—";
       const dateLabel=weekday+"<br>"+esc(date);
       const patrol=esc(v.time||"—");
