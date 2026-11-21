@@ -204,12 +204,12 @@ public class FileExportPlugin extends Plugin {
         activity.runOnUiThread(() -> {
             try {
                 final WebView[] holder = new WebView[1];
-                final PrintDocumentAdapter[] adapterHolder = new PrintDocumentAdapter[1];
                 holder[0] = createReportWebView(activity, html, name, () -> {
                     try {
                         PrintManager manager = (PrintManager) activity.getSystemService(Activity.PRINT_SERVICE);
                         if (manager == null) throw new IllegalStateException("خدمة الطباعة غير متاحة.");
-                        manager.print(name, adapterHolder[0], printAttributes());
+                        PrintDocumentAdapter adapter = holder[0].createPrintDocumentAdapter(name);
+                        manager.print(name, adapter, printAttributes());
                         JSObject result = new JSObject();
                         result.put("started", true);
                         call.resolve(result);
@@ -221,7 +221,6 @@ public class FileExportPlugin extends Plugin {
                         try { holder[0].destroy(); } catch (Exception ignored) {}
                     }
                 }, true);
-                adapterHolder[0] = holder[0].createPrintDocumentAdapter(name);
             } catch (Exception error) {
                 call.reject("تعذر تجهيز التقرير للطباعة: " + error.getMessage());
             }
