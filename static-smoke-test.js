@@ -101,6 +101,8 @@ console.log('PASS: required files, navigation hierarchy, reports archive/restore
 
 if (!app.includes('id="pdfReport"') || !app.includes('$("#pdfReport").onclick=()=>') || !app.includes('اختر حفظ كملف PDF')) throw new Error('PDF export action is missing');
 
+if (!app.includes('data-report-type="written_reports">التقرير اليومي</button>') || !app.includes('id="createWrittenReport">+ إضافة تقرير يومي</button>') || !app.includes('<h1>التقرير اليومي</h1>')) throw new Error('Daily report must use the exact requested name in the report menu, create action, and printed page title');
+
 if (!app.includes('const createXlsx=rows=>') || !app.includes('[Content_Types].xml') || !app.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') || !app.includes('DEEB-report.xlsx')) throw new Error('Excel export must create a valid XLSX workbook for Android Microsoft Excel');
 if (!app.includes('<sheetFormatPr defaultRowHeight="22"/><cols>\'+columnWidths+\'</cols><sheetData>')) throw new Error('XLSX worksheet XML elements must follow the Excel schema order');
 if (!app.includes('"مرور","الإحداثيات / رابط الموقع","ملاحظات"]') || app.includes('"مرور 1"') || app.includes('"مرور 2"') || app.includes('"مرور 3"') || !app.includes('g.visits.forEach(v=>') || !app.includes('dayOf(v)') || !app.includes('xl/styles.xml') || !app.includes('rightToLeft="1"') || !app.includes('<autoFilter ref=')) throw new Error('Bike Excel export must keep one مرور column, preserve each visit date, coordinates and notes, and use a styled RTL workbook with filters');
