@@ -203,3 +203,4 @@ const writtenPrint=app.slice(writtenPrintStart,writtenPrintEnd);
 if (!writtenPrint.includes('background:#073b28') || !writtenPrint.includes('background:#7b1022') || !writtenPrint.includes('border:1.5px solid #c99a32')) throw new Error('Written report print must use DEEB green, burgundy, and gold identity');
 if (writtenPrint.includes('min-height:275mm') || writtenPrint.includes('min-height:135mm')) throw new Error('Written report must not force oversized blank page areas');
 if (!writtenPrint.includes('orphans:3;widows:3') || !writtenPrint.includes('break-inside:avoid;page-break-inside:avoid')) throw new Error('Written report pagination safeguards are missing');
+if (!writtenPrint.includes('height:277mm') || !writtenPrint.includes('overflow:hidden') || !writtenPrint.includes('function fitWrittenPages()') || !writtenPrint.includes('inner.style.transform="scale("+scale+")"')) throw new Error('Written report must auto-fit the complete report onto one A4 page');
