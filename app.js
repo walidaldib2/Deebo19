@@ -427,13 +427,29 @@ function dataManagementPage(){
  renderEntity(pageGroups.data[0]);
 }
 function emergencyPage(){area.innerHTML=`${pageHead("الطوارئ")}<div class="subnav"><button data-type="emergencies">حالات الطوارئ</button><button data-type="emergency_people">أفراد الطوارئ</button></div><div id="groupContent"></div>`;$$(".subnav button").forEach(b=>b.onclick=()=>{currentEdit=null;renderEntity(b.dataset.type)});renderEntity("emergencies")}
+function patrolTimeMinutes(value){
+ const raw=String(value||"").trim().replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(/[۰-۹]/g,d=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
+ const match=raw.match(/^(\\d{1,2}):(\\d{2})(?::\\d{2})?\\s*(ص|م|AM|PM)?$/i);
+ if(!match)return null;
+ let hour=Number(match[1]),minute=Number(match[2]);const suffix=String(match[3]||"").toLowerCase();
+ if(hour>23||minute>59)return null;
+ if(suffix){if(hour<1||hour>12)return null;hour=hour%12+(suffix==="م"||suffix==="pm"?12:0);}
+ return hour*60+minute;
+}
+function comparePatrolTimes(a,b){
+ const av=patrolTimeMinutes(a),bv=patrolTimeMinutes(b);
+ if(av!==null&&bv!==null&&av!==bv)return av-bv;
+ if(av!==null&&bv===null)return -1;
+ if(av===null&&bv!==null)return 1;
+ return String(a||"").localeCompare(String(b||""),"ar");
+}
 function mapPage(){
  const today=new Date().toLocaleDateString("en-CA");
  area.innerHTML=pageHead("خريطة مرور الدراجات",'<button class="secondary" id="mapToday">اليوم</button>')+
  '<div class="card"><p class="muted">يعرض التطبيق نقاط الوصول التي تم حفظ إحداثياتها مع مرور الدراجات. اختر التاريخ والدراجة لعرض خط سير الزيارات حسب التوقيت.</p><div class="form"><div class="field"><label>تاريخ المرور</label><input id="mapDate" type="date" value="'+today+'"></div><div class="field"><label>الدراجة</label><select id="mapBike"><option value="">كل الدراجات</option>'+[...new Set(cache.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived).map(x=>String(x.payload?.bike||"").trim()).filter(Boolean))].sort().map(v=>'<option>'+esc(v)+'</option>').join("")+'</select></div></div><div id="bikeRouteSummary"></div></div>';
  const paint=()=>{
   const date=$("#mapDate").value,bike=$("#mapBike").value;
-  const visits=cache.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived&&String(x.payload?.patrol_date||String(x.created_at||"").slice(0,10))===date&&(!bike||String(x.payload?.bike||"")===bike)).sort((a,b)=>String(a.payload?.patrol_time||"").localeCompare(String(b.payload?.patrol_time||"")));
+  const visits=cache.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived&&String(x.payload?.patrol_date||String(x.created_at||"").slice(0,10))===date&&(!bike||String(x.payload?.bike||"")===bike)).sort((a,b)=>comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time));
   const points=visits.map(x=>({row:x,p:x.payload||{}}));
   const located=points.filter(x=>validCoordinatePair(x.p.lat,x.p.lng));
   const coords=located.map(x=>Number(x.p.lat)+","+Number(x.p.lng));
@@ -493,7 +509,7 @@ function reports(){
    groups.get(key).visits.push(x);
   });
   return [...groups.values()].map(g=>{
-   g.visits.sort((a,b)=>String(a.payload?.patrol_time||"").localeCompare(String(b.payload?.patrol_time||"")));
+   g.visits.sort((a,b)=>comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time));
    const latest=[...g.visits].reverse().find(v=>String(v.payload?.supervisor||"").trim());
    return {...g,supervisor:String(latest?.payload?.supervisor||"—")};
   }).sort((a,b)=>(a.date+"|"+a.branch).localeCompare(b.date+"|"+b.branch,"ar")).flatMap(g=>Array.from({length:Math.max(1,Math.ceil(g.visits.length/5))},(_,i)=>({...g,continuation:i>0,visits:g.visits.slice(i*5,(i+1)*5)})));
