@@ -180,14 +180,14 @@ function branchPatrolTable(){
  const today=(()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");})();
  const rawNames=orderedBranchNames([...branches,...records.map(r=>String(r.payload?.branch||"").trim()).filter(Boolean)]);
  const uniqueNames=new Map();
- rawNames.forEach(name=>{const key=normalize(name).replace(/\\s+/g," ");if(key&&!uniqueNames.has(key))uniqueNames.set(key,name);});
+ rawNames.forEach(name=>{const key=normalize(name).replace(/\s+/g," ");if(key&&!uniqueNames.has(key))uniqueNames.set(key,name);});
  const names=[...uniqueNames.values()];
  const availableDates=[...new Set([today,...records.map(r=>String(r.payload?.patrol_date||today).slice(0,10)).filter(Boolean)])].sort((a,b)=>b.localeCompare(a));
  if(!availableDates.includes(selectedBranchPatrolDate))selectedBranchPatrolDate=today;
  const selectedDate=selectedBranchPatrolDate;
  const visible=names.map(name=>{
-  const key=normalize(name).replace(/\\s+/g," ");
-  const visits=records.filter(r=>normalize(String(r.payload?.branch||"").trim()).replace(/\\s+/g," ")===key&&String(r.payload?.patrol_date||today).slice(0,10)===selectedDate).sort((a,b)=>String(a.payload?.patrol_time||"").localeCompare(String(b.payload?.patrol_time||"")));
+  const key=normalize(name).replace(/\s+/g," ");
+  const visits=records.filter(r=>normalize(String(r.payload?.branch||"").trim()).replace(/\s+/g," ")===key&&String(r.payload?.patrol_date||today).slice(0,10)===selectedDate).sort((a,b)=>String(a.payload?.patrol_time||"").localeCompare(String(b.payload?.patrol_time||"")));
   return {name,date:selectedDate,visits};
  }).filter(row=>!searchTerm||normalize(row.name).includes(normalize(searchTerm))||row.date.includes(searchTerm));
  if(!visible.length)return '<div class="empty">لا توجد فروع مسجلة. أضف الفروع من إدارة البيانات أولًا.</div>';
