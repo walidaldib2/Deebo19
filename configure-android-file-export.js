@@ -14,14 +14,17 @@ const required = [
   "saveHtmlAsImages",
   "printHtml",
   "writeWebViewToPdf",
+  "new android.graphics.pdf.PdfDocument()",
+  "new android.graphics.pdf.PdfDocument.PageInfo.Builder(width,height,index+1).create()",
+  "v.scrollTo(0,scrollY)",
+  "v.draw(canvas)",
+  "document.writeTo(output)",
+  "WebView.enableSlowWholeDocumentDraw()",
   "PdfRenderer",
   "page.render(bitmap",
   "bitmap.compress(Bitmap.CompressFormat.PNG,100,out)",
   "nonWhite==0",
   "removePartialImages.run()",
-  'createPrintDocumentAdapter("DEEB-image-export")',
-  "nativeAdapter.onLayout(null,attributes,cancellation",
-  "nativeAdapter.onWrite(new android.print.PageRange[]{android.print.PageRange.ALL_PAGES}",
   "renderer.openPage(index)",
   "page.close()",
   "PrintJob job=pm.print(jobName,v.createPrintDocumentAdapter(jobName),attributes)"
@@ -33,4 +36,4 @@ if (missing.length) {
 if (source.includes("new android.graphics.pdf.PdfDocument()") || source.includes("v.scrollTo(0,scrollY)") || source.includes("v.draw(canvas)") || source.includes("document.writeTo(output)")) {
   throw new Error("Image export must not invoke hidden Android print callbacks directly.");
 }
-console.log("Verified the native PrintManager print path and independent paginated PdfDocument-to-PNG export, blank-page detection, and cleanup.");
+console.log("Verified whole-document WebView rendering, paginated PdfDocument-to-PNG export, blank-page detection, and cleanup.");
