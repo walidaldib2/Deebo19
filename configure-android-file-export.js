@@ -14,20 +14,24 @@ const required = [
   "saveHtmlAsImages",
   "printHtml",
   "writeWebViewToPdf",
-  "createPrintDocumentAdapter(baseName)",
-  "adapter.onLayout(null,attributes,cancellation",
-  "adapter.onWrite(new android.print.PageRange[]{android.print.PageRange.ALL_PAGES}",
+  "new android.graphics.pdf.PdfDocument()",
+  "new android.graphics.pdf.PdfDocument.PageInfo.Builder(width,height,index+1).create()",
+  "v.scrollTo(0,scrollY)",
+  "v.draw(canvas)",
+  "document.writeTo(output)",
   "PdfRenderer",
   "page.render(bitmap",
   "bitmap.compress(Bitmap.CompressFormat.PNG,100,out)",
   "nonWhite==0",
-  "removePartialImages.run()"
+  "removePartialImages.run()",
+  "createPrintDocumentAdapter(jobName)",
+  "PrintJob job=pm.print(jobName,v.createPrintDocumentAdapter(jobName),attributes)"
 ];
 const missing = required.filter(marker => !source.includes(marker));
 if (missing.length) {
   throw new Error("The canonical Android PDF/image exporter is incomplete: " + missing.join(", "));
 }
-if (!source.includes("onLayoutFinished") || !source.includes("onWriteFinished") || !source.includes("onWriteFailed")) {
-  throw new Error("Android print adapter lifecycle callbacks are incomplete.");
+if (source.includes("adapter.onLayout(") || source.includes("adapter.onWrite(")) {
+  throw new Error("Image export must not invoke hidden Android print callbacks directly.");
 }
-console.log("Verified the Android print adapter, paginated PDF-to-PNG export, blank-page detection, and cleanup.");
+console.log("Verified the native PrintManager print path and independent paginated PdfDocument-to-PNG export, blank-page detection, and cleanup.");
