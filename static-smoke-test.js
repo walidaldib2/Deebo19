@@ -15,6 +15,8 @@ if (!pkg.dependencies['@capacitor/android'].startsWith('^8.') || !pkg.dependenci
 if (!pkg.dependencies?.['@aparajita/capacitor-biometric-auth']?.startsWith('^10.')) throw new Error('Capacitor 8 biometric plugin compatibility is required');
 if (!pkg.devDependencies?.sharp || !pkg.scripts?.['prepare:android:icons']) throw new Error('DEEB launcher icon generation dependency/script is missing');
 const androidSetup = fs.readFileSync(path.join(root,'configure-android-share.js'),'utf8');
+const printHandler=androidSetup.slice(androidSetup.indexOf('@PluginMethod public void printHtml'),androidSetup.indexOf('@PluginMethod public void printHtml')+2600);
+if (!printHandler.includes('setJavaScriptEnabled(true)') || !printHandler.includes('createPrintDocumentAdapter(jobName)')) throw new Error('Android print WebView must execute the conditional page-number hook and use the native print adapter');
 if (!androidSetup.includes('["android:allowBackup", "false"]') || !androidSetup.includes('["android:usesCleartextTraffic", "false"]')) throw new Error('Android backup/network hardening is missing');
 const iconBuilder = fs.readFileSync(path.join(root,'prepare-android-icons.js'),'utf8');
 if (!iconBuilder.includes('ic_launcher_foreground.png') || !iconBuilder.includes('icon-512.png')) throw new Error('DEEB Play Store and adaptive launcher icon generation is missing');
