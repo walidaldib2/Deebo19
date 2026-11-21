@@ -175,3 +175,8 @@ const bikeSectionEnd=app.indexOf('const branchGroupsFor=d=>',bikeSectionStart);
 const bikeSection=app.slice(bikeSectionStart,bikeSectionEnd);
 if (!bikeSection.includes('registry=data.filter(x=>x.entity_type==="bikes"&&!x.is_archived)') || bikeSection.includes('while(result.length<3)')) throw new Error('Bike report count must be based only on registered bikes, without a hardcoded third bike');
 if (!app.includes('filter(([k])=>k!=="bikes")') || !app.includes('host.onclick=e=>{const btn=e.target.closest("[data-bike-number]")')) throw new Error('Bike report type option and delegated individual report selection are missing');
+
+if (!app.includes('written_reports:[["report_title","عنوان التقرير","text",1]') || !app.includes('["report_date","تاريخ التقرير","date",1]') || !app.includes('["shift","الشفت","select","صباحي|مسائي|ليلي",1]') || !app.includes('["report_text","نص التقرير","textarea",1]')) throw new Error('Independent written end-of-shift report fields are missing');
+if (!app.includes('written_reports:"التقرير الكتابي"') || !app.includes('"written_reports"]') || !app.includes('id="createWrittenReport"') || !app.includes('data-report-type="written_reports"')) throw new Error('Written report navigation and report-center shortcuts are missing');
+if (!app.includes('if(type==="written_reports"){const list=rows(type)') || !app.includes('data-edit="'+r.id+'"') || !app.includes('data-archive="'+r.id+'"')) throw new Error('Written report list must show saved reports with edit and archive actions');
+if (!app.includes('if($("#reportType").value==="written_reports")') || !app.includes('class="report-body"') || !app.includes('class="written-page"') || !app.includes('p.report_text')) { /* content is escaped into the dedicated printable body */ }
