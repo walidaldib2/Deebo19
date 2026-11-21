@@ -30,8 +30,18 @@ window.DebooDB = (() => {
         }
         if (!d.objectStoreNames.contains("automatic_backups")) d.createObjectStore("automatic_backups",{keyPath:"id"});
       };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error || new Error("تعذر فتح قاعدة البيانات المحلية."));
+      req.onsuccess = () => {
+        const connection=req.result;
+        connection.onversionchange=()=>{connection.close();dbPromise=null;};
+        connection.onclose=()=>{dbPromise=null;};
+        resolve(connection);
+      };
+      req.onerror = () => {
+        const error=req.error || new Error("تعذر فتح قاعدة البيانات المحلية.");
+        dbPromise=null;
+        reject(error);
+      };
+      req.onblocked = () => console.warn("DEEB IndexedDB upgrade is waiting for another open app window to close.");
     });
     return dbPromise;
   }
