@@ -150,10 +150,10 @@ public class FileExportPlugin extends Plugin {
               }
               if(pageTops.isEmpty())throw new Exception("التقرير لا يحتوي على صفحات.");
               int pageCount=pageTops.size();
-              v.setLayoutParams(new FrameLayout.LayoutParams(794,contentHeight));
+              v.setLayoutParams(new FrameLayout.LayoutParams(794,pageCssHeight));
               v.measure(View.MeasureSpec.makeMeasureSpec(794,View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(contentHeight,View.MeasureSpec.EXACTLY));
-              v.layout(0,0,794,contentHeight);
+                View.MeasureSpec.makeMeasureSpec(pageCssHeight,View.MeasureSpec.EXACTLY));
+              v.layout(0,0,794,pageCssHeight);
               int saved=0;
               for(int pageIndex=0;pageIndex<pageCount;pageIndex++){
                 if(finished.get())return;
@@ -166,7 +166,7 @@ public class FileExportPlugin extends Plugin {
                   bitmap.eraseColor(Color.WHITE);
                   Canvas canvas=new Canvas(bitmap);
                   canvas.scale(2f,2f);
-                  canvas.translate(0,-top);
+                  v.scrollTo(0,top);
                   v.draw(canvas);
                   int nonWhite=0;
                   int stepX=Math.max(1,bitmap.getWidth()/256),stepY=Math.max(1,bitmap.getHeight()/256);
