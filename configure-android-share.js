@@ -515,6 +515,7 @@ const activity = `package ${packageName};
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.webkit.WebView;
 import android.content.Context;
 import android.content.SharedPreferences;
 import org.json.JSONObject;
@@ -524,6 +525,8 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Must run before BridgeActivity creates the app WebView.
+        WebView.enableSlowWholeDocumentDraw();
         registerPlugin(ShareIntentPlugin.class);
         registerPlugin(CurrentLocationPlugin.class);
         registerPlugin(FileExportPlugin.class);
