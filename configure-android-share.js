@@ -201,6 +201,18 @@ public class FileExportPlugin extends Plugin {
                     // Convert physical Android pixels back to a stable 2x CSS-pixel A4 image.
                     canvas.scale(2f/density,2f/density);
                     v.draw(canvas);
+                    // Validate the report content before adding the native footer.
+                    // Otherwise the page number itself would make a blank page look non-empty.
+                    int nonWhite=0;
+                    int stepX=Math.max(1,bitmap.getWidth()/512),stepY=Math.max(1,bitmap.getHeight()/512);
+                    for(int y=0;y<bitmap.getHeight();y+=stepY){
+                      for(int x=0;x<bitmap.getWidth();x+=stepX){
+                        int pixel=bitmap.getPixel(x,y);
+                        if(Color.red(pixel)<248||Color.green(pixel)<248||Color.blue(pixel)<248){nonWhite++;break;}
+                      }
+                      if(nonWhite>0)break;
+                    }
+                    if(nonWhite==0)throw new Exception("صفحة التقرير رقم "+(currentPage+1)+" فارغة؛ تم إيقاف الحفظ.");
                     // Add one report-wide page number to every exported page, only for multi-page reports.
                     if(pageCount>1){
                       android.widget.TextView pageNumberView=new android.widget.TextView(getContext());
@@ -216,18 +228,8 @@ public class FileExportPlugin extends Plugin {
                       android.graphics.Paint footerLine=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
                       footerLine.setColor(Color.rgb(201,154,50));
                       footerLine.setStrokeWidth(1f);
-                      canvas.drawLine(0,pageCssHeight-footerHeight,794,pageCssHeight-footerHeight,footerLine);
+                      canvas.drawLine(0,pageCssHeight-30,794,pageCssHeight-30,footerLine);
                     }
-                    int nonWhite=0;
-                    int stepX=Math.max(1,bitmap.getWidth()/512),stepY=Math.max(1,bitmap.getHeight()/512);
-                    for(int y=0;y<bitmap.getHeight();y+=stepY){
-                      for(int x=0;x<bitmap.getWidth();x+=stepX){
-                        int pixel=bitmap.getPixel(x,y);
-                        if(Color.red(pixel)<248||Color.green(pixel)<248||Color.blue(pixel)<248){nonWhite++;break;}
-                      }
-                      if(nonWhite>0)break;
-                    }
-                    if(nonWhite==0)throw new Exception("صفحة التقرير رقم "+(currentPage+1)+" فارغة؛ تم إيقاف الحفظ.");
                     ContentValues values=new ContentValues();
                     values.put(MediaStore.Images.Media.DISPLAY_NAME,baseName+"-"+String.format(java.util.Locale.US,"%02d",currentPage+1)+".png");
                     values.put(MediaStore.Images.Media.MIME_TYPE,"image/png");
