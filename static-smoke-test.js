@@ -24,7 +24,7 @@ if (!activityTemplate.includes('import android.webkit.WebView;') || earlyDrawIni
 const printHandlerStart=androidSetup.indexOf('@PluginMethod public void printHtml');
 const printHandlerEnd=androidSetup.indexOf('\n  }\n}',printHandlerStart);
 const printHandler=printHandlerStart>=0&&printHandlerEnd>printHandlerStart?androidSetup.slice(printHandlerStart,printHandlerEnd):'';
-if (!printHandler.includes('setJavaScriptEnabled(true)') || !printHandler.includes('createPrintDocumentAdapter(jobName)')) throw new Error('Android print WebView must execute the conditional page-number hook and use the native print adapter');
+if (!printHandler.includes('setJavaScriptEnabled(true)') || !printHandler.includes('createPrintDocumentAdapter(jobName)')) throw new Error('Android print WebView must use the native print adapter');
 if (!printHandler.includes('int height=webPageHeight;') || !printHandler.includes('int width=webWidth;') || printHandler.includes('contentCssHeight=Math.max(cssPageHeight,v.getContentHeight())')) throw new Error('Native report printing must keep a fixed A4 WebView viewport and let Android paginate the complete document');
 const imageExportStart=androidSetup.indexOf('@PluginMethod public void saveHtmlAsImages');
 const imageExportEnd=androidSetup.indexOf('@PluginMethod public void printHtml',imageExportStart);
@@ -312,7 +312,7 @@ if (!writtenPrint.includes('.written-inner{display:flex;flex-direction:column;wi
 if (!writtenPrint.includes('orphans:2;widows:2') || !writtenPrint.includes('break-inside:avoid;page-break-inside:avoid')) throw new Error('Written report pagination safeguards are missing');
 if (writtenPrint.includes('height:277mm') || writtenPrint.includes('overflow:hidden') || writtenPrint.includes('function fitWrittenPages()') || writtenPrint.includes('inner.style.transform="scale("+scale+")"')) throw new Error('Written reports must continue onto additional pages without shrinking or clipping content');
 if (writtenPrint.includes('counter(page)') || (writtenPrint.match(/@bottom-center/g)||[]).length) throw new Error('Single-page written report must not have an unconditional page number; numbering is enabled only by the multi-page print hook');
-if (!app.includes('const pageNumbering=heightMm=>') || !app.includes('media="print" disabled') || !app.includes('window.addEventListener("beforeprint",update)') || !app.includes('style.disabled=h<=limit+12') || app.includes('pageNumbering(269)') || app.includes('pageNumbering(281)')) throw new Error('All printed report templates must omit bottom page numbering');
+if (app.includes('const pageNumbering=') || app.includes('counter(page)') || app.includes('@bottom-center') || app.includes('pageNumbering(')) throw new Error('All printed report templates must omit page numbering entirely');
 if (!app.includes('height:auto;max-width:none;margin:0;padding:0;overflow:visible;break-after:page')) throw new Error('Written report pages must grow naturally and preserve the original font size');
 const sharedIdentity='repeating-linear-gradient(180deg,#f7df91 0 4px,#b88622 5px 8px,#f7df91 9px 11px)';
 if ((app.split('/* DEEB shared reference identity */').length-1)!==4) throw new Error('All four report templates must embed the same approved DEEB visual identity');
