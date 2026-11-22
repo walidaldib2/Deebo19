@@ -330,7 +330,7 @@ if (androidAssets.includes('"scanner.js"') || html.includes('src="scanner.js"') 
 
 const readableRules = [
   'const readableReportHtml=html=>html.replace("</style>"',
-  '.report-body{color:#000!important;font-size:22px!important;font-weight:800!important',
+  '.report-body{color:#000!important;font-size:20px!important;font-weight:800!important',
   '.report-table td,.branch-table td,.bike-table td{color:#000!important',
   '.report-table td,.branch-table td,.bike-table td{color:#000!important;-webkit-text-fill-color:#000!important;font-size:19px!important;font-weight:800!important',
   '.bike-table td.bike-coordinates,.bike-table td.bike-patrol-times{font-size:16px!important;font-weight:800!important',
