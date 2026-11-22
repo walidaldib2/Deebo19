@@ -680,9 +680,11 @@ function reports(){
   .branch-sheet-section .branch-table-wrap{display:block!important;flex:1 1 auto!important;width:100%!important;height:auto!important;min-height:0!important;overflow:visible!important}
   .branch-sheet-section .branch-table{display:table!important;width:100%!important;height:100%!important;table-layout:fixed!important;border-collapse:collapse!important}
   .branch-sheet-section .branch-table thead{display:table-header-group!important}
+  .branch-sheet-section .branch-table thead tr{height:12mm!important;min-height:12mm!important}
+  .branch-sheet-section .branch-table thead th{height:12mm!important;min-height:12mm!important;padding:8px 4px!important;font-size:15px!important;line-height:1.3!important;vertical-align:middle!important}
   .branch-sheet-section .branch-table tbody tr{height:22mm!important;min-height:22mm!important;break-inside:avoid!important;page-break-inside:avoid!important}
   .branch-sheet-section .branch-table tbody td{height:22mm!important;min-height:22mm!important;padding:3px 4px!important;font-size:14px!important;line-height:1.25!important;vertical-align:middle!important;overflow:visible!important}
-  .branch-sheet-section .branch-table th{padding:4px 3px!important;font-size:14px!important;line-height:1.25!important}
+  .branch-sheet-section .branch-table th{padding:8px 4px!important;font-size:15px!important;line-height:1.3!important;min-height:12mm!important}
   .branch-sheet-section .foot{flex:0 0 auto!important;margin-top:auto!important;padding-top:3px!important;font-size:10px!important;line-height:1.2!important}
  }
  .report-body{color:#000!important;font-size:20px!important;font-weight:800!important;line-height:1.85!important;-webkit-text-fill-color:#000!important}
