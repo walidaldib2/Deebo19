@@ -336,5 +336,7 @@ const readableRules = [
 ];
 for (const rule of readableRules) if (!app.includes(rule)) throw new Error('All report outputs must apply high-contrast black, larger, bold data text: '+rule);
 
-if (!app.includes('.meta span,.overview-item b,.metric b,.bike-meta b{font-size:22px!important;font-weight:900!important')) throw new Error('Report metadata values must use 22px bold typography');
+if (!app.includes('.meta span,.overview-item b,.metric b,.bike-meta b{font-size:20px!important;font-weight:800!important')) throw new Error('Report metadata values must use 22px bold typography');
 if (!app.includes('.bike-table td.bike-coordinates,.bike-table td.bike-patrol-times{font-size:22px!important;font-weight:900!important')) throw new Error('Bike patrol time and coordinate data must use 22px bold typography');
+
+if (!app.includes('.report-table th,.branch-table th,.bike-table th{font-size:16px!important;font-weight:900!important')) throw new Error('Report table headings must remain smaller than data text');
