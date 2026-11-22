@@ -62,6 +62,14 @@ if (!app.includes('يمكنك الدخول باستخدام PIN')) throw new Err
 if (!app.includes('function lockApplication()') || !app.includes('document.visibilityState==="hidden"') || !app.includes('window.addEventListener("pagehide",lockApplication)')) throw new Error('Automatic PIN lock hooks are missing');
 if (!sw.includes('deebo-local-v10-19')) throw new Error('Service worker cache version was not bumped');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
+if (!db.includes('function localDateISO(date=new Date())') || !db.includes('function recordWorkDate(row)') || !db.includes('function shiftIdentity(payload={})') || !db.includes('is_archived:!!old?.is_archived') || !db.includes('shift_key')) throw new Error('Date/shift identity and archived-record edit preservation are required');
+if (!db.includes('"emergencies","tasks"') || !db.includes('const date=recordWorkDate(row)')) throw new Error('Automatic archival must use the actual work date for every operational record');
+for (const type of ['branch_patrols','bike_patrols','manager_rounds','incidents','tasks','handovers','emergencies']) {
+  const marker = 'if(!fields[type].some(f=>f[0]==="shift"))fields[type].push(["shift","الشفت","select","صباحي|مسائي|ليلي",1])';
+  if (!app.includes(marker)) throw new Error('Operational forms must require a separate shift selector');
+}
+if (!app.includes('fields.handovers.unshift(["handover_date","تاريخ الشفت","date",1])') || !app.includes('fields.emergencies.unshift(["emergency_date","تاريخ الحالة","date",1])') || !app.includes('fields.tasks.unshift(["work_date","تاريخ العمل","date",1])') || !app.includes('اختر الشفت')) throw new Error('Every shift record must have an explicit date and shift selection');
+if (!db.includes('created_at:old?.created_at||now()') || !db.includes('archived_at:old.archived_at')) throw new Error('Editing an archived record must preserve its original date and archive status');
 if (!db.includes('return {app:"DEEB",format:2') || !db.includes('["DEEB","DEEBO","DEBOO16"].includes(obj.app)') || !db.includes('title:"تقرير DEEB"')) throw new Error('DEEB backup / approved report branding or legacy backup compatibility is missing');
 for (const marker of [
   'document.addEventListener("click",e=>{if(e.target.closest("[data-back-home]"))',
