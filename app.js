@@ -418,6 +418,13 @@ function renderEntity(type){
   if(!form)return;
   if(!form.reportValidity()){toast("راجع الحقول المطلوبة قبل الحفظ.");if(status)status.textContent="راجع الحقول المطلوبة قبل الحفظ.";return;}
   const payload=Object.fromEntries(new FormData(form).entries());
+  if(type==="branch_patrols"&&currentEdit?.payload?.branch_repeat){
+   const branch=String(currentEdit.payload.branch||payload.branch||"").trim(),date=String(currentEdit.payload.patrol_date||payload.patrol_date||"").slice(0,10);
+   const key=normalize(branch).replace(/\\s+/g," ");
+   const source=cache.filter(x=>x.entity_type==="branch_patrols"&&!x.is_archived&&normalize(String(x.payload?.branch||"").trim()).replace(/\\s+/g," ")===key&&String(x.payload?.patrol_date||"").slice(0,10)===date).sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||"")))[0];
+   if(source){["branch","supervisor","responsible","patrol_date","condition","notes"].forEach(field=>{if(source.payload?.[field]!==undefined)payload[field]=source.payload[field];});}
+   payload.followup_slot=currentEdit.payload.followup_slot||payload.followup_slot||"";
+  }
   if(type==="manager_rounds"){const c=patrolShiftContext();payload.branch_context=payload.branch_context||c.branch||"";payload.supervisor_context=payload.supervisor_context||c.supervisor||"";payload.shift_context=payload.shift_context||c.shift||"";if(!payload.branches)payload.branches=c.branch||"";}
   if(type==="daily_rosters"){payload.patrol_people_ids=[...form.querySelectorAll('input[name="patrol_people_ids"]:checked')].map(o=>o.value);payload.bike_ids=[...form.querySelectorAll('input[name="bike_ids"]:checked')].map(o=>o.value);}
   Object.keys(payload).forEach(key=>{if(typeof payload[key]==="string")payload[key]=payload[key].trim();});
