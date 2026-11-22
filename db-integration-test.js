@@ -125,8 +125,8 @@ async function main() {
   assert.equal((await db.all()).some(x => x.id === yesterdayRoster.id), false, "Yesterday's roster should leave active operations");
   assert.equal((await db.all({ archived: true })).some(x => x.id === yesterdayRoster.id), true, "Yesterday's roster should be available in archive");
   assert.equal((await db.all()).some(x => x.id === todayRoster.id), true, "Today's roster should remain active");
-  assert.equal((await db.all()).some(x => x.id === masterPerson.id && x.is_archived), true, false);
-  assert.equal((await db.all()).some(x => x.id === masterBike.id && x.is_archived), true, false);
+  assert.equal((await db.all()).some(x => x.id === masterPerson.id), true, "Master patrol people must remain active");
+  assert.equal((await db.all()).some(x => x.id === masterBike.id), true, "Master bikes must remain active");
   const editedArchivedRoster = await db.save("daily_rosters", {
     work_date: "2026-11-21", shift: "صباحي", start_time: "07:00", end_time: "15:00",
     patrol_people_ids: [], bike_ids: [], edit_reason: "اختبار تعديل سجل مؤرشف"
