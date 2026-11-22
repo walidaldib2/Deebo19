@@ -63,6 +63,7 @@ if (!app.includes('function lockApplication()') || !app.includes('document.visib
 if (!sw.includes('deebo-local-v10-19')) throw new Error('Service worker cache version was not bumped');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 if (!db.includes('function localDateISO(date=new Date())') || !db.includes('function recordWorkDate(row)') || !db.includes('function shiftIdentity(payload={})') || !db.includes('is_archived:!!old?.is_archived') || !db.includes('shift_key')) throw new Error('Date/shift identity and archived-record edit preservation are required');
+if (!db.includes(String.raw`/^\d{4}-\d{2}-\d{2}$/`) || db.includes(String.raw`/^\\d{4}-\\d{2}-\\d{2}$/`)) throw new Error('Work-date validation must match real ISO calendar dates, not literal backslash characters');
 if (!db.includes('if(operationalTypes.has(type))') || !db.includes('"written_reports","absences","handovers","emergencies","tasks"')) throw new Error('Shift/date metadata must be limited to operational records, leaving master registries unchanged');
 if (!db.includes('"emergencies","tasks"') || !db.includes('const date=recordWorkDate(row)')) throw new Error('Automatic archival must use the actual work date for every operational record');
 for (const type of ['branch_patrols','bike_patrols','manager_rounds','incidents','tasks','handovers','emergencies']) {
