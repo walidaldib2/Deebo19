@@ -324,3 +324,14 @@ if (!app.includes('تم تحديث النسخة التلقائية لهذا ال
 
 const androidAssets = fs.readFileSync(path.join(root,'prepare-android.js'),'utf8');
 if (androidAssets.includes('"scanner.js"') || html.includes('src="scanner.js"') || sw.includes('./scanner.js')) throw new Error('Document scanner assets must not be staged or cached');
+
+const readableRules = [
+  'const readableReportHtml=html=>html.replace("</style>"',
+  '.report-body{color:#000!important;font-size:20px!important;font-weight:700!important',
+  '.report-table td,.branch-table td,.bike-table td{color:#000!important',
+  '.report-table td,.branch-table td,.bike-table td{color:#000!important;-webkit-text-fill-color:#000!important;font-size:16px!important',
+  '.bike-table td.bike-coordinates,.bike-table td.bike-patrol-times{font-size:14px!important',
+  'html:readableReportHtml(printHtml(d))',
+  'const html=readableReportHtml(printHtml(d));'
+];
+for (const rule of readableRules) if (!app.includes(rule)) throw new Error('All report outputs must apply high-contrast black, larger, bold data text: '+rule);
