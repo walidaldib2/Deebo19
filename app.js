@@ -671,7 +671,7 @@ function reports(){
  /* Branch follow-up: remove CSS page margins, compensate left offset, and enlarge the 10 follow-up rows. */
  @page{size:A4 portrait;margin:0}
  @media print{
-  .branch-sheet-section{position:relative!important;left:-2mm!important;display:flex!important;flex-direction:column!important;box-sizing:border-box!important;width:212mm!important;min-width:212mm!important;max-width:212mm!important;height:auto!important;min-height:297mm!important;max-height:none!important;margin:0!important;padding:0!important;overflow:visible!important;break-inside:avoid!important;page-break-inside:avoid!important;break-after:page!important;page-break-after:always!important}
+  .branch-sheet-section{position:relative!important;left:0!important;right:auto!important;display:flex!important;flex-direction:column!important;box-sizing:border-box!important;width:206mm!important;min-width:206mm!important;max-width:206mm!important;height:auto!important;min-height:297mm!important;max-height:none!important;margin-left:auto!important;margin-right:auto!important;margin-top:0!important;margin-bottom:0!important;padding:0!important;overflow:visible!important;break-inside:avoid!important;page-break-inside:avoid!important;break-after:page!important;page-break-after:always!important}
   .branch-sheet-section:last-of-type{break-after:auto!important;page-break-after:auto!important}
   .branch-sheet-section .brand{flex:0 0 auto!important;padding-bottom:3px!important;margin-bottom:4px!important}
   .branch-sheet-section .bike-report-heading{flex:0 0 auto!important;margin:3px 0 4px!important;padding:2px 5px!important}
