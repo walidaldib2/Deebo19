@@ -279,15 +279,6 @@ public class FileExportPlugin extends Plugin {
                   if(Color.red(pixel)<248||Color.green(pixel)<248||Color.blue(pixel)<248){nonWhite++;break;}
                 }
                 if(nonWhite==0)throw new Exception("صفحة التقرير رقم "+(index+1)+" فارغة؛ تم إيقاف الحفظ.");
-                if(pageCount>1){
-                  Canvas canvas=new Canvas(bitmap);
-                  android.graphics.Paint line=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-                  line.setColor(Color.rgb(201,154,50));line.setStrokeWidth(2f);
-                  canvas.drawLine(70,height-95,width-70,height-95,line);
-                  android.graphics.Paint text=new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-                  text.setColor(Color.rgb(16,39,91));text.setTextSize(28);text.setTextAlign(android.graphics.Paint.Align.CENTER);
-                  canvas.drawText("صفحة "+(index+1)+" من "+pageCount,width/2f,height-48,text);
-                }
                 ContentValues values=new ContentValues();
                 values.put(MediaStore.Images.Media.DISPLAY_NAME,baseName+"-"+String.format(java.util.Locale.US,"%02d",index+1)+".png");
                 values.put(MediaStore.Images.Media.MIME_TYPE,"image/png");
