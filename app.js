@@ -671,7 +671,7 @@ function reports(){
  /* Branch follow-up: equal 1mm side margins and use the printable page height without leaving a blank footer gap. */
  @page{size:A4 portrait;margin:0}
  @media print{
-  .branch-sheet-section{display:flex!important;flex-direction:column!important;box-sizing:border-box!important;width:210mm!important;min-width:210mm!important;max-width:210mm!important;height:auto!important;min-height:297mm!important;max-height:none!important;margin:0!important;padding:0!important;overflow:visible!important;break-inside:avoid!important;page-break-inside:avoid!important;break-after:page!important;page-break-after:always!important}
+  .branch-sheet-section{position:relative!important;left:-2mm!important;display:flex!important;flex-direction:column!important;box-sizing:border-box!important;width:212mm!important;min-width:212mm!important;max-width:212mm!important;height:auto!important;min-height:297mm!important;max-height:none!important;margin:0!important;padding:0!important;overflow:visible!important;break-inside:avoid!important;page-break-inside:avoid!important;break-after:page!important;page-break-after:always!important}
   .branch-sheet-section:last-of-type{break-after:auto!important;page-break-after:auto!important}
   .branch-sheet-section .brand{flex:0 0 auto!important;padding-bottom:3px!important;margin-bottom:4px!important}
   .branch-sheet-section .bike-report-heading{flex:0 0 auto!important;margin:3px 0 4px!important;padding:2px 5px!important}
