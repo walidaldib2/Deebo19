@@ -696,6 +696,11 @@ function reports(){
  .bike-table td.bike-coordinates,.bike-table td.bike-patrol-times{font-size:16px!important;font-weight:800!important;line-height:1.4!important;overflow-wrap:anywhere}
  .foot,.report-foot,.report-page-note{color:#000!important;-webkit-text-fill-color:#000!important;font-size:13px!important;font-weight:700!important}
  .written-page,.written-inner,.sheet{color:#000}
+ /* Center branch follow-up sheets on the full A4 page: equal 1mm left/right margins. */
+ @media print{
+  html,body{width:210mm!important;min-width:210mm!important;max-width:210mm!important;margin:0!important;padding:0!important;position:static!important;transform:none!important;overflow:visible!important}
+  .branch-sheet-section{box-sizing:border-box!important;width:208mm!important;min-width:208mm!important;max-width:208mm!important;margin-left:auto!important;margin-right:auto!important;left:auto!important;right:auto!important;transform:none!important}
+ }
  /* Keep the original compact typography of bike patrol reports; the larger shared report rules apply only to other report types. */
  .bike-sheet-section .bike-report-kicker{font-size:12px!important;line-height:1.35!important}
  .bike-sheet-section .bike-report-heading h1{font-size:26px!important;line-height:1.35!important}
