@@ -147,7 +147,7 @@ console.log('PASS: required files, navigation hierarchy, reports archive/restore
 
 if (!app.includes('id="pdfReport"') || !app.includes('$("#pdfReport").onclick=()=>') || !app.includes('اختر حفظ كملف PDF')) throw new Error('PDF export action is missing');
 
-if (!app.includes('data-report-type="written_reports">التقرير اليومي</button>') || !app.includes('id="createWrittenReport">+ إضافة تقرير يومي</button>') || !app.includes('<h1>التقرير اليومي</h1>')) throw new Error('Daily report must use the exact requested name in the report menu, create action, and printed page title');
+if (!app.includes('data-report-type="written_reports">التقرير اليومي</button>') || app.includes('id="createWrittenReport"') || !app.includes('type==="written_reports"?"+ إضافة تقرير يومي":"+ إضافة سجل"') || !app.includes('<h1>التقرير اليومي</h1>')) throw new Error('Daily report creation must stay in Follow-up while Reports only filters and prints saved reports');
 
 if (!app.includes('const createXlsx=rows=>') || !app.includes('[Content_Types].xml') || !app.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') || !app.includes('DEEB-report.xlsx')) throw new Error('Excel export must create a valid XLSX workbook for Android Microsoft Excel');
 if (!app.includes('<sheetFormatPr defaultRowHeight="22"/><cols>\'+columnWidths+\'</cols><sheetData>')) throw new Error('XLSX worksheet XML elements must follow the Excel schema order');
