@@ -23,7 +23,7 @@ written_reports:[["report_title","عنوان التقرير","text",1],["report_
 documents:[["title","اسم المستند","text",1],["category","التصنيف","text"],["reference","رقم / مرجع المستند","text"],["notes","ملاحظات","textarea"]]
 };
 const pageGroups={follow:["branch_patrols","bike_patrols","manager_rounds","incidents","tasks","handovers","absences","written_reports"],data:["branches","patrol_people","emergency_people","bikes","patrol_sites","managers","employees","documents"],emergency:["emergencies","emergency_people"]};
-let cache=[],currentPage="home",currentType=null,currentEdit=null,currentEmployeeDetailId=null,weatherTimer=null,searchTerm="",deferredInstallPrompt=null;
+let cache=[],currentPage="home",currentType=null,currentEdit=null,currentEmployeeDetailId=null,weatherTimer=null,archiveTimer=null,searchTerm="",deferredInstallPrompt=null;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const normalize=v=>String(v||"").trim().toLocaleLowerCase("ar").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي");
 const validCoordinatePair=(lat,lng)=>{const a=String(lat??"").trim(),b=String(lng??"").trim();if(!a||!b)return false;const x=Number(a),y=Number(b);return Number.isFinite(x)&&Number.isFinite(y)&&x>=-90&&x<=90&&y>=-180&&y<=180;};
@@ -92,8 +92,11 @@ async function authState(){
 }
 async function openApplication(){
  $("#authPanel").classList.add("hidden");$("#appRoot").classList.remove("hidden");
+ try{const result=await DebooDB.archivePastDays();if(result.archived)console.info("DEEB archived previous-day shift records:",result.archived);}catch(error){console.warn("DEEB automatic shift archive:",error);}
  await refresh();
  try{await DebooDB.createAutoBackup();}catch(error){console.warn("DEEB automatic backup:",error);}
+ if(archiveTimer)clearInterval(archiveTimer);
+ archiveTimer=setInterval(async()=>{try{const result=await DebooDB.archivePastDays();if(result.archived){await refresh();console.info("DEEB archived previous-day shift records:",result.archived);}}catch(error){console.warn("DEEB automatic shift archive:",error);}},60000);
  render("home");consumeSharedLocation();consumeNativeShare();
 }
 function extractSharedCoordinates(value){
