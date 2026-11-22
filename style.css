@@ -65,3 +65,16 @@
 .scanner-error{border-right-color:#d66b75;color:#ffb4bb}
 .scanner-note{font-size:13px;line-height:1.7}
 @media(max-width:600px){.scanner-controls{grid-template-columns:1fr}.scanner-preview{padding:5px}.scanner-page{min-width:100px}}
+
+
+/* Daily written reports: mobile-first cards keep edit actions visible without horizontal scrolling. */
+.written-report-list{display:grid;grid-template-columns:1fr;gap:12px;width:100%;}
+.written-report-card{min-width:0;border:1px solid var(--border);border-radius:14px;padding:14px;background:var(--surface,#fff);box-shadow:0 2px 8px rgba(0,0,0,.05);}
+.written-report-card-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;}
+.written-report-card-head>div:first-child{display:grid;gap:5px;min-width:0;}
+.written-report-card-head strong{font-size:16px;color:var(--text);}
+.written-report-card-head span,.written-report-card-meta{font-size:13px;color:var(--muted);}
+.written-report-actions{display:flex;flex-wrap:wrap;gap:8px;width:100%;}
+.written-report-actions button{min-height:40px;flex:1 1 120px;font-weight:800;}
+.written-report-card-meta{margin-top:10px;}
+.written-report-card p{margin:10px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7;color:var(--text);}
