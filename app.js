@@ -670,7 +670,7 @@ function reports(){
  // (screen preview, Android PNG export, and print/PDF) without changing layout.
  const readableReportHtml=html=>html.replace("</style>",`
  .report-body{color:#000!important;font-size:22px!important;font-weight:700!important;line-height:2!important;-webkit-text-fill-color:#000!important}
- .meta b,.meta span,.overview-item span,.overview-item b,.metric span,.metric b,.bike-meta span,.bike-meta b{color:#000!important;-webkit-text-fill-color:#000!important}
+ .meta b,.meta span,.overview-item span,.overview-item b,.metric span,.metric b,.bike-meta span,.bike-meta b{color:#000!important;-webkit-text-fill-color:#000!important}\n .meta b,.overview-item span,.metric span,.bike-meta span{font-size:18px!important;font-weight:900!important}\n .meta span,.overview-item b,.metric b,.bike-meta b{font-size:22px!important;font-weight:900!important;line-height:1.6!important}
  .report-table td,.branch-table td,.bike-table td{color:#000!important;-webkit-text-fill-color:#000!important;font-size:22px!important;font-weight:800!important;line-height:1.7!important}
  .report-table th,.branch-table th,.bike-table th{font-size:20px!important;font-weight:900!important;line-height:1.7!important}
  .bike-table td.bike-coordinates,.bike-table td.bike-patrol-times{font-size:18px!important;font-weight:800!important;line-height:1.45!important}
