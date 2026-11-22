@@ -407,7 +407,7 @@ function renderEntity(type){
    currentEdit={id:null,payload:{branch,patrol_date:date,patrol_time:time,followup_slot:String(Number(button.dataset.branchSlot)+1),branch_repeat:!!previous,supervisor:inherited.supervisor||"",responsible:inherited.responsible||"",shift:inherited.shift||"",}};
    renderEntity("branch_patrols");
    $("#editor")?.scrollIntoView({behavior:"smooth",block:"start"});
-   $("#recordForm")?.elements.namedItem(previous?"patrol_time":"supervisor")?.focus();
+   if(previous)$("#recordForm")?.elements.namedItem("patrol_time")?.focus();else $("#recordForm")?.elements.namedItem("supervisor")?.focus();
    toast(previous?"أدخل توقيت المتابعة فقط ثم احفظه في خانته.":"أدخل بيانات الفرع والشفت الأساسية لأول مرة.");
   }));
  }
