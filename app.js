@@ -678,6 +678,17 @@ function reports(){
  .bike-table td.bike-coordinates,.bike-table td.bike-patrol-times{font-size:16px!important;font-weight:800!important;line-height:1.4!important;overflow-wrap:anywhere}
  .foot,.report-foot,.report-page-note{color:#000!important;-webkit-text-fill-color:#000!important;font-size:13px!important;font-weight:700!important}
  .written-page,.written-inner,.sheet{color:#000}
+ /* Keep the original compact typography of bike patrol reports; the larger shared report rules apply only to other report types. */
+ .bike-sheet-section .bike-report-kicker{font-size:12px!important;line-height:1.35!important}
+ .bike-sheet-section .bike-report-heading h1{font-size:26px!important;line-height:1.35!important}
+ .bike-sheet-section .bike-section-title{font-size:16px!important;line-height:1.4!important}
+ .bike-sheet-section .bike-meta span{font-size:12px!important;line-height:1.25!important}
+ .bike-sheet-section .bike-meta b{font-size:14px!important;line-height:1.25!important}
+ .bike-sheet-section .bike-table th{font-size:14px!important;line-height:1.35!important}
+ .bike-sheet-section .bike-table td{font-size:12px!important;line-height:1.25!important}
+ .bike-sheet-section .bike-table td.bike-coordinates,.bike-sheet-section .bike-table td.bike-notes{font-size:12px!important;line-height:1.25!important}
+ .bike-sheet-section .bike-table td.bike-patrol-times{font-size:11px!important;line-height:1.35!important}
+ .bike-sheet-section .report-foot,.bike-sheet-section .report-page-note{font-size:10px!important;line-height:1.3!important}
  `+"</style>");
 
  $("#saveReportImage").onclick=async()=>{const d=get(),hasBikeReport=$("#reportType").value==="bike_patrols"&&cache.some(x=>x.entity_type==="bikes"&&!x.is_archived);if(!d.length&&!hasBikeReport){toast("لا توجد سجلات في الفترة المحددة");return;}const native=window.DEEBNativePlugins?.FileExport;if(!native||!native.saveHtmlAsImages){toast("حفظ التقرير في معرض الصور متاح من تطبيق DEEB على أندرويد");return;}const button=$("#saveReportImage");button.disabled=true;button.textContent="جارٍ تجهيز الصورة...";try{const result=await native.saveHtmlAsImages({html:readableReportHtml(printHtml(d)),name:"DEEB-report"});if(result?.saved!==true||!Number.isInteger(result.count)||result.count<1)throw new Error("لم يؤكد النظام حفظ صورة واحدة على الأقل.");toast("تم حفظ "+result.count+" صورة في معرض الصور داخل Pictures/DEEB");}catch(e){toast("تعذر حفظ صورة التقرير: "+(e.message||e));}finally{button.disabled=false;button.textContent="حفظ التقرير صورة";}};
