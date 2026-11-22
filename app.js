@@ -199,12 +199,12 @@ function branchPatrolTable(){
  const selectedDate=selectedBranchPatrolDate;
  const visible=names.map(name=>{
   const key=normalize(name).replace(/\s+/g," ");
-  const visits=records.filter(r=>normalize(String(r.payload?.branch||"").trim()).replace(/\s+/g," ")===key&&String(r.payload?.patrol_date||today).slice(0,10)===selectedDate).sort((a,b)=>String(a.payload?.patrol_time||"").localeCompare(String(b.payload?.patrol_time||"")));
+  const visits=records.filter(r=>normalize(String(r.payload?.branch||"").trim()).replace(/\s+/g," ")===key&&String(r.payload?.patrol_date||today).slice(0,10)===selectedDate).sort((a,b)=>String(a.created_at||"").localeCompare(String(b.created_at||"")));
   return {name,date:selectedDate,visits};
  }).filter(row=>!searchTerm||normalize(row.name).includes(normalize(searchTerm))||row.date.includes(searchTerm));
  if(!visible.length)return '<div class="empty">لا توجد فروع مسجلة. أضف الفروع من إدارة البيانات أولًا.</div>';
  const slotCount=5;
- const displayRows=visible.flatMap(row=>{const groupSize=Math.max(1,Math.ceil(row.visits.length/slotCount));return Array.from({length:groupSize},(_,i)=>({...row,continuation:i>0,groupSize,visits:row.visits.slice(i*slotCount,(i+1)*slotCount)}));});
+ const displayRows=visible.flatMap(row=>{const assigned=row.visits.map((visit,index)=>({visit,slot:Math.max(1,Number(visit.payload?.followup_slot)||index+1)}));const maxSlot=Math.max(1,...assigned.map(x=>x.slot));const groupSize=Math.ceil(maxSlot/slotCount);return Array.from({length:groupSize},(_,i)=>({...row,continuation:i>0,groupSize,visits:Array.from({length:slotCount},(_,slot)=>assigned.find(x=>x.slot===i*slotCount+slot+1)?.visit||null)}));});
  const dateOptions=availableDates.map(date=>'<option value="'+esc(date)+'" '+(date===selectedDate?'selected':'')+'>'+esc(date)+'</option>').join("");
  return '<div class="field branch-patrol-date-filter"><label for="branchPatrolDateFilter">تاريخ المتابعة</label><select id="branchPatrolDateFilter">'+dateOptions+'</select></div><div class="table-wrap"><table class="branch-patrol-grid"><thead><tr><th>الفرع</th><th>تاريخ المرور</th>'+Array.from({length:slotCount},(_,i)=>'<th>متابعة '+(i+1)+'</th>').join("")+'</tr></thead><tbody>'+displayRows.map(row=>'<tr>'+(row.continuation?'':'<td rowspan="'+row.groupSize+'"><div class="branch-order-cell"><b>'+esc(row.name)+'</b><span class="branch-order-actions no-print"><button type="button" class="tiny" data-move-branch="'+esc(row.name)+'" data-direction="-1" title="لأعلى">↑</button><button type="button" class="tiny" data-move-branch="'+esc(row.name)+'" data-direction="1" title="لأسفل">↓</button></span></div></td><td rowspan="'+row.groupSize+'">'+esc(row.date)+'</td>')+Array.from({length:slotCount},(_,slot)=>{const visit=row.visits[slot];return '<td>'+(visit?'<div class="branch-visit-value">'+esc(visit.payload?.patrol_time||"—")+'</div><button type="button" class="tiny" data-edit="'+visit.id+'" data-type="branch_patrols" title="تعديل بيانات المرور">تعديل</button>':'<button type="button" class="secondary tiny branch-slot" data-branch-slot="'+slot+'" data-branch-name="'+esc(row.name)+'" data-branch-date="'+esc(row.date)+'">＋ تسجيل</button>')+'</td>';}).join("")+'</tr>').join("")+'</tbody></table></div>';
 }
@@ -402,11 +402,11 @@ function renderEntity(type){
   $$("[data-branch-slot]").forEach(button=>button.addEventListener("click",()=>{
    const branch=button.dataset.branchName,date=button.dataset.branchDate;
    const d=new Date(),time=[String(d.getHours()).padStart(2,"0"),String(d.getMinutes()).padStart(2,"0")].join(":");
-   currentEdit={id:null,payload:{branch,patrol_date:date,patrol_time:time}};
+   currentEdit={id:null,payload:{branch,patrol_date:date,patrol_time:time,followup_slot:String(Number(button.dataset.branchSlot)+1)}};
    renderEntity("branch_patrols");
    $("#editor")?.scrollIntoView({behavior:"smooth",block:"start"});
    $("#recordForm")?.elements.namedItem("supervisor")?.focus();
-   toast("سجّل اسم المشرف وباقي البيانات ثم احفظ المرور.");
+   toast("سجّل بيانات الفرع والمرور ثم احفظه في خانته المحددة.");
   }));
  }
  $("#cancelEdit")?.addEventListener("click",()=>{currentEdit=null;renderEntity(type);});
