@@ -420,8 +420,8 @@ function renderEntity(type){
   const payload=Object.fromEntries(new FormData(form).entries());
   if(type==="branch_patrols"&&currentEdit?.payload?.branch_repeat){
    const branch=String(currentEdit.payload.branch||payload.branch||"").trim(),date=String(currentEdit.payload.patrol_date||payload.patrol_date||"").slice(0,10);
-   const key=normalize(branch).replace(/\\s+/g," ");
-   const source=cache.filter(x=>x.entity_type==="branch_patrols"&&!x.is_archived&&normalize(String(x.payload?.branch||"").trim()).replace(/\\s+/g," ")===key&&String(x.payload?.patrol_date||"").slice(0,10)===date).sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||"")))[0];
+   const key=normalize(branch).replace(/\s+/g," ");
+   const source=cache.filter(x=>x.entity_type==="branch_patrols"&&!x.is_archived&&normalize(String(x.payload?.branch||"").trim()).replace(/\s+/g," ")===key&&String(x.payload?.patrol_date||"").slice(0,10)===date).sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||"")))[0];
    if(source){["branch","supervisor","responsible","patrol_date","condition","notes"].forEach(field=>{if(source.payload?.[field]!==undefined)payload[field]=source.payload[field];});}
    payload.followup_slot=currentEdit.payload.followup_slot||payload.followup_slot||"";
   }
