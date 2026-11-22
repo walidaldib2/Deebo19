@@ -554,7 +554,7 @@ function reports(){
  const rowsForExport=d=>{
   if($("#reportType").value==="branch_patrols"){
    const groups=branchGroupsFor(d),slots=5;
-   return [["الفرع","المشرف",...Array.from({length:slots},(_,i)=>"متابعة "+(i+1))],...groups.map(g=>[g.branch+(g.continuation?" — استكمال":""),g.supervisor,...Array.from({length:slots},(_,i)=>g.visits[i]?.payload?.patrol_time||"")])];
+   return [["الموقع","المشرف",...Array.from({length:slots},(_,i)=>"متابعة "+(i+1))],...groups.map(g=>[g.branch+(g.continuation?" — استكمال":""),g.supervisor,...Array.from({length:slots},(_,i)=>g.visits[i]?.payload?.patrol_time||"")])];
   }
   if($("#reportType").value==="bike_patrols"){
    const out=[["التاريخ","اسم القائم بالمرور","رقم الدراجة","كود الدراجة","نوع الدراجة","الفرع / المخزن / مركز الخدمة","مرور","الإحداثيات / رابط الموقع"]];
