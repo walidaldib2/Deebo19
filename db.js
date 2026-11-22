@@ -87,14 +87,14 @@ window.DebooDB = (() => {
   function recordWorkDate(row) {
     const p=row.payload||{};
     const value=p.work_date||p.patrol_date||p.incident_date||p.report_date||p.absence_date||p.handover_date||p.emergency_date||p.task_date;
-    if(/^\\d{4}-\\d{2}-\\d{2}$/.test(String(value||"")))return String(value);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(String(value||"")))return String(value);
     const created=String(row.created_at||"").slice(0,10);
-    return /^\\d{4}-\\d{2}-\\d{2}$/.test(created)?created:"";
+    return /^\d{4}-\d{2}-\d{2}$/.test(created)?created:"";
   }
   function shiftIdentity(payload={}) {
     const shift=String(payload.shift||payload.shift_name||"").trim();
     const date=String(payload.work_date||payload.patrol_date||payload.incident_date||payload.report_date||payload.absence_date||payload.handover_date||payload.emergency_date||payload.task_date||"").trim();
-    return shift&&/^\\d{4}-\\d{2}-\\d{2}$/.test(date)?{shift_name:shift,shift_key:date+"|"+shift}:{};
+    return shift&&/^\d{4}-\d{2}-\d{2}$/.test(date)?{shift_name:shift,shift_key:date+"|"+shift}:{};
   }
   async function archivePastDays(today=localDateISO()) {
     const shiftTypes=new Set(["daily_rosters","branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies","tasks"]);
@@ -102,7 +102,7 @@ window.DebooDB = (() => {
     const candidates=rows.filter(row=>{
       if(row.is_archived||!shiftTypes.has(row.entity_type))return false;
       const date=recordWorkDate(row);
-      return /^\\d{4}-\\d{2}-\\d{2}$/.test(date)&&date<today;
+      return /^\d{4}-\d{2}-\d{2}$/.test(date)&&date<today;
     });
     if(!candidates.length)return {archived:0,today};
     const d=await openDB(),stamp=now();
