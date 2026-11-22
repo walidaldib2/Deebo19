@@ -107,6 +107,33 @@ async function main() {
   await db.restore(tenBikeBackup);
   assert.equal((await db.all()).filter(x => x.entity_type === "bike_patrols").length, 10);
 
+  // Daily shift formations must archive by their own work date and remain separate by shift.
+  const masterPerson = await db.save("patrol_people", { name: "فرد أساسي للاختبار", employee_no: "ROSTER-01", status: "متاح" });
+  const masterBike = await db.save("bikes", { number: "دراجة أساسية للاختبار", status: "جاهزة" });
+  const yesterdayRoster = await db.save("daily_rosters", {
+    work_date: "2026-11-21", shift: "صباحي", start_time: "07:00", end_time: "15:00",
+    patrol_people_ids: [masterPerson.id], bike_ids: [masterBike.id]
+  });
+  const todayRoster = await db.save("daily_rosters", {
+    work_date: "2026-11-22", shift: "مسائي", start_time: "15:00", end_time: "23:00",
+    patrol_people_ids: [], bike_ids: []
+  });
+  assert.equal((await db.getRecord(yesterdayRoster.id)).payload.shift_key, "2026-11-21|صباحي");
+  assert.equal((await db.getRecord(todayRoster.id)).payload.shift_key, "2026-11-22|مسائي");
+  const archivedResult = await db.archivePastDays("2026-11-22");
+  assert.ok(archivedResult.archived >= 1, "Previous-day operational records should archive");
+  assert.equal((await db.all()).some(x => x.id === yesterdayRoster.id), false, "Yesterday's roster should leave active operations");
+  assert.equal((await db.all({ archived: true })).some(x => x.id === yesterdayRoster.id), true, "Yesterday's roster should be available in archive");
+  assert.equal((await db.all()).some(x => x.id === todayRoster.id), true, "Today's roster should remain active");
+  assert.equal((await db.all()).some(x => x.id === masterPerson.id && x.is_archived), true, false);
+  assert.equal((await db.all()).some(x => x.id === masterBike.id && x.is_archived), true, false);
+  const editedArchivedRoster = await db.save("daily_rosters", {
+    work_date: "2026-11-21", shift: "صباحي", start_time: "07:00", end_time: "15:00",
+    patrol_people_ids: [], bike_ids: [], edit_reason: "اختبار تعديل سجل مؤرشف"
+  }, yesterdayRoster.id);
+  assert.equal(editedArchivedRoster.is_archived, true, "Editing an archived shift must not unarchive it");
+  assert.equal((await db.getRecord(yesterdayRoster.id)).payload.work_date, "2026-11-21", "Editing must preserve the original work date");
+
   console.log("PASS: IndexedDB integration — branch CRUD/archive, dynamic bike patrols and backup restore, handover versions, report approval, attachments, and daily automatic backups.");
 }
 
