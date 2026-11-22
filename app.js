@@ -668,7 +668,7 @@ function reports(){
  // Improve contrast and legibility consistently across every standalone report
  // (screen preview, Android PNG export, and print/PDF) without changing layout.
  const readableReportHtml=html=>html.replace("</style>",`
- .report-body{color:#000!important;font-size:22px!important;font-weight:800!important;line-height:1.85!important;-webkit-text-fill-color:#000!important}
+ .report-body{color:#000!important;font-size:20px!important;font-weight:800!important;line-height:1.85!important;-webkit-text-fill-color:#000!important}
  .meta b,.meta span,.overview-item span,.overview-item b,.metric span,.metric b,.bike-meta span,.bike-meta b{color:#000!important;-webkit-text-fill-color:#000!important}
  .meta b,.overview-item span,.metric span,.bike-meta span{font-size:16px!important;font-weight:800!important}
  .meta span,.overview-item b,.metric b,.bike-meta b{font-size:20px!important;font-weight:800!important;line-height:1.5!important}
