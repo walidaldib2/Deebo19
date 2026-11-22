@@ -83,19 +83,25 @@ window.DebooDB = (() => {
     data.sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
     return Number.isFinite(opts.limit)&&opts.limit>=0?data.slice(0,opts.limit):data;
   }
-  async function archivePastDays(today=new Date().toLocaleDateString("en-CA")) {
-    const shiftTypes=new Set(["branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies"]);
+  function localDateISO(date=new Date()) { return [date.getFullYear(),String(date.getMonth()+1).padStart(2,"0"),String(date.getDate()).padStart(2,"0")].join("-"); }
+  function recordWorkDate(row) {
+    const p=row.payload||{};
+    const value=p.work_date||p.patrol_date||p.incident_date||p.report_date||p.absence_date||p.handover_date||p.emergency_date||p.task_date;
+    if(/^\\d{4}-\\d{2}-\\d{2}$/.test(String(value||"")))return String(value);
+    const created=String(row.created_at||"").slice(0,10);
+    return /^\\d{4}-\\d{2}-\\d{2}$/.test(created)?created:"";
+  }
+  function shiftIdentity(payload={}) {
+    const shift=String(payload.shift||payload.shift_name||"").trim();
+    const date=String(payload.work_date||payload.patrol_date||payload.incident_date||payload.report_date||payload.absence_date||payload.handover_date||payload.emergency_date||payload.task_date||"").trim();
+    return shift&&/^\\d{4}-\\d{2}-\\d{2}$/.test(date)?{shift_name:shift,shift_key:date+"|"+shift}:{};
+  }
+  async function archivePastDays(today=localDateISO()) {
+    const shiftTypes=new Set(["branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies","tasks"]);
     const rows=await getAll("records");
     const candidates=rows.filter(row=>{
       if(row.is_archived||!shiftTypes.has(row.entity_type))return false;
-      const p=row.payload||{};
-      const date=(
-        ["branch_patrols","bike_patrols","manager_rounds"].includes(row.entity_type)?p.patrol_date:
-        row.entity_type==="incidents"?p.incident_date:
-        row.entity_type==="written_reports"?p.report_date:
-        row.entity_type==="absences"?p.absence_date:
-        null
-      )||String(row.created_at||"").slice(0,10);
+      const date=recordWorkDate(row);
       return /^\\d{4}-\\d{2}-\\d{2}$/.test(date)&&date<today;
     });
     if(!candidates.length)return {archived:0,today};
@@ -125,7 +131,12 @@ window.DebooDB = (() => {
     if(!type||!payload||typeof payload!=="object"||Array.isArray(payload)) throw new Error("بيانات السجل غير صالحة.");
     const old=id?await get("records",id):null;
     if(id&&!old) throw new Error("السجل المطلوب تعديله غير موجود.");
-    const row={id:id||uid(),entity_type:type,payload:{...payload},branch_id:payload.branch_id||null,status:payload.status||"active",is_archived:false,created_at:old?.created_at||now(),updated_at:now(),created_by:"local"};
+    const savedPayload={...payload};
+    const workDate=recordWorkDate({entity_type:type,payload:savedPayload,created_at:old?.created_at||now()});
+    if(workDate)savedPayload.work_date=workDate;
+    const shiftMeta=shiftIdentity(savedPayload);
+    if(shiftMeta.shift_key){savedPayload.shift_name=shiftMeta.shift_name;savedPayload.shift_key=shiftMeta.shift_key;}
+    const row={id:id||uid(),entity_type:type,payload:savedPayload,branch_id:payload.branch_id||null,status:payload.status||"active",is_archived:!!old?.is_archived,...(old?.archived_at?{archived_at:old.archived_at}:{}),created_at:old?.created_at||now(),updated_at:now(),created_by:old?.created_by||"local"};
     const auditItem=makeAudit(id?"update":"create",row.id,old,row,id?(payload.edit_reason||"تعديل سجل"):"إضافة سجل");
     const d=await openDB();
     if(type==="bike_patrols") {
