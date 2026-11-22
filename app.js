@@ -668,21 +668,22 @@ function reports(){
  // Improve contrast and legibility consistently across every standalone report
  // (screen preview, Android PNG export, and print/PDF) without changing layout.
  const readableReportHtml=html=>html.replace("</style>",`
- /* Branch follow-up: let the page size itself to its content so the tenth row is never cut by a fixed-height sheet. */
+ /* Branch follow-up: equal 1mm side margins and use the printable page height without leaving a blank footer gap. */
+ @page{size:A4 portrait;margin:1mm 1mm 1mm 1mm}
  @media print{
-  .branch-sheet-section{display:block!important;width:208mm!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:1mm 0!important;overflow:visible!important;box-sizing:border-box!important;break-inside:avoid!important;page-break-inside:avoid!important;break-after:page!important;page-break-after:always!important}
+  .branch-sheet-section{display:flex!important;flex-direction:column!important;box-sizing:border-box!important;width:208mm!important;min-width:208mm!important;max-width:208mm!important;height:auto!important;min-height:295mm!important;max-height:none!important;margin:0!important;padding:0!important;overflow:visible!important;break-inside:avoid!important;page-break-inside:avoid!important;break-after:page!important;page-break-after:always!important}
   .branch-sheet-section:last-of-type{break-after:auto!important;page-break-after:auto!important}
-  .branch-sheet-section .brand{padding-bottom:3px!important;margin-bottom:4px!important}
-  .branch-sheet-section .bike-report-heading{margin:3px 0 4px!important;padding:2px 5px!important}
+  .branch-sheet-section .brand{flex:0 0 auto!important;padding-bottom:3px!important;margin-bottom:4px!important}
+  .branch-sheet-section .bike-report-heading{flex:0 0 auto!important;margin:3px 0 4px!important;padding:2px 5px!important}
   .branch-sheet-section .bike-report-heading h1{font-size:22px!important;line-height:1.25!important;padding:3px 8px!important;margin:2px 0!important}
-  .branch-sheet-section .period{display:block!important;width:100%!important;height:auto!important;min-height:18mm!important;margin:0 0 3px!important;padding:3mm 4mm!important;font-size:20px!important;line-height:1.35!important}
-  .branch-sheet-section .branch-table-wrap{display:block!important;width:100%!important;flex:none!important;height:auto!important;min-height:0!important;overflow:visible!important}
-  .branch-sheet-section .branch-table{display:table!important;width:100%!important;height:auto!important;table-layout:fixed!important;border-collapse:collapse!important}
+  .branch-sheet-section .period{display:block!important;flex:0 0 auto!important;width:100%!important;height:auto!important;min-height:18mm!important;margin:0 0 3px!important;padding:3mm 4mm!important;font-size:20px!important;line-height:1.35!important}
+  .branch-sheet-section .branch-table-wrap{display:block!important;flex:1 1 auto!important;width:100%!important;height:auto!important;min-height:0!important;overflow:visible!important}
+  .branch-sheet-section .branch-table{display:table!important;width:100%!important;height:100%!important;table-layout:fixed!important;border-collapse:collapse!important}
   .branch-sheet-section .branch-table thead{display:table-header-group!important}
-  .branch-sheet-section .branch-table tbody tr{height:15mm!important;min-height:15mm!important;break-inside:avoid!important;page-break-inside:avoid!important}
-  .branch-sheet-section .branch-table tbody td{height:15mm!important;min-height:15mm!important;padding:2px 3px!important;font-size:14px!important;line-height:1.25!important;vertical-align:middle!important;overflow:visible!important}
+  .branch-sheet-section .branch-table tbody tr{height:18mm!important;min-height:18mm!important;break-inside:avoid!important;page-break-inside:avoid!important}
+  .branch-sheet-section .branch-table tbody td{height:18mm!important;min-height:18mm!important;padding:2px 3px!important;font-size:14px!important;line-height:1.25!important;vertical-align:middle!important;overflow:visible!important}
   .branch-sheet-section .branch-table th{padding:4px 3px!important;font-size:14px!important;line-height:1.25!important}
-  .branch-sheet-section .foot{margin-top:3px!important;padding-top:3px!important;font-size:10px!important;line-height:1.2!important}
+  .branch-sheet-section .foot{flex:0 0 auto!important;margin-top:auto!important;padding-top:3px!important;font-size:10px!important;line-height:1.2!important}
  }
  .report-body{color:#000!important;font-size:20px!important;font-weight:800!important;line-height:1.85!important;-webkit-text-fill-color:#000!important}
  .meta b,.meta span,.overview-item span,.overview-item b,.metric span,.metric b,.bike-meta span,.bike-meta b{color:#000!important;-webkit-text-fill-color:#000!important}
