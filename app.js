@@ -668,7 +668,7 @@ function reports(){
  // Improve contrast and legibility consistently across every standalone report
  // (screen preview, Android PNG export, and print/PDF) without changing layout.
  const readableReportHtml=html=>html.replace("</style>",`
- /* Branch follow-up: equal 1mm side margins and use the printable page height without leaving a blank footer gap. */
+ /* Branch follow-up: remove CSS page margins, compensate left offset, and enlarge the 10 follow-up rows. */
  @page{size:A4 portrait;margin:0}
  @media print{
   .branch-sheet-section{position:relative!important;left:-2mm!important;display:flex!important;flex-direction:column!important;box-sizing:border-box!important;width:212mm!important;min-width:212mm!important;max-width:212mm!important;height:auto!important;min-height:297mm!important;max-height:none!important;margin:0!important;padding:0!important;overflow:visible!important;break-inside:avoid!important;page-break-inside:avoid!important;break-after:page!important;page-break-after:always!important}
@@ -680,8 +680,8 @@ function reports(){
   .branch-sheet-section .branch-table-wrap{display:block!important;flex:1 1 auto!important;width:100%!important;height:auto!important;min-height:0!important;overflow:visible!important}
   .branch-sheet-section .branch-table{display:table!important;width:100%!important;height:100%!important;table-layout:fixed!important;border-collapse:collapse!important}
   .branch-sheet-section .branch-table thead{display:table-header-group!important}
-  .branch-sheet-section .branch-table tbody tr{height:18mm!important;min-height:18mm!important;break-inside:avoid!important;page-break-inside:avoid!important}
-  .branch-sheet-section .branch-table tbody td{height:18mm!important;min-height:18mm!important;padding:2px 3px!important;font-size:14px!important;line-height:1.25!important;vertical-align:middle!important;overflow:visible!important}
+  .branch-sheet-section .branch-table tbody tr{height:22mm!important;min-height:22mm!important;break-inside:avoid!important;page-break-inside:avoid!important}
+  .branch-sheet-section .branch-table tbody td{height:22mm!important;min-height:22mm!important;padding:3px 4px!important;font-size:14px!important;line-height:1.25!important;vertical-align:middle!important;overflow:visible!important}
   .branch-sheet-section .branch-table th{padding:4px 3px!important;font-size:14px!important;line-height:1.25!important}
   .branch-sheet-section .foot{flex:0 0 auto!important;margin-top:auto!important;padding-top:3px!important;font-size:10px!important;line-height:1.2!important}
  }
