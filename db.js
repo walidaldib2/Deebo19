@@ -132,10 +132,13 @@ window.DebooDB = (() => {
     const old=id?await get("records",id):null;
     if(id&&!old) throw new Error("السجل المطلوب تعديله غير موجود.");
     const savedPayload={...payload};
-    const workDate=recordWorkDate({entity_type:type,payload:savedPayload,created_at:old?.created_at||now()});
-    if(workDate)savedPayload.work_date=workDate;
-    const shiftMeta=shiftIdentity(savedPayload);
-    if(shiftMeta.shift_key){savedPayload.shift_name=shiftMeta.shift_name;savedPayload.shift_key=shiftMeta.shift_key;}
+    const operationalTypes=new Set(["branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies","tasks"]);
+    if(operationalTypes.has(type)){
+      const workDate=recordWorkDate({entity_type:type,payload:savedPayload,created_at:old?.created_at||now()});
+      if(workDate)savedPayload.work_date=workDate;
+      const shiftMeta=shiftIdentity(savedPayload);
+      if(shiftMeta.shift_key){savedPayload.shift_name=shiftMeta.shift_name;savedPayload.shift_key=shiftMeta.shift_key;}
+    }
     const row={id:id||uid(),entity_type:type,payload:savedPayload,branch_id:payload.branch_id||null,status:payload.status||"active",is_archived:!!old?.is_archived,...(old?.archived_at?{archived_at:old.archived_at}:{}),created_at:old?.created_at||now(),updated_at:now(),created_by:old?.created_by||"local"};
     const auditItem=makeAudit(id?"update":"create",row.id,old,row,id?(payload.edit_reason||"تعديل سجل"):"إضافة سجل");
     const d=await openDB();
