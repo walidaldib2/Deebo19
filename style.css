@@ -51,3 +51,41 @@
 .employee-fields dt{font-size:.82rem;color:var(--muted,#667085);margin-bottom:5px}
 .employee-fields dd{margin:0;font-weight:750;overflow-wrap:anywhere}
 @media(max-width:520px){.employee-fields{grid-template-columns:1fr}.employee-list-item{flex-wrap:wrap}.employee-list-job{margin-inline-start:auto}}
+
+/* DEEB document scanner */
+.scanner-file-label{display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.scanner-preview{display:flex;justify-content:center;align-items:center;min-height:180px;max-height:65vh;overflow:auto;background:#020914;border:1px solid #75613e;border-radius:14px;padding:10px;margin:12px 0}
+.scanner-preview canvas{display:block;max-width:100%;max-height:62vh;width:auto;height:auto;object-fit:contain;background:#fff}
+.scanner-controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+.scanner-controls input[type=range]{width:100%;accent-color:var(--gold)}
+.scanner-filters button.active{background:#80632d;border-color:#f0cd75}
+.scanner-pages{display:flex;gap:10px;overflow-x:auto;padding:10px 2px}
+.scanner-page{min-width:112px;max-width:130px;display:flex;flex-direction:column;align-items:center;gap:7px;padding:8px;border:1px solid #79633e;border-radius:10px;background:#071326}
+.scanner-page img{width:92px;height:118px;object-fit:contain;background:#fff;border-radius:4px}
+.scanner-error{border-right-color:#d66b75;color:#ffb4bb}
+.scanner-note{font-size:13px;line-height:1.7}
+@media(max-width:600px){.scanner-controls{grid-template-columns:1fr}.scanner-preview{padding:5px}.scanner-page{min-width:100px}}
+
+
+/* Daily written reports: mobile-first cards keep edit actions visible without horizontal scrolling. */
+.written-report-list{display:grid;grid-template-columns:1fr;gap:12px;width:100%;}
+.written-report-card{min-width:0;border:1px solid var(--border);border-radius:14px;padding:14px;background:var(--surface,#fff);box-shadow:0 2px 8px rgba(0,0,0,.05);}
+.written-report-card-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;}
+.written-report-card-head>div:first-child{display:grid;gap:5px;min-width:0;}
+.written-report-card-head strong{font-size:16px;color:var(--text);}
+.written-report-card-head span,.written-report-card-meta{font-size:13px;color:var(--muted);}
+.written-report-actions{display:flex;flex-wrap:wrap;gap:8px;width:100%;}
+.written-report-actions button{min-height:40px;flex:1 1 120px;font-weight:800;}
+.written-report-card-meta{margin-top:10px;}
+.written-report-card p{margin:10px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7;color:var(--text);}
+
+/* Branch follow-up: keep visit times bright white on the navy app background in every theme. */
+.branch-patrol-grid .branch-visit-value{display:block;margin:0 0 6px;color:#fff!important;font-size:1.05em;font-weight:900;direction:ltr;unicode-bidi:plaintext;text-align:center;}
+.field input[type="time"]{color:#fff!important;-webkit-text-fill-color:#fff!important;color-scheme:dark;font-weight:800;}
+.field input[type="time"]::-webkit-datetime-edit,
+.field input[type="time"]::-webkit-datetime-edit-hour-field,
+.field input[type="time"]::-webkit-datetime-edit-minute-field,
+.field input[type="time"]::-webkit-datetime-edit-ampm-field{color:#fff!important;-webkit-text-fill-color:#fff!important;}
+.field input[type="time"]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:1;}
+html[data-theme="light"] .branch-patrol-grid .branch-visit-value{color:#fff!important;}
+html[data-theme="light"] .field input[type="time"]{color:#fff!important;-webkit-text-fill-color:#fff!important;color-scheme:dark;}
