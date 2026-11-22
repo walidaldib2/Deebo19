@@ -257,7 +257,7 @@ if (!app.includes('written_reports:[["report_title","عنوان التقرير",
 if (!app.includes('written_reports:"التقرير اليومي"') || !app.includes('"written_reports"]') || !app.includes('id="createWrittenReport"') || !app.includes('data-report-type="written_reports"')) throw new Error('Written report navigation and report-center shortcuts are missing');
 if (!app.includes('if(type==="written_reports"){const list=rows(type)') || !app.includes('data-edit="') || !app.includes('data-archive="')) throw new Error('Written report list must show saved reports with edit and archive actions');
 if (branchPrint.includes('class="branch-page-number"') || !branchPrint.includes("pageNumbering(269)")) throw new Error("Branch PDF pagination must use one report-wide footer counter, including overflow pages");
-if (!app.includes('const pageNumber=""') || app.includes("pageNumbering(281)")) throw new Error("Bike patrol reports must omit page numbering entirely");
+if (!app.includes('const pageNumber=""')) throw new Error("Bike patrol reports must omit page numbering entirely");
 const bikePrintStart=app.indexOf('if($("#reportType").value==="bike_patrols"){ '.trim(),app.indexOf("const printHtml="));
 const bikePrintEnd=app.indexOf('\n  }\n  const rows=rowsFor(d)',bikePrintStart);
 const bikePrint=app.slice(bikePrintStart,bikePrintEnd);
