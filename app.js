@@ -682,8 +682,8 @@ function reports(){
  .bike-sheet-section .bike-report-kicker{font-size:12px!important;line-height:1.35!important}
  .bike-sheet-section .bike-report-heading h1{font-size:26px!important;line-height:1.35!important}
  .bike-sheet-section .bike-section-title{font-size:16px!important;line-height:1.4!important}
- .bike-sheet-section .bike-meta span{font-size:12px!important;line-height:1.25!important}
- .bike-sheet-section .bike-meta b{font-size:14px!important;line-height:1.25!important}
+ .bike-sheet-section .bike-meta span{font-size:14px!important;line-height:1.3!important}
+ .bike-sheet-section .bike-meta b{font-size:16px!important;line-height:1.3!important}
  .bike-sheet-section .bike-table th{font-size:14px!important;line-height:1.35!important}
  .bike-sheet-section .bike-table td{font-size:12px!important;line-height:1.25!important}
  .bike-sheet-section .bike-table td.bike-coordinates,.bike-sheet-section .bike-table td.bike-notes{font-size:12px!important;line-height:1.25!important}
