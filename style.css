@@ -78,3 +78,9 @@
 .written-report-actions button{min-height:40px;flex:1 1 120px;font-weight:800;}
 .written-report-card-meta{margin-top:10px;}
 .written-report-card p{margin:10px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7;color:var(--text);}
+
+/* Branch follow-up: show saved visit time clearly in every occupied slot. */
+.branch-patrol-grid .branch-visit-value{display:block;margin:0 0 6px;color:#f5f3ef;font-size:1.05em;font-weight:900;direction:ltr;unicode-bidi:plaintext;text-align:center;}
+.field input[type="time"]{color:#f5f3ef;color-scheme:dark;font-weight:700;}
+html[data-theme="light"] .branch-patrol-grid .branch-visit-value{color:#172033;}
+html[data-theme="light"] .field input[type="time"]{color:#172033;color-scheme:light;}
