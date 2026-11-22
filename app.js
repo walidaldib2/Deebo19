@@ -400,7 +400,7 @@ function renderEntity(type){
  $$("[data-move-branch]").forEach(button=>button.addEventListener("click",()=>moveBranchOrder(button.dataset.moveBranch,Number(button.dataset.direction)||0)));
  $$("[data-change-branch-supervisor]").forEach(button=>button.addEventListener("click",()=>{
   const branch=button.dataset.changeBranchSupervisor,date=button.dataset.branchDate;
-  const matches=cache.filter(x=>x.entity_type==="branch_patrols"&&!x.is_archived&&normalize(String(x.payload?.branch||"").trim()).replace(/\\s+/g," ")===normalize(String(branch||"").trim()).replace(/\\s+/g," ")&&String(x.payload?.patrol_date||"").slice(0,10)===date);
+  const matches=cache.filter(x=>x.entity_type==="branch_patrols"&&!x.is_archived&&normalize(String(x.payload?.branch||"").trim()).replace(/\s+/g," ")===normalize(String(branch||"").trim()).replace(/\s+/g," ")&&String(x.payload?.patrol_date||"").slice(0,10)===date);
   if(!matches.length){toast("لا توجد متابعات لهذا الفرع في التاريخ المحدد.");return;}
   const latest=[...matches].sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||"")))[0];
   currentEdit={id:null,payload:{...latest.payload,branch_supervisor_edit:true,branch,patrol_date:date}};
@@ -431,8 +431,8 @@ function renderEntity(type){
   if(type==="branch_patrols"&&currentEdit?.payload?.branch_supervisor_edit){
    const branch=String(currentEdit.payload.branch||"").trim(),date=String(currentEdit.payload.patrol_date||"").slice(0,10),newSupervisor=String(payload.supervisor||"").trim();
    if(!newSupervisor){toast("اكتب اسم المشرف الجديد.");form.elements.namedItem("supervisor")?.focus();return;}
-   const key=normalize(branch).replace(/\\s+/g," ");
-   const matches=cache.filter(x=>x.entity_type==="branch_patrols"&&!x.is_archived&&normalize(String(x.payload?.branch||"").trim()).replace(/\\s+/g," ")===key&&String(x.payload?.patrol_date||"").slice(0,10)===date);
+   const key=normalize(branch).replace(/\s+/g," ");
+   const matches=cache.filter(x=>x.entity_type==="branch_patrols"&&!x.is_archived&&normalize(String(x.payload?.branch||"").trim()).replace(/\s+/g," ")===key&&String(x.payload?.patrol_date||"").slice(0,10)===date);
    if(!matches.length){toast("لم يتم العثور على متابعات هذا الفرع.");return;}
    if(saveButton){saveButton.disabled=true;saveButton.textContent="جارٍ تحديث المشرف...";}
    try{
