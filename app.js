@@ -391,7 +391,7 @@ function renderEntity(type){
   if(!form.reportValidity()){toast("راجع الحقول المطلوبة قبل الحفظ.");if(status)status.textContent="راجع الحقول المطلوبة قبل الحفظ.";return;}
   const payload=Object.fromEntries(new FormData(form).entries());
   Object.keys(payload).forEach(key=>{if(typeof payload[key]==="string")payload[key]=payload[key].trim();});
-  if(type==="bike_patrols"){const oldDate=currentEdit?.payload?.patrol_date||String(currentEdit?.payload?.patrol_time||"").slice(0,10);const now=new Date();payload.patrol_date=oldDate||[now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0")].join("-");}
+  if(type==="bike_patrols"&&!payload.patrol_date){const oldDate=currentEdit?.payload?.patrol_date||String(currentEdit?.payload?.patrol_time||"").slice(0,10);const now=new Date();payload.patrol_date=oldDate||[now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0")].join("-");}
   if(type==="branches"&&!payload.name){if(status)status.textContent="اكتب اسم الفرع أولًا.";toast("اسم الفرع مطلوب.");form.elements.namedItem("name")?.focus();return;}
   const files=[...($("#documentFiles")?.files||[])],editId=currentEdit?.id||null;
   if(saveButton){saveButton.disabled=true;saveButton.textContent="جارٍ الحفظ...";}
