@@ -60,7 +60,7 @@ if (!app.includes('$(\"#enableBiometric\").onclick=async()=>') || !app.includes(
 if (!app.includes('localStorage.removeItem(BIOMETRIC_KEY)') || !app.includes('سيفتح التطبيق مباشرة دون PIN أو بصمة')) throw new Error('Direct unlock / biometric reset flow is missing');
 if (!app.includes('يمكنك الدخول باستخدام PIN')) throw new Error('Biometric PIN fallback message is missing');
 if (!app.includes('function lockApplication()') || !app.includes('document.visibilityState==="hidden"') || !app.includes('window.addEventListener("pagehide",lockApplication)')) throw new Error('Automatic PIN lock hooks are missing');
-if (!sw.includes('deebo-local-v10-19')) throw new Error('Service worker cache version was not bumped');
+if (!sw.includes('deebo-local-v10-20')) throw new Error('Service worker cache version was not bumped');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 if (!db.includes('function localDateISO(date=new Date())') || !db.includes('function recordWorkDate(row)') || !db.includes('function shiftIdentity(payload={})') || !db.includes('is_archived:!!old?.is_archived') || !db.includes('shift_key')) throw new Error('Date/shift identity and archived-record edit preservation are required');
 if (!db.includes(String.raw`/^\d{4}-\d{2}-\d{2}$/`) || db.includes(String.raw`/^\\d{4}-\\d{2}-\\d{2}$/`)) throw new Error('Work-date validation must match real ISO calendar dates, not literal backslash characters');
@@ -327,16 +327,16 @@ if (androidAssets.includes('"scanner.js"') || html.includes('src="scanner.js"') 
 
 const readableRules = [
   'const readableReportHtml=html=>html.replace("</style>"',
-  '.report-body{color:#000!important;font-size:22px!important;font-weight:700!important',
+  '.report-body{color:#000!important;font-size:22px!important;font-weight:800!important',
   '.report-table td,.branch-table td,.bike-table td{color:#000!important',
-  '.report-table td,.branch-table td,.bike-table td{color:#000!important;-webkit-text-fill-color:#000!important;font-size:22px!important',
-  '.bike-table td.bike-coordinates,.bike-table td.bike-patrol-times{font-size:14px!important',
+  '.report-table td,.branch-table td,.bike-table td{color:#000!important;-webkit-text-fill-color:#000!important;font-size:19px!important;font-weight:800!important',
+  '.bike-table td.bike-coordinates,.bike-table td.bike-patrol-times{font-size:16px!important;font-weight:800!important',
   'html:readableReportHtml(printHtml(d))',
   'const html=readableReportHtml(printHtml(d));'
 ];
 for (const rule of readableRules) if (!app.includes(rule)) throw new Error('All report outputs must apply high-contrast black, larger, bold data text: '+rule);
 
-if (!app.includes('.meta span,.overview-item b,.metric b,.bike-meta b{font-size:20px!important;font-weight:800!important')) throw new Error('Report metadata values must use 22px bold typography');
-if (!app.includes('.bike-table td.bike-coordinates,.bike-table td.bike-patrol-times{font-size:22px!important;font-weight:900!important')) throw new Error('Bike patrol time and coordinate data must use 22px bold typography');
+if (!app.includes('.meta span,.overview-item b,.metric b,.bike-meta b{font-size:20px!important;font-weight:800!important')) throw new Error('Report metadata values must use 20px bold typography');
+if (!app.includes('.bike-table td.bike-coordinates,.bike-table td.bike-patrol-times{font-size:16px!important;font-weight:800!important')) throw new Error('Bike patrol time and coordinate data must use 16px bold typography');
 
 if (!app.includes('.report-table th,.branch-table th,.bike-table th{font-size:16px!important;font-weight:900!important')) throw new Error('Report table headings must remain smaller than data text');
