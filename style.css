@@ -79,8 +79,13 @@
 .written-report-card-meta{margin-top:10px;}
 .written-report-card p{margin:10px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7;color:var(--text);}
 
-/* Branch follow-up: show saved visit time clearly in every occupied slot. */
-.branch-patrol-grid .branch-visit-value{display:block;margin:0 0 6px;color:#f5f3ef;font-size:1.05em;font-weight:900;direction:ltr;unicode-bidi:plaintext;text-align:center;}
-.field input[type="time"]{color:#f5f3ef;color-scheme:dark;font-weight:700;}
-html[data-theme="light"] .branch-patrol-grid .branch-visit-value{color:#172033;}
-html[data-theme="light"] .field input[type="time"]{color:#172033;color-scheme:light;}
+/* Branch follow-up: keep visit times bright white on the navy app background in every theme. */
+.branch-patrol-grid .branch-visit-value{display:block;margin:0 0 6px;color:#fff!important;font-size:1.05em;font-weight:900;direction:ltr;unicode-bidi:plaintext;text-align:center;}
+.field input[type="time"]{color:#fff!important;-webkit-text-fill-color:#fff!important;color-scheme:dark;font-weight:800;}
+.field input[type="time"]::-webkit-datetime-edit,
+.field input[type="time"]::-webkit-datetime-edit-hour-field,
+.field input[type="time"]::-webkit-datetime-edit-minute-field,
+.field input[type="time"]::-webkit-datetime-edit-ampm-field{color:#fff!important;-webkit-text-fill-color:#fff!important;}
+.field input[type="time"]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:1;}
+html[data-theme="light"] .branch-patrol-grid .branch-visit-value{color:#fff!important;}
+html[data-theme="light"] .field input[type="time"]{color:#fff!important;-webkit-text-fill-color:#fff!important;color-scheme:dark;}
