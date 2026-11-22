@@ -83,6 +83,37 @@ window.DebooDB = (() => {
     data.sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
     return Number.isFinite(opts.limit)&&opts.limit>=0?data.slice(0,opts.limit):data;
   }
+  async function archivePastDays(today=new Date().toLocaleDateString("en-CA")) {
+    const shiftTypes=new Set(["branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies"]);
+    const rows=await getAll("records");
+    const candidates=rows.filter(row=>{
+      if(row.is_archived||!shiftTypes.has(row.entity_type))return false;
+      const p=row.payload||{};
+      const date=(
+        ["branch_patrols","bike_patrols","manager_rounds"].includes(row.entity_type)?p.patrol_date:
+        row.entity_type==="incidents"?p.incident_date:
+        row.entity_type==="written_reports"?p.report_date:
+        row.entity_type==="absences"?p.absence_date:
+        null
+      )||String(row.created_at||"").slice(0,10);
+      return /^\\d{4}-\\d{2}-\\d{2}$/.test(date)&&date<today;
+    });
+    if(!candidates.length)return {archived:0,today};
+    const d=await openDB(),stamp=now();
+    await new Promise((resolve,reject)=>{
+      const tx=d.transaction(["records","audit_logs"],"readwrite"),records=tx.objectStore("records"),logs=tx.objectStore("audit_logs");
+      candidates.forEach(old=>{
+        const row={...old,is_archived:true,archived_at:stamp,updated_at:stamp};
+        records.put(row);
+        logs.put(makeAudit("archive",old.id,old,row,"أرشفة تلقائية لانتهاء يوم الشفت"));
+      });
+      tx.oncomplete=resolve;
+      tx.onerror=()=>reject(tx.error||new Error("تعذرت الأرشفة التلقائية."));
+      tx.onabort=()=>reject(tx.error||new Error("تم إلغاء الأرشفة التلقائية."));
+    });
+    try{await createAutoBackup();}catch(error){console.warn("DEEB archive backup:",error);}
+    return {archived:candidates.length,today};
+  }
   async function list(type,opts={}) {
     const data=await all({archived:opts.archived,limit:opts.limit});
     return data.filter(x=>x.entity_type===type&&(!opts.branch_id||x.branch_id===opts.branch_id)&&(!opts.status||x.status===opts.status));
@@ -281,5 +312,5 @@ window.DebooDB = (() => {
     setTimeout(()=>URL.revokeObjectURL(url),1500);
     return {saved:true,name};
   }
-  return {init,configured,list,all,getRecord:(id)=>get("records",id),save,archive,unarchive,audit,approve,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,local:true};
+  return {init,configured,list,all,archivePastDays,getRecord:(id)=>get("records",id),save,archive,unarchive,audit,approve,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,local:true};
 })();
