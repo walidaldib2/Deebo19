@@ -58,7 +58,7 @@ const records = [
   }
 ];
 const html = readableReportHtml(printHtml(records));
-if (!html.includes("علامة نهاية التقرير الطويل.") || !html.includes("محتوى التقرير الثاني")) {
+if (!html.includes("LONG_REPORT_START_SENTINEL") || !html.includes("LONG_REPORT_END_SENTINEL") || !html.includes("SECOND_REPORT_CONTENT_SENTINEL")) {
   throw new Error("The production HTML omitted fixture report content.");
 }
 const output = process.argv[2];
