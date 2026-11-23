@@ -68,7 +68,7 @@ jobs:
       - name: Render production daily report HTML to PDF
         run: |
           node written-report-pdf-fixture.js "$RUNNER_TEMP/deeb-daily-report.html"
-          CHROME="$(find "$HOME/.cache/ms-playwright" -type f \\( -path '*/chrome-linux/chrome' -o -path '*/chrome-linux64/chrome' \\) | head -n 1)"
+          CHROME="$(find "$HOME/.cache/ms-playwright" -type f \( -path '*/chrome-linux/chrome' -o -path '*/chrome-linux64/chrome' \) | head -n 1)"
           test -n "$CHROME"
           "$CHROME" --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --no-pdf-header-footer --print-to-pdf="$RUNNER_TEMP/deeb-daily-report.pdf" "file://$RUNNER_TEMP/deeb-daily-report.html"
           pdfinfo "$RUNNER_TEMP/deeb-daily-report.pdf"
@@ -77,14 +77,14 @@ jobs:
           from pathlib import Path
           import os
           text = Path(os.environ["RUNNER_TEMP"] + "/deeb-daily-report.txt").read_text(encoding="utf-8")
-          pages = [page.strip() for page in text.split("\\f") if page.strip()]
+          pages = [page.strip() for page in text.split("\f") if page.strip()]
           if len(pages) < 2 or len(pages) > 12:
               raise SystemExit(f"Unexpected daily-report PDF page count: {len(pages)}")
           markers = ("التقرير اليومي", "بداية التقرير الطويل", "تمت متابعة", "علامة نهاية التقرير الطويل", "محتوى التقرير الثاني")
           for number, page in enumerate(pages, 1):
               if not any(marker in page for marker in markers):
                   raise SystemExit(f"PDF page {number} appears blank or contains no report body text.")
-          combined = "\\n".join(pages)
+          combined = "\n".join(pages)
           for marker in ("علامة نهاية التقرير الطويل", "محتوى التقرير الثاني"):
               if marker not in combined:
                   raise SystemExit(f"PDF output is missing required report content: {marker}")
