@@ -36,6 +36,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.core.app.ActivityScenario;
 import java.io.InputStream;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -102,6 +104,7 @@ public class ReportImageExportTest {
                     new String[]{NAME + "-%"}, MediaStore.Images.Media.DISPLAY_NAME + " ASC")) {
                 assertNotNull(cursor);
                 assertEquals("Expected one PNG for each report page", 3, cursor.getCount());
+                Set<Long> pageFingerprints = new HashSet<>();
                 while (cursor.moveToNext()) {
                     long id = cursor.getLong(0);
                     Uri imageUri = Uri.withAppendedPath(collection, Long.toString(id));
@@ -119,6 +122,13 @@ public class ReportImageExportTest {
                                 }
                             }
                             assertTrue("A saved report page is blank: " + cursor.getString(1), nonWhite);
+                            long fingerprint = 1125899906842597L;
+                            for (int y = 37; y < bitmap.getHeight(); y += 37) {
+                                for (int x = 37; x < bitmap.getWidth(); x += 37) {
+                                    fingerprint = 31 * fingerprint + (bitmap.getPixel(x, y) & 0x00ffffff);
+                                }
+                            }
+                            assertTrue("Two exported report pages contain identical sampled pixels", pageFingerprints.add(fingerprint));
                         } finally { bitmap.recycle(); }
                     }
                 }
