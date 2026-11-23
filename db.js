@@ -297,7 +297,7 @@ window.DebooDB = (() => {
       if(!operationalTypes.has(row.entity_type))continue;
       for(const key of WORK_DATE_FIELDS){
         const value=String(row.payload?.[key]??"").trim();
-        if(value&&!isValidISODate(value))throw new Error("يوجد سجل بتاريخ غير صحيح في النسخة ("+key+")؛ لم يتم تغيير بياناتك.");
+        if(value&&!isValidISODate(value))throw new Error("يوجد سجل بتاريخ غير صالح في النسخة ("+key+")؛ لم يتم تغيير بياناتك.");
       }
     }
     // Validate active bike visits while allowing any number of registered bikes per day.
