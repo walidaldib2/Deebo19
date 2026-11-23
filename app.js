@@ -864,7 +864,11 @@ async function reports(){
   .branch-sheet-section,.bike-sheet-section,.written-page,main.sheet{box-sizing:border-box!important;width:204mm!important;min-width:204mm!important;max-width:204mm!important;margin-left:auto!important;margin-right:auto!important}
   .branch-sheet-section{padding-top:4mm!important}
   .bike-sheet-section{padding-top:6mm!important}
-  .written-page{padding-top:4mm!important}
+  .written-page{padding-top:4mm!important;display:block!important;break-inside:auto!important;page-break-inside:auto!important}
+  /* Written daily reports: avoid WebView flex fragmentation that can create blank PDF pages. */
+  .written-inner{position:relative!important;display:block!important;min-height:279mm!important;height:auto!important;padding:4mm 5mm 18mm!important;transform:none!important}
+  .written-inner .report-body{display:block!important;flex:none!important;min-height:185mm!important;height:auto!important;overflow:visible!important}
+  .written-inner .foot{position:absolute!important;left:5mm!important;right:5mm!important;bottom:4mm!important;margin:0!important}
   main.sheet{padding:4mm 3mm 0!important}
   .brand{margin-top:2mm!important}
  }
