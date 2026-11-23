@@ -291,7 +291,6 @@ window.DebooDB = (() => {
       const stamp=String(row.created_at||"");
       const day=patrolDate||stamp.slice(0,10);
       if(!bike||!isValidISODate(day))
-      if(!bike||!/^\d{4}-\d{2}-\d{2}$/.test(day)||Number.isNaN(Date.parse(day+"T00:00:00Z")))
         throw new Error("يوجد مرور دراجة ببيانات ناقصة أو تاريخ غير صالح في النسخة؛ لم يتم تغيير بياناتك.");
     }
     if((obj.attachments||[]).some(x=>!recordIds.has(x.record_id))) throw new Error("يوجد مرفق مرتبط بسجل غير موجود في النسخة؛ لم يتم تغيير بياناتك.");
