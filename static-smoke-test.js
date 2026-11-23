@@ -214,7 +214,7 @@ if (!app.includes('document.addEventListener("click",event=>{const button=event.
 if (/(?<!\$)\$\([^)]*\)\.forEach/.test(app)) throw new Error('A single-element querySelector is being used as a NodeList');
 
 if (!app.includes('const normalize=v=>String(v||"").trim().toLocaleLowerCase("ar")') || !app.includes('normalize(row.name).includes(normalize(searchTerm))')) throw new Error('Global Arabic search normalization for branch patrol grid is missing');
-if (!app.includes('function render(p){currentPage=p;currentType=null;')) throw new Error('Navigation must clear stale entity context before rendering another page');
+if (!app.includes('function render(p){\n currentPage=p;currentType=null;')) throw new Error('Navigation must clear stale entity context before rendering another page');
 if (!app.includes('id="saveStatus"') || !app.includes('const persisted=await DebooDB.getRecord(saved.id)') || !app.includes('type==="branches"&&!payload.name')) throw new Error('Branch save validation, visible feedback, or primary-key persistence verification is missing');
 if (!app.includes("$('[data-download-attachment]').forEach") || !app.includes('await DebooDB.downloadBlob(new Blob([JSON.stringify(b,null,2)],{type:"application/json"})') || !app.includes('await DebooDB.downloadBlob(new Blob([bytes],{type:"image/png"})')) throw new Error('Android attachment, backup, or QR download action is not wired');
 const employeeChecks = [
