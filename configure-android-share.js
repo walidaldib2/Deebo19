@@ -222,6 +222,7 @@ public class FileExportPlugin extends Plugin {
             final int width=webWidth;
             final int height=(int)Math.ceil(1123*density);
             v.setLayerType(View.LAYER_TYPE_SOFTWARE,null);
+            // First measure at one A4 viewport so WebView can report the complete CSS document height.
             v.setLayoutParams(new FrameLayout.LayoutParams(width,height));
             v.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));
             v.layout(0,0,width,height);
@@ -229,17 +230,24 @@ public class FileExportPlugin extends Plugin {
             if(contentHeight<1)throw new Exception("تعذر تحديد ارتفاع محتوى التقرير.");
             int pageCount=Math.max(1,(int)Math.ceil(contentHeight/(double)height));
             if(pageCount>100)throw new Exception("عدد صفحات التقرير يتجاوز الحد الآمن ("+pageCount+").");
+            // Expand the WebView to the full document. Scrolling a viewport can clamp
+            // at the final scroll offset and make the last PDF pages overlap.
+            v.setLayoutParams(new FrameLayout.LayoutParams(width,contentHeight));
+            v.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(contentHeight,View.MeasureSpec.EXACTLY));
+            v.layout(0,0,width,contentHeight);
             document=new android.graphics.pdf.PdfDocument();
             for(int index=0;index<pageCount;index++){
               if(finished.get())return;
-              int scrollY=Math.min(index*height,Math.max(0,contentHeight-height));
-              v.scrollTo(0,scrollY);
               android.graphics.pdf.PdfDocument.PageInfo info=
                 new android.graphics.pdf.PdfDocument.PageInfo.Builder(width,height,index+1).create();
               android.graphics.pdf.PdfDocument.Page page=document.startPage(info);
               Canvas canvas=page.getCanvas();
               canvas.drawColor(Color.WHITE);
+              int canvasState=canvas.save();
+              canvas.clipRect(0,0,width,height);
+              canvas.translate(0,-index*height);
               v.draw(canvas);
+              canvas.restoreToCount(canvasState);
               document.finishPage(page);
             }
             try(FileOutputStream output=new FileOutputStream(tempPdf,false)){
