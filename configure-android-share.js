@@ -228,13 +228,18 @@ public class FileExportPlugin extends Plugin {
             v.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));
             v.layout(0,0,width,height);
             int contentHeight=(int)Math.ceil(v.getContentHeight()*v.getScale());
-            if(contentHeight<1)throw new Exception("تعذر تحديد ارتفاع محتوى التقرير.");
-            int pageCount=Math.max(1,(int)Math.ceil(contentHeight/(double)height));
+            // The HTML receives one viewport-height tail spacer. It lets WebView
+            // scroll to the exact start of the last A4 slice instead of clamping
+            // to the document bottom (which duplicated part of the previous page).
+            final int tailSpacerHeight=height;
+            int reportHeight=contentHeight-tailSpacerHeight;
+            if(reportHeight<1)throw new Exception("تعذر تحديد ارتفاع محتوى التقرير.");
+            int pageCount=Math.max(1,(int)Math.ceil(reportHeight/(double)height));
             if(pageCount>100)throw new Exception("عدد صفحات التقرير يتجاوز الحد الآمن ("+pageCount+").");
             document=new android.graphics.pdf.PdfDocument();
             for(int index=0;index<pageCount;index++){
               if(finished.get())return;
-              int scrollY=Math.min(index*height,Math.max(0,contentHeight-height));
+              int scrollY=index*height;
               v.scrollTo(0,scrollY);
               android.graphics.pdf.PdfDocument.PageInfo info=
                 new android.graphics.pdf.PdfDocument.PageInfo.Builder(width,height,index+1).create();
@@ -312,7 +317,11 @@ public class FileExportPlugin extends Plugin {
           finally{try{if(renderer!=null)renderer.close();}catch(Exception ignored){}try{if(input!=null)input.close();}catch(Exception ignored){}}
         }
       });
-      String imageHtml=html.replace("width=device-width,initial-scale=1","width=794,initial-scale=1,maximum-scale=1,user-scalable=no").replace("width=device-width, initial-scale=1","width=794, initial-scale=1, maximum-scale=1, user-scalable=no").replace("@media print","@media all")+"<style>.report-page-number{display:none!important}</style>";
+      String imageHtml=html.replace("width=device-width,initial-scale=1","width=794,initial-scale=1,maximum-scale=1,user-scalable=no").replace("width=device-width, initial-scale=1","width=794, initial-scale=1, maximum-scale=1, user-scalable=no").replace("@media print","@media all");
+      String tailSpacer="<div id=\\"deeb-export-scroll-spacer\\" aria-hidden=\\"true\\" style=\\"display:block!important;clear:both!important;width:1px!important;height:1123px!important;min-height:1123px!important;max-height:1123px!important;margin:0!important;padding:0!important;border:0!important;visibility:hidden!important;\\"></div>";
+      int bodyEnd=imageHtml.toLowerCase(java.util.Locale.ROOT).lastIndexOf("</body>");
+      imageHtml=bodyEnd>=0?imageHtml.substring(0,bodyEnd)+tailSpacer+imageHtml.substring(bodyEnd):imageHtml+tailSpacer;
+      imageHtml+="<style>.report-page-number{display:none!important}</style>";
       view.loadDataWithBaseURL("https://localhost/",imageHtml,"text/html","UTF-8",null);
       handler.postDelayed(()->{if(!finished.get())fail.reject("انتهت مهلة تجهيز صور التقرير بعد 120 ثانية. حاول مرة أخرى.");},120000);
     });
