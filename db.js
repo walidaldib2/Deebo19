@@ -211,7 +211,10 @@ window.DebooDB = (() => {
   }
   async function saveAttachment(recordId,file) {
     if(!recordId||!file) throw new Error("بيانات المرفق غير مكتملة.");
+    if(!Number.isFinite(Number(file.size))||Number(file.size)<0) throw new Error("حجم المرفق غير صالح.");
     if(file.size>15*1024*1024) throw new Error("حجم المرفق يتجاوز 15 ميجابايت.");
+    const parent=await get("records",recordId);
+    if(!parent) throw new Error("السجل المرتبط بالمرفق غير موجود؛ لم يتم حفظ المرفق.");
     const item={id:uid(),record_id:recordId,name:file.name,type:file.type||"application/octet-stream",size:file.size,blob:file,created_at:now()};
     const d=await openDB();
     await new Promise((resolve,reject)=>{const tx=d.transaction(["attachments","audit_logs"],"readwrite");tx.objectStore("attachments").put(item);tx.objectStore("audit_logs").put(makeAudit("attachment",recordId,null,{name:item.name,size:item.size},"إضافة مرفق"));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("فشل حفظ المرفق وسجل المراجعة."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء حفظ المرفق."));});
