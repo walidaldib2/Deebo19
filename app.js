@@ -914,15 +914,32 @@ async function reports(){
   main.sheet{padding:4mm 3mm 0!important}
   .brand{margin-top:2mm!important}
  }
- /* Memo print typography only: calm Arabic text, lighter weight, comfortable spacing. */
+ /* Memo-only refined Arabic typography. Keep the report and bike templates untouched. */
  .written-page .report-body[data-memo-print="true"]{
   font-family:"Noto Naskh Arabic","Noto Sans Arabic",Tahoma,Arial,sans-serif!important;
-  font-size:17px!important;font-weight:500!important;line-height:1.9!important;
-  color:#242424!important;-webkit-text-fill-color:#242424!important;
-  text-align:right!important;letter-spacing:normal!important;word-spacing:normal!important;
-  overflow-wrap:normal!important;word-break:normal!important;padding:14px 16px!important;
+  font-size:16px!important;
+  font-weight:400!important;
+  line-height:2.05!important;
+  color:#292929!important;
+  -webkit-text-fill-color:#292929!important;
+  text-align:right!important;
+  letter-spacing:normal!important;
+  word-spacing:normal!important;
+  overflow-wrap:normal!important;
+  word-break:normal!important;
+  padding:18px 20px!important;
+  text-rendering:optimizeLegibility!important;
  }
- @media print{.written-page .report-body[data-memo-print="true"]{font-size:17px!important;font-weight:500!important;line-height:1.9!important;padding:13px 15px!important;break-inside:auto!important;page-break-inside:auto!important}}
+ @media print{
+  .written-page .report-body[data-memo-print="true"]{
+   font-size:16px!important;
+   font-weight:400!important;
+   line-height:2.05!important;
+   padding:18px 20px!important;
+   break-inside:auto!important;
+   page-break-inside:auto!important;
+  }
+ }
   `+"</style>");
 
  $("#saveReportImage").onclick=async()=>{const d=get(),hasBikeReport=$("#reportType").value==="bike_patrols"&&cache.some(x=>x.entity_type==="bikes"&&!x.is_archived);if(!d.length&&!hasBikeReport){toast("لا توجد سجلات في الفترة المحددة");return;}const native=window.DEEBNativePlugins?.FileExport;if(!native||!native.saveHtmlAsImages){toast("حفظ التقرير في معرض الصور متاح من تطبيق DEEB على أندرويد");return;}const button=$("#saveReportImage");button.disabled=true;button.textContent="جارٍ تجهيز الصورة...";try{const result=await native.saveHtmlAsImages({html:readableReportHtml(printHtml(d)),name:"DEEB-report"});if(result?.saved!==true||!Number.isInteger(result.count)||result.count<1)throw new Error("لم يؤكد النظام حفظ صورة واحدة على الأقل.");toast("تم حفظ "+result.count+" صورة في معرض الصور داخل Pictures/DEEB");}catch(e){toast("تعذر حفظ صورة التقرير: "+(e.message||e));}finally{button.disabled=false;button.textContent="حفظ التقرير صورة";}};
