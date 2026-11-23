@@ -30,6 +30,12 @@ async function main() {
   await assert.rejects(db.restore({app:"DEEB",format:2,records:[{id:"invalid-calendar-bike",entity_type:"bike_patrols",payload:{bike:"دراجة بتاريخ غير صحيح",patrol_date:"2026-02-31",patrol_time:"09:35"},created_at:"2026-02-28T09:35:00.000Z"}],audit_logs:[]}),/تاريخ غير صالح/);
   assert.deepEqual((await db.all()).map(x=>x.id).sort(),beforeInvalidRestore,"An impossible calendar date must not replace existing records");
 
+  // Every operational record rejects impossible calendar dates before persistence.
+  for (const [type,field] of [["daily_rosters","work_date"],["incidents","incident_date"],["written_reports","report_date"],["absences","absence_date"],["handovers","handover_date"],["emergencies","emergency_date"],["tasks","task_date"],["branch_patrols","work_date"],["manager_rounds","work_date"]]) {
+    await assert.rejects(db.save(type,{[field]:"2026-02-31",description:"invalid date"}),/التاريخ المدخل غير صحيح/);
+  }
+  await assert.rejects(db.archivePastDays("2026-02-31"),/تاريخ الأرشفة غير صحيح/);
+
   // Branch create, primary-key read-back, and audit are one committed operation.
   const branch = await db.save("branches", { name: "فرع اختبار آلي", code: "QA-01" });
   const storedBranch = await db.getRecord(branch.id);
