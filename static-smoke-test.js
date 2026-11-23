@@ -81,7 +81,7 @@ if (!db.includes('created_at:old?.created_at||now()') || !db.includes('archived_
 if (!db.includes('return {app:"DEEB",format:2') || !db.includes('["DEEB","DEEBO","DEBOO16"].includes(obj.app)') || !db.includes('title:"تقرير DEEB"')) throw new Error('DEEB backup / approved report branding or legacy backup compatibility is missing');
 for (const marker of [
   'document.addEventListener("click",e=>{if(e.target.closest("[data-back-home]"))',
-  '$("[data-page]").forEach',
+  'document.addEventListener("click",event=>{const button=event.target.closest("#mainTiles [data-page], .stories [data-page]")',
   '$("[data-branch-slot]").forEach',
   'moveBranchOrder(button.dataset.moveBranch,Number(button.dataset.direction)||0)',
   "$$(\'[data-edit]\').forEach",
