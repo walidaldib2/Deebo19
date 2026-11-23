@@ -193,9 +193,11 @@ public class FileExportPlugin extends Plugin {
       final class ExportFailure{
         void reject(String message){
           if(finished.compareAndSet(false,true)){
-            removePartialImages.run();
-            cleanup.run();
-            call.reject(message);
+            handler.post(()->{
+              removePartialImages.run();
+              cleanup.run();
+              call.reject(message);
+            });
           }
         }
       }
@@ -242,7 +244,9 @@ public class FileExportPlugin extends Plugin {
             // those callbacks are framework-owned and cannot be instantiated here.
             final int width=webWidth;
             final int height=(int)Math.ceil(1123*density);
-            v.setLayerType(View.LAYER_TYPE_SOFTWARE,null);
+            // Keep WebView on its default rendering path. A software layer
+            // snapshots the entire long report into a bitmap and can exceed
+            // the emulator/device drawing-cache budget, leaving later PDF pages blank.
             v.setLayoutParams(new FrameLayout.LayoutParams(width,height));
             v.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));
             v.layout(0,0,width,height);
