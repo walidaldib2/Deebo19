@@ -214,6 +214,7 @@ window.DebooDB = (() => {
   }
   async function attachments(recordId) {return (await getAll("attachments")).filter(a=>a.record_id===recordId);}
   async function getAttachment(id) {return get("attachments",id);}
+  async function approvedReports(limit=100) { return (await getAll("approved_reports")).sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))).slice(0,Number.isFinite(limit)&&limit>=0?limit:100); }
   async function approve(snapshot) {
     const item={id:uid(),title:"تقرير DEEB",snapshot,created_at:now(),actor:"مستخدم الجهاز"};
     const d=await openDB();
@@ -326,5 +327,5 @@ window.DebooDB = (() => {
     setTimeout(()=>URL.revokeObjectURL(url),1500);
     return {saved:true,name};
   }
-  return {init,configured,list,all,archivePastDays,getRecord:(id)=>get("records",id),save,archive,unarchive,audit,approve,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,local:true};
+  return {init,configured,list,all,archivePastDays,getRecord:(id)=>get("records",id),save,archive,unarchive,audit,approve,approvedReports,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,local:true};
 })();
