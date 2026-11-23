@@ -57,6 +57,7 @@ import android.graphics.pdf.PdfDocument;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.util.Base64;
+import android.util.Log;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -208,15 +209,29 @@ public class FileExportPlugin extends Plugin {
       root.addView(view,new FrameLayout.LayoutParams(webWidth,(int)Math.ceil(1123*density)));
       view.setWebViewClient(new WebViewClient(){
         @Override public void onPageFinished(WebView v,String url){
+          Log.i("DEEBExport","Hidden report WebView page finished: "+url);
           waitForReportResources(v, handler, 30000, state->{
+            Log.i("DEEBExport","Report resources state: "+state);
             if(finished.get())return;
             if(state.startsWith("image-error:")){fail.reject("تعذر تحميل "+state.replaceAll("[^0-9]","")+" صورة مرفقة بالتقرير؛ لم يتم حفظ صور ناقصة.");return;}
             if(!"ready".equals(state)){fail.reject("لم تكتمل تهيئة الصور والخطوط قبل تحويل التقرير ("+state+").");return;}
             writeWebViewToPdf(v);
           });
         }
+        @Override public void onReceivedError(WebView v,android.webkit.WebResourceRequest request,android.webkit.WebResourceError error){
+          if(request.isForMainFrame()){
+            Log.e("DEEBExport","Hidden report WebView load error: "+error.getDescription());
+            fail.reject("تعذر تحميل صفحة التقرير للتحويل إلى صور: "+error.getDescription());
+          }
+        }
+        @Override public boolean onRenderProcessGone(WebView v,android.webkit.RenderProcessGoneDetail detail){
+          Log.e("DEEBExport","Hidden report WebView renderer exited; crashed="+detail.didCrash()+", priority="+detail.rendererPriorityAtExit());
+          fail.reject("توقف محرك عرض صفحات التقرير أثناء التحويل إلى صور؛ لم يتم حفظ صور ناقصة.");
+          return true;
+        }
         private void writeWebViewToPdf(WebView v){
           if(finished.get())return;
+          Log.i("DEEBExport","Starting A4 PDF page rendering");
           android.graphics.pdf.PdfDocument document=null;
           try{
             // Render the report in fixed A4-height slices. This keeps the existing
@@ -236,6 +251,7 @@ public class FileExportPlugin extends Plugin {
             int reportHeight=contentHeight-tailSpacerHeight;
             if(reportHeight<1)throw new Exception("تعذر تحديد ارتفاع محتوى التقرير.");
             int pageCount=Math.max(1,(int)Math.ceil(reportHeight/(double)height));
+            Log.i("DEEBExport","Report dimensions: width="+width+", viewportHeight="+height+", contentHeight="+contentHeight+", reportHeight="+reportHeight+", pages="+pageCount);
             if(pageCount>100)throw new Exception("عدد صفحات التقرير يتجاوز الحد الآمن ("+pageCount+").");
             document=new android.graphics.pdf.PdfDocument();
             for(int index=0;index<pageCount;index++){
@@ -249,6 +265,7 @@ public class FileExportPlugin extends Plugin {
               canvas.drawColor(Color.WHITE);
               v.draw(canvas);
               document.finishPage(page);
+              Log.i("DEEBExport","Rendered PDF page "+(index+1)+"/"+pageCount);
             }
             try(FileOutputStream output=new FileOutputStream(tempPdf,false)){
               document.writeTo(output);
@@ -264,6 +281,7 @@ public class FileExportPlugin extends Plugin {
           }
         }
         private void renderPdfPages(){
+          Log.i("DEEBExport","Starting PDF-to-PNG conversion");
           android.os.ParcelFileDescriptor input=null;
           android.graphics.pdf.PdfRenderer renderer=null;
           try{
@@ -307,6 +325,7 @@ public class FileExportPlugin extends Plugin {
                   ContentValues ready=new ContentValues();ready.put(MediaStore.Images.Media.IS_PENDING,0);
                   getContext().getContentResolver().update(uri,ready,null,null);
                 }
+                Log.i("DEEBExport","Saved PNG page "+(index+1)+"/"+pageCount);
               }finally{if(bitmap!=null&&!bitmap.isRecycled())bitmap.recycle();page.close();}
             }
             if(finished.compareAndSet(false,true)){
