@@ -54,7 +54,8 @@ jobs:
           node --check prepare-android.js
           node --check configure-android-share.js
           node --check prepare-android-icons.js
-          node --check configure-android-file-export.js\n          node --check configure-android-instrumentation.js
+          node --check configure-android-file-export.js
+          node --check configure-android-instrumentation.js
           node --check preferences.js
           node --check native-plugins-entry.js
           node --check biometric-entry.js
@@ -84,7 +85,8 @@ jobs:
           for number, page in enumerate(pages, 1):
               if not any(marker in page for marker in markers):
                   raise SystemExit(f"PDF page {number} appears blank or contains no report body text.")
-          combined = "\n".join(pages)
+          combined = "
+".join(pages)
           for marker in ("LONG_REPORT_END_SENTINEL", "SECOND_REPORT_CONTENT_SENTINEL"):
               if marker not in combined:
                   raise SystemExit(f"PDF output is missing required report content: {marker}")
@@ -125,7 +127,10 @@ jobs:
       - name: Install native report print and image export plugin
         run: node configure-android-file-export.js
 
-      - name: Configure Android WebView export instrumentation tests\n        run: node configure-android-instrumentation.js\n\n      - name: Verify Play Store Android configuration
+      - name: Configure Android WebView export instrumentation tests
+        run: node configure-android-instrumentation.js
+
+      - name: Verify Play Store Android configuration
         env:
           APP_VERSION: ${{ github.run_number }}
         run: |
@@ -184,11 +189,16 @@ jobs:
                   }
               }
           '''
-          source, count = re.subn(r"(\n\s*)buildTypes\s*\{", lambda m: m.group(1) + signing + "\n    buildTypes {", source, count=1)
+          source, count = re.subn(r"(
+\s*)buildTypes\s*\{", lambda m: m.group(1) + signing + "
+    buildTypes {", source, count=1)
           if count != 1:
               key_path.unlink(missing_ok=True)
               raise SystemExit("Could not add the Android release signing configuration.")
-          source, count = re.subn(r"(\n\s*buildTypes\s*\{\s*\n\s*release\s*\{)", r"\1\n            signingConfig signingConfigs.release", source, count=1)
+          source, count = re.subn(r"(
+\s*buildTypes\s*\{\s*
+\s*release\s*\{)", r"\1
+            signingConfig signingConfigs.release", source, count=1)
           if count != 1:
               key_path.unlink(missing_ok=True)
               raise SystemExit("Could not attach upload signing to the release build type.")
@@ -206,9 +216,12 @@ jobs:
               source = path.read_text(encoding="utf-8")
               # Replace mavenCentral() itself so Gradle cannot fall through to
               # repo.maven.apache.org when that endpoint rate-limits CI.
-              source = source.replace("mavenCentral()", primary + "\n        " + fallback)
+              source = source.replace("mavenCentral()", primary + "
+        " + fallback)
               if primary not in source and "repositories {" in source:
-                  source = source.replace("repositories {", "repositories {\n        " + primary + "\n        " + fallback, 1)
+                  source = source.replace("repositories {", "repositories {
+        " + primary + "
+        " + fallback, 1)
               path.write_text(source, encoding="utf-8")
           PY
 
@@ -228,7 +241,17 @@ jobs:
           done
           exit 1
 
-      - name: Run Android emulator report image export test\n        uses: reactivecircus/android-emulator-runner@v2\n        with:\n          api-level: 35\n          target: google_apis\n          arch: x86_64\n          profile: pixel_2\n          disable-animations: true\n          script: cd android && ./gradlew connectedDebugAndroidTest --no-daemon --no-configuration-cache --max-workers=2 --console=plain --stacktrace\n\n      - name: Upload installable debug APK immediately
+      - name: Run Android emulator report image export test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: cd android && ./gradlew connectedDebugAndroidTest --no-daemon --no-configuration-cache --max-workers=2 --console=plain --stacktrace
+
+      - name: Upload installable debug APK immediately
         uses: actions/upload-artifact@v4
         with:
           name: DEEB-Android-Debug-APK
