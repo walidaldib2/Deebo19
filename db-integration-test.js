@@ -29,6 +29,8 @@ async function main() {
   const beforeInvalidRestore=(await db.all()).map(x=>x.id).sort();
   await assert.rejects(db.restore({app:"DEEB",format:2,records:[{id:"invalid-calendar-bike",entity_type:"bike_patrols",payload:{bike:"دراجة بتاريخ غير صحيح",patrol_date:"2026-02-31",patrol_time:"09:35"},created_at:"2026-02-28T09:35:00.000Z"}],audit_logs:[]}),/تاريخ غير صالح/);
   assert.deepEqual((await db.all()).map(x=>x.id).sort(),beforeInvalidRestore,"An impossible calendar date must not replace existing records");
+  await assert.rejects(db.restore({app:"DEEB",format:2,records:[{id:"invalid-written-date",entity_type:"written_reports",payload:{report_date:"2026-02-31",report_text:"اختبار"},created_at:"2026-02-28T09:35:00.000Z"}],audit_logs:[]}),/سجل بتاريخ غير صحيح/);
+  assert.deepEqual((await db.all()).map(x=>x.id).sort(),beforeInvalidRestore,"An invalid written-report date must not replace existing records");
 
   // Every operational record rejects impossible calendar dates before persistence.
   for (const [type,field] of [["daily_rosters","work_date"],["incidents","incident_date"],["written_reports","report_date"],["absences","absence_date"],["handovers","handover_date"],["emergencies","emergency_date"],["tasks","task_date"],["branch_patrols","work_date"],["manager_rounds","work_date"]]) {
