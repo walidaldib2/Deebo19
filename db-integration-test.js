@@ -141,6 +141,21 @@ async function main() {
   assert.equal(editedArchivedRoster.is_archived, true, "Editing an archived shift must not unarchive it");
   assert.equal((await db.getRecord(yesterdayRoster.id)).payload.work_date, "2026-11-21", "Editing must preserve the original work date");
 
+  // Imported attachment size metadata must be rebuilt from the actual restored Blob.
+  const restoredAttachmentText = "actual attachment bytes";
+  await db.restore({
+    app: "DEEB", format: 2,
+    records: [{ id: "restore-attachment-parent", entity_type: "incidents", payload: { description: "اختبار استعادة مرفق" } }],
+    audit_logs: [],
+    attachments: [{
+      id: "restore-attachment-size", record_id: "restore-attachment-parent",
+      name: "restored.txt", type: "text/plain", size: 1,
+      data_url: "data:text/plain;base64," + Buffer.from(restoredAttachmentText).toString("base64")
+    }]
+  });
+  const restoredAttachment = await db.getAttachment("restore-attachment-size");
+  assert.equal(restoredAttachment.size, Buffer.byteLength(restoredAttachmentText), "Restored attachment size must match the actual Blob, not untrusted backup metadata");
+
   console.log("PASS: IndexedDB integration — branch CRUD/archive, dynamic bike patrols and backup restore, handover versions, report approval, attachments, and daily automatic backups.");
 }
 
