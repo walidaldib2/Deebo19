@@ -32,7 +32,7 @@ if (typeof printHtml !== "function" || typeof readableReportHtml !== "function")
   throw new Error("Could not load the production daily-report rendering functions.");
 }
 
-const longText = ("تمت متابعة الأعمال الأمنية بالموقع، ومراجعة انتظام سير العمل، وتوثيق الملاحظات والإجراءات التي تم اتخاذها خلال الوردية. ").repeat(65);
+const longText = ("REPORT_BODY_PAGE_SENTINEL تمت متابعة الأعمال الأمنية بالموقع، ومراجعة انتظام سير العمل، وتوثيق الملاحظات والإجراءات التي تم اتخاذها خلال الوردية. ").repeat(65);
 const records = [
   {
     id: "daily-long",
