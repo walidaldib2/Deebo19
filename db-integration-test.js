@@ -4,7 +4,8 @@ require("fake-indexeddb/auto");
 
 global.window = global;
 global.crypto = webcrypto;
-global.DEEBNativePlugins = { FileExport: { saveFile: async () => ({ saved: true }) } };
+let nativeSaveCount = 0;
+global.DEEBNativePlugins = { FileExport: { saveFile: async () => { nativeSaveCount++; return { saved: true }; } } };
 global.FileReader = class {
   async readAsDataURL(blob) {
     try {
@@ -37,6 +38,12 @@ async function main() {
     await assert.rejects(db.save(type,{[field]:"2026-02-31",description:"invalid date"}),/التاريخ المدخل غير صحيح/);
   }
   await assert.rejects(db.archivePastDays("2026-02-31"),/تاريخ الأرشفة غير صحيح/);
+
+  // Existing audit-only data must also trigger a pre-restore safety export.
+  await db.restore({app:"DEEB",format:2,records:[],audit_logs:[{id:"audit-only-before-restore",action:"test"}]});
+  const savesBeforeAuditOnlyRestore = nativeSaveCount;
+  await db.restore({app:"DEEB",format:2,records:[],audit_logs:[]});
+  assert.equal(nativeSaveCount,savesBeforeAuditOnlyRestore+1,"Audit-only local data must be backed up before restore replaces it");
 
   // Branch create, primary-key read-back, and audit are one committed operation.
   const branch = await db.save("branches", { name: "فرع اختبار آلي", code: "QA-01" });
