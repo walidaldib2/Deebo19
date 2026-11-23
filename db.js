@@ -30,8 +30,18 @@ window.DebooDB = (() => {
         }
         if (!d.objectStoreNames.contains("automatic_backups")) d.createObjectStore("automatic_backups",{keyPath:"id"});
       };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error || new Error("تعذر فتح قاعدة البيانات المحلية."));
+      req.onsuccess = () => {
+        const connection=req.result;
+        connection.onversionchange=()=>{connection.close();dbPromise=null;};
+        connection.onclose=()=>{dbPromise=null;};
+        resolve(connection);
+      };
+      req.onerror = () => {
+        const error=req.error || new Error("تعذر فتح قاعدة البيانات المحلية.");
+        dbPromise=null;
+        reject(error);
+      };
+      req.onblocked = () => console.warn("DEEB IndexedDB upgrade is waiting for another open app window to close.");
     });
     return dbPromise;
   }
@@ -73,6 +83,43 @@ window.DebooDB = (() => {
     data.sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
     return Number.isFinite(opts.limit)&&opts.limit>=0?data.slice(0,opts.limit):data;
   }
+  function localDateISO(date=new Date()) { return [date.getFullYear(),String(date.getMonth()+1).padStart(2,"0"),String(date.getDate()).padStart(2,"0")].join("-"); }
+  function recordWorkDate(row) {
+    const p=row.payload||{};
+    const value=p.work_date||p.patrol_date||p.incident_date||p.report_date||p.absence_date||p.handover_date||p.emergency_date||p.task_date;
+    if(/^\d{4}-\d{2}-\d{2}$/.test(String(value||"")))return String(value);
+    const created=String(row.created_at||"").slice(0,10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(created)?created:"";
+  }
+  function shiftIdentity(payload={}) {
+    const shift=String(payload.shift||payload.shift_name||"").trim();
+    const date=String(payload.work_date||payload.patrol_date||payload.incident_date||payload.report_date||payload.absence_date||payload.handover_date||payload.emergency_date||payload.task_date||"").trim();
+    return shift&&/^\d{4}-\d{2}-\d{2}$/.test(date)?{shift_name:shift,shift_key:date+"|"+shift}:{};
+  }
+  async function archivePastDays(today=localDateISO()) {
+    const shiftTypes=new Set(["daily_rosters","branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies","tasks"]);
+    const rows=await getAll("records");
+    const candidates=rows.filter(row=>{
+      if(row.is_archived||!shiftTypes.has(row.entity_type))return false;
+      const date=recordWorkDate(row);
+      return /^\d{4}-\d{2}-\d{2}$/.test(date)&&date<today;
+    });
+    if(!candidates.length)return {archived:0,today};
+    const d=await openDB(),stamp=now();
+    await new Promise((resolve,reject)=>{
+      const tx=d.transaction(["records","audit_logs"],"readwrite"),records=tx.objectStore("records"),logs=tx.objectStore("audit_logs");
+      candidates.forEach(old=>{
+        const row={...old,is_archived:true,archived_at:stamp,updated_at:stamp};
+        records.put(row);
+        logs.put(makeAudit("archive",old.id,old,row,"أرشفة تلقائية لانتهاء يوم الشفت"));
+      });
+      tx.oncomplete=resolve;
+      tx.onerror=()=>reject(tx.error||new Error("تعذرت الأرشفة التلقائية."));
+      tx.onabort=()=>reject(tx.error||new Error("تم إلغاء الأرشفة التلقائية."));
+    });
+    try{await createAutoBackup();}catch(error){console.warn("DEEB archive backup:",error);}
+    return {archived:candidates.length,today};
+  }
   async function list(type,opts={}) {
     const data=await all({archived:opts.archived,limit:opts.limit});
     return data.filter(x=>x.entity_type===type&&(!opts.branch_id||x.branch_id===opts.branch_id)&&(!opts.status||x.status===opts.status));
@@ -84,7 +131,15 @@ window.DebooDB = (() => {
     if(!type||!payload||typeof payload!=="object"||Array.isArray(payload)) throw new Error("بيانات السجل غير صالحة.");
     const old=id?await get("records",id):null;
     if(id&&!old) throw new Error("السجل المطلوب تعديله غير موجود.");
-    const row={id:id||uid(),entity_type:type,payload:{...payload},branch_id:payload.branch_id||null,status:payload.status||"active",is_archived:false,created_at:old?.created_at||now(),updated_at:now(),created_by:"local"};
+    const savedPayload={...payload};
+    const operationalTypes=new Set(["daily_rosters","branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies","tasks"]);
+    if(operationalTypes.has(type)){
+      const workDate=recordWorkDate({entity_type:type,payload:savedPayload,created_at:old?.created_at||now()});
+      if(workDate)savedPayload.work_date=workDate;
+      const shiftMeta=shiftIdentity(savedPayload);
+      if(shiftMeta.shift_key){savedPayload.shift_name=shiftMeta.shift_name;savedPayload.shift_key=shiftMeta.shift_key;}
+    }
+    const row={id:id||uid(),entity_type:type,payload:savedPayload,branch_id:payload.branch_id||null,status:payload.status||"active",is_archived:!!old?.is_archived,...(old?.archived_at?{archived_at:old.archived_at}:{}),created_at:old?.created_at||now(),updated_at:now(),created_by:old?.created_by||"local"};
     const auditItem=makeAudit(id?"update":"create",row.id,old,row,id?(payload.edit_reason||"تعديل سجل"):"إضافة سجل");
     const d=await openDB();
     if(type==="bike_patrols") {
@@ -159,6 +214,7 @@ window.DebooDB = (() => {
   }
   async function attachments(recordId) {return (await getAll("attachments")).filter(a=>a.record_id===recordId);}
   async function getAttachment(id) {return get("attachments",id);}
+  async function approvedReports() { return (await getAll("approved_reports")).sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))); }
   async function approve(snapshot) {
     const item={id:uid(),title:"تقرير DEEB",snapshot,created_at:now(),actor:"مستخدم الجهاز"};
     const d=await openDB();
@@ -271,5 +327,5 @@ window.DebooDB = (() => {
     setTimeout(()=>URL.revokeObjectURL(url),1500);
     return {saved:true,name};
   }
-  return {init,configured,list,all,getRecord:(id)=>get("records",id),save,archive,unarchive,audit,approve,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,local:true};
+  return {init,configured,list,all,archivePastDays,getRecord:(id)=>get("records",id),save,archive,unarchive,audit,approve,approvedReports,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,local:true};
 })();
