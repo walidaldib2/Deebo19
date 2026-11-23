@@ -63,12 +63,8 @@ public class ReportImageExportTest {
 
             boolean ready = false;
             for (int i = 0; i < 120; i++) {
-                CountDownLatch check = new CountDownLatch(1);
-                AtomicReference<String> state = new AtomicReference<>();
-                web.evaluateJavascript("String(!!(window.DEEBNativePlugins && window.DEEBNativePlugins.FileExport))", value -> {
-                    state.set(value); check.countDown();
-                });
-                if (check.await(1, TimeUnit.SECONDS) && "true".equals(state.get())) { ready = true; break; }
+                String state = evaluateJavascript(web, "String(!!(window.DEEBNativePlugins && window.DEEBNativePlugins.FileExport))");
+                if ("true".equals(state)) { ready = true; break; }
                 Thread.sleep(250);
             }
             assertTrue("Native FileExport bridge did not become ready", ready);
@@ -82,12 +78,12 @@ public class ReportImageExportTest {
                 + "<section class='page'><div class='marker'></div>PAGE_THREE_SENTINEL</section>"
                 + "</body></html>";
             Callback callback = new Callback();
-            web.addJavascriptInterface(callback, "DEEBInstrumentation");
+            InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> web.addJavascriptInterface(callback, "DEEBInstrumentation"));
             String js = "window.DEEBNativePlugins.FileExport.saveHtmlAsImages({html:"
                 + JSONObject.quote(html) + ",name:" + JSONObject.quote(NAME) + "})"
                 + ".then(r=>DEEBInstrumentation.done(JSON.stringify({ok:true,result:r})))"
                 + ".catch(e=>DEEBInstrumentation.done(JSON.stringify({ok:false,error:String(e)})));";
-            web.evaluateJavascript(js, null);
+            InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> web.evaluateJavascript(js, null));
             assertTrue("Native report image export timed out", callback.latch.await(150, TimeUnit.SECONDS));
             JSONObject response = new JSONObject(String.valueOf(new JSONTokener(callback.result).nextValue()));
             assertTrue("Native report image export failed: " + callback.result, response.optBoolean("ok"));
@@ -127,6 +123,15 @@ public class ReportImageExportTest {
             scenario.close();
             deleteTestImages(context);
         }
+    }
+
+    private static String evaluateJavascript(WebView web, String script) throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<String> result = new AtomicReference<>();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() ->
+            web.evaluateJavascript(script, value -> { result.set(value); latch.countDown(); }));
+        assertTrue("WebView JavaScript evaluation timed out", latch.await(5, TimeUnit.SECONDS));
+        return result.get();
     }
 
     private static void deleteTestImages(android.content.Context context) {
