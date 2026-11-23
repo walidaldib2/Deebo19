@@ -137,7 +137,7 @@ if (!branchPrint.includes('<th>الموقع</th><th>المشرف</th>') || !bran
 if (!app.includes('["الموقع","المشرف"') || !app.includes('g.supervisor,...Array.from({length:slots}')) throw new Error('Branch Excel/CSV export must match the seven-column branch follow-up layout without a duplicate date column');
 if (!app.includes('.branch-sheet-section{display:flex!important;flex-direction:column!important;box-sizing:border-box!important;width:209mm!important;height:285mm!important') || !app.includes('.branch-table tbody tr{height:19mm!important;min-height:19mm!important') || !app.includes('.branch-empty-row td{color:transparent!important}') || !app.includes('.branch-sheet-section .foot{flex:0 0 auto!important')) throw new Error('Branch report must reserve fixed space for ten complete rows without clipping');
 if (!db.includes('const patrolDate=String(row.payload?.patrol_date||"").trim()')) throw new Error('Motorcycle backup restore must validate patrol_date rather than patrol_time');
-if (!db.includes(String.raw`const day=/^\d{4}-\d{2}-\d{2}$/.test(patrolDate)?patrolDate:stamp.slice(0,10);`)) throw new Error('Motorcycle backup restore must correctly recognize YYYY-MM-DD patrol dates');
+if (!db.includes("function isValidISODate(value)") || !db.includes("parsed.toISOString().slice(0,10)===day") || !db.includes("const day=patrolDate||stamp.slice(0,10);") || !db.includes("if(!bike||!isValidISODate(day))")) throw new Error("Motorcycle backup restore must validate real calendar dates and reject impossible dates");
 
 
 if (!app.includes('$("#recordForm")?.elements.namedItem("supervisor")?.focus()')) throw new Error("Quick branch patrol entry must open the form and focus the required supervisor field");
