@@ -346,3 +346,6 @@ if (!app.includes('.meta span,.overview-item b,.metric b,.bike-meta b{font-size:
 if (!app.includes('.bike-table td.bike-coordinates,.bike-table td.bike-patrol-times{font-size:16px!important;font-weight:800!important')) throw new Error('Bike patrol time and coordinate data must use 16px bold typography');
 
 if (!app.includes('.report-table th,.branch-table th,.bike-table th{font-size:16px!important;font-weight:900!important')) throw new Error('Report table headings must remain smaller than data text');
+
+if (!app.includes('memos:"مذكرة"') || !app.includes('memos:[["report_title","عنوان المذكرة"') || !app.includes('"written_reports","memos"].includes(type)') || !app.includes('data-report-type="memos">المذكرات</button>')) throw new Error('Standalone memo records, editor, and report-center filter must be available');
+if (!app.includes('$("#reportType").value==="memos"?"مذكرة":"التقرير اليومي"') || !app.includes('type==="memos"?"المذكرة #":"التقرير اليومي #"')) throw new Error('Memo print/export must have its own title while preserving daily-report output');
