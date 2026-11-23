@@ -246,7 +246,7 @@ window.DebooDB = (() => {
     const today=now().slice(0,10);
     const sameDay=existing.find(x=>x.date===today);
     const [records,audit_logs,approved_reports,handover_versions,attachments]=await Promise.all([getAll("records"),getAll("audit_logs"),getAll("approved_reports"),getAll("handover_versions"),getAll("attachments")]);
-    const attachmentBytes=attachments.reduce((sum,x)=>sum+Number(x.size||0),0);
+    const attachmentBytes=attachments.reduce((sum,x)=>sum+Number(x.blob?.size??x.size??0),0);
     if(attachmentBytes>30*1024*1024)return {created:false,date:today,reason:"attachments-over-limit"};
     const snapshot={app:"DEEB",format:2,mode:"local",created_at:now(),records,audit_logs,approved_reports,handover_versions,attachments};
     const item={id:sameDay?.id||uid(),date:today,created_at:now(),record_count:records.length,attachment_count:attachments.length,snapshot};
@@ -303,7 +303,7 @@ window.DebooDB = (() => {
       if(!blob){if(typeof x.data_url!=="string"||!/^data:[^;,]+;base64,[A-Za-z0-9+/=]*$/.test(x.data_url)) throw new Error("بيانات المرفق "+(x.name||x.id)+" غير صالحة؛ لم يتم تغيير بياناتك.");blob=dataURLToBlob(x.data_url);}
       if(blob.size>15*1024*1024) throw new Error("المرفق "+(x.name||x.id)+" يتجاوز الحد المسموح 15 ميجابايت.");
       if(!x.record_id||typeof x.name!=="string") throw new Error("بيانات مرفق ناقصة؛ لم يتم تغيير بياناتك.");
-      const item={...x,blob};delete item.data_url;return item;
+      const item={...x,blob,size:blob.size};delete item.data_url;return item;
     });
     const current=await backup();
     if(current.records.length||current.attachments.length) await downloadBlob(new Blob([JSON.stringify(current,null,2)],{type:"application/json"}),"DEEB-before-restore.json");
