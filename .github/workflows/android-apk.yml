@@ -233,6 +233,7 @@ jobs:
           exit 1
 
       - name: Run Android emulator report image export test
+        timeout-minutes: 18
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -242,7 +243,26 @@ jobs:
           emulator-boot-timeout: 600
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: cd android && ./gradlew connectedDebugAndroidTest --no-daemon --no-configuration-cache --max-workers=2 --console=plain --stacktrace
+          script: |
+            cd android
+            adb wait-for-device
+            adb shell getprop sys.boot_completed
+            adb logcat -c
+            set +e
+            timeout 480s ./gradlew connectedDebugAndroidTest --no-daemon --no-configuration-cache --max-workers=2 --console=plain --stacktrace --info
+            test_status=$?
+            adb logcat -d -t 5000 > ../android-export-logcat.txt || true
+            echo "Android instrumentation exit code: $test_status"
+            exit "$test_status"
+
+      - name: Upload Android export diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DEEB-Android-Export-Diagnostics
+          path: android-export-logcat.txt
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Upload installable debug APK immediately
         uses: actions/upload-artifact@v4
