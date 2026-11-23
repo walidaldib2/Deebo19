@@ -25,10 +25,8 @@ const required = [
   "writeWebViewToPdf",
   "new android.graphics.pdf.PdfDocument()",
   "new android.graphics.pdf.PdfDocument.PageInfo.Builder(width,height,index+1).create()",
-  "v.setLayoutParams(new FrameLayout.LayoutParams(width,contentHeight))",
-  "v.layout(0,0,width,contentHeight)",
-  "canvas.clipRect(0,0,width,height)",
-  "canvas.translate(0,-index*height)",
+  "v.setLayoutParams(new FrameLayout.LayoutParams(width,height))",
+  "v.scrollTo(0,scrollY)",
   "v.draw(canvas)",
   "document.writeTo(output)",
   "WebView.enableSlowWholeDocumentDraw()",
@@ -40,6 +38,7 @@ const required = [
   "renderer.openPage(index)",
   "page.close()",
   "PrintJob job=pm.print(jobName,v.createPrintDocumentAdapter(jobName),attributes)"
+
 ];
 const missing = required.filter(marker => !source.includes(marker));
 if (missing.length) {
