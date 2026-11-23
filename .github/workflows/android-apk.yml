@@ -10,7 +10,6 @@ on:
     branches:
       - feature/deboo-pro-upgrade
       - feature/stronger-print-reports
-      - fix/daily-report-blank-pages-2026-11-23
 
 concurrency:
   group: deeb-android-apk-${{ github.event_name }}-${{ github.ref }}
