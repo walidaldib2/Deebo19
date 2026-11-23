@@ -355,7 +355,7 @@ public class FileExportPlugin extends Plugin {
         view.setBackgroundColor(Color.WHITE);
         view.setAlpha(1f);
         view.setFocusable(false);
-        // Run the report print hook that enables page numbers only for multi-page reports.
+        // Preserve the existing DEEB report HTML/CSS unchanged; this WebView is only the native print surface.
         view.getSettings().setJavaScriptEnabled(true);
         view.getSettings().setDomStorageEnabled(true);
         view.getSettings().setUseWideViewPort(true);
