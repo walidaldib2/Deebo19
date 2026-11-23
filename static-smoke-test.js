@@ -169,7 +169,7 @@ if (!app.includes('payload.patrol_date=oldDate||')) throw new Error('Motorcycle 
 if (app.includes('saveFile("DEEB-report.xls"') || app.includes('application/vnd.ms-excel;charset=utf-8')) throw new Error('Legacy XML Spreadsheet export must not be mislabeled as XLS');
 
 if (!app.includes('patrol_sites:[') || !app.includes('المخازن والمعارض ومراكز الخدمة')) throw new Error('Fixed patrol locations registry is missing');
-if (!app.includes('function mapPage()') || !html.includes('data-page="map"') || !app.includes('فتح خط السير على خرائط Google')) throw new Error('Motorcycle route map page is missing');
+if (!app.includes('function mapPage()') || !app.includes('function bikeMapsPage()') || !app.includes('function bikeMapReportsPage()') || !app.includes('فتح خط السير على خرائط Google') || !app.includes('else if(p==="bikeMaps")bikeMapsPage()')) throw new Error('Motorcycle route map pages are missing from the field-operations section');
 if (!app.includes('function patrolTimeMinutes(value)') || !app.includes('comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time)')) throw new Error('Map and branch patrol lists must sort 24-hour, Arabic AM/PM, and Arabic-digit times chronologically');
 const timeParserSource=app.match(/function patrolTimeMinutes\(value\)\{[\s\S]*?\n\}/)?.[0];
 if(!timeParserSource)throw new Error("Patrol time parser could not be extracted for behavior tests");
