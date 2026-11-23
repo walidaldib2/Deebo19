@@ -632,25 +632,6 @@ function bikeMapsPage(){
  paint();
 }
 
-function bikeMapReportsPage(){
- const bikes=[...new Set(cache.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived).map(x=>String(x.payload?.bike||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ar",{numeric:true}));
- const today=new Date().toLocaleDateString("en-CA");
- area.innerHTML=pageHead("تقرير خرائط الدراجات",'<button class="secondary" id="backToBikeMaps">العودة لخرائط الدراجات</button>')+
- '<div class="card"><p class="muted">عرض سجلات مسار الدراجة على الخريطة خلال فترة محددة. تم الإبقاء على أدوات طباعة PDF وحفظ الصور الحالية دون تغيير.</p><div class="form"><div class="field"><label>الدراجة</label><select id="bikeMapReportBike"><option value="">كل الدراجات</option>'+bikes.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("")+'</select></div><div class="field"><label>من تاريخ</label><input id="bikeMapReportFrom" type="date" value="'+today+'"></div><div class="field"><label>إلى تاريخ</label><input id="bikeMapReportTo" type="date" value="'+today+'"></div></div><div id="bikeMapReportPreview"></div></div>';
- const build=()=>{
-  const bike=$("#bikeMapReportBike").value,from=$("#bikeMapReportFrom").value,to=$("#bikeMapReportTo").value;
-  const visits=cache.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived&&(!bike||String(x.payload?.bike||"").trim()===bike)).filter(x=>{const d=String(x.payload?.patrol_date||x.created_at||"").slice(0,10);return (!from||d>=from)&&(!to||d<=to);}).sort((a,b)=>String(a.payload?.patrol_date||a.created_at||"").slice(0,10).localeCompare(String(b.payload?.patrol_date||b.created_at||"").slice(0,10))||comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time));
-  const located=visits.filter(x=>validCoordinatePair(x.payload?.lat,x.payload?.lng));
-  const host=$("#bikeMapReportPreview");
-  host.innerHTML='<div class="stats"><div class="stat"><strong>'+visits.length+'</strong><span>إجمالي الزيارات</span></div><div class="stat"><strong>'+located.length+'</strong><span>نقاط بإحداثيات</span></div><div class="stat"><strong>'+(visits.length-located.length)+'</strong><span>مواقع بلا إحداثيات</span></div></div>'+(located.length?'<div id="bikeMapReportLeafletMap" class="deeb-live-map"></div>':'<div class="notice">لا توجد إحداثيات محفوظة في الفترة المحددة.</div>')+(visits.length?'<div class="table-wrap"><table><thead><tr><th>م</th><th>الدراجة</th><th>التاريخ</th><th>الوقت</th><th>المكان</th><th>الإحداثيات</th></tr></thead><tbody>'+visits.map((x,i)=>{const p=x.payload||{},ok=validCoordinatePair(p.lat,p.lng);return '<tr><td>'+(i+1)+'</td><td>'+esc(p.bike||"—")+'</td><td>'+esc(p.patrol_date||String(x.created_at||"").slice(0,10))+'</td><td>'+esc(p.patrol_time||"—")+'</td><td>'+esc(p.site||p.branch||"غير محدد")+'</td><td>'+(ok?Number(p.lat).toFixed(6)+", "+Number(p.lng).toFixed(6):"غير مسجل")+'</td></tr>';}).join("")+'</tbody></table></div>':'<div class="empty">لا توجد زيارات في الفترة المحددة.</div>');
-  if(located.length)renderBikeLeafletMap("bikeMapReportLeafletMap",located.map(x=>({lat:Number(x.payload.lat),lng:Number(x.payload.lng),bike:x.payload.bike,site:x.payload.site||x.payload.branch,date:x.payload.patrol_date,time:x.payload.patrol_time})));
- };
- ["bikeMapReportBike","bikeMapReportFrom","bikeMapReportTo"].forEach(id=>$("#"+id).addEventListener("change",build));
- $("#backToBikeMaps").addEventListener("click",()=>render("bikeMaps"));
- build();
-}
-function bikePatrolPage(){singleSectionPage("مرور الدراجات","bike_patrols");}
-
 function reports(){
  const data=cache.filter(x=>!x.is_archived);
  const nowDate=new Date(),today=nowDate.toLocaleDateString("en-CA"),monthStart=[nowDate.getFullYear(),String(nowDate.getMonth()+1).padStart(2,"0"),"01"].join("-");
@@ -993,7 +974,6 @@ function render(p){
   else if(p==="emergency")emergencyPage();
   else if(p==="map")mapPage();
   else if(p==="bikeMaps")bikeMapsPage();
-  else if(p==="bikeMapReports")bikeMapReportsPage();
     else if(p==="bikepatrol")bikePatrolPage();
   else if(p==="reports")reports().catch(error=>{console.error("DEEB reports load failed:",error);area.innerHTML=pageHead("تعذر تحميل التقارير والسجلات")+'<div class="card notice">'+esc(error?.message||error)+'</div>';});
   else if(p==="employees")singleSectionPage("سجل الموظفين","employees");
