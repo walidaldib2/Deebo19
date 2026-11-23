@@ -9,6 +9,10 @@ const gradlePath = path.join(root, "android", "app", "build.gradle");
 if (!fs.existsSync(gradlePath)) throw new Error("Android app Gradle file is missing.");
 fs.mkdirSync(javaDir, { recursive: true });
 
+// Capacitor generates a placeholder instrumentation test with a hard-coded sample package name.
+// It is unrelated to DEEB and fails every run, so keep only the DEEB-specific export test.
+fs.rmSync(path.join(root, "android", "app", "src", "androidTest", "java", "com", "getcapacitor", "myapp", "ExampleInstrumentedTest.java"), { force: true });
+
 let gradle = fs.readFileSync(gradlePath, "utf8");
 if (!gradle.includes("testInstrumentationRunner")) {
   const updated = gradle.replace(/(defaultConfig\s*\{)/, '$1\n        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"');
@@ -63,7 +67,7 @@ public class ReportImageExportTest {
 
             boolean ready = false;
             for (int i = 0; i < 120; i++) {
-                String state = evaluateJavascript(web, "String(!!(window.DEEBNativePlugins && window.DEEBNativePlugins.FileExport))");
+                String state = evaluateJavascript(web, "!!(window.DEEBNativePlugins && window.DEEBNativePlugins.FileExport)");
                 if ("true".equals(state)) { ready = true; break; }
                 Thread.sleep(250);
             }
