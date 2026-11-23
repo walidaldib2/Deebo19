@@ -255,14 +255,16 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
-            cd "$GITHUB_WORKSPACE/android" && adb wait-for-device && adb shell getprop sys.boot_completed && adb logcat -c && { timeout 480s ./gradlew connectedDebugAndroidTest --no-daemon --no-configuration-cache --max-workers=2 --console=plain --stacktrace --info; test_status=$?; adb logcat -d -t 5000 > "$GITHUB_WORKSPACE/android-export-logcat.txt" || true; echo "Android instrumentation exit code: $test_status"; exit "$test_status"; }
+            cd "$GITHUB_WORKSPACE/android" && adb wait-for-device && adb shell getprop sys.boot_completed && adb logcat -c && { timeout 480s ./gradlew connectedDebugAndroidTest --no-daemon --no-configuration-cache --max-workers=2 --console=plain --stacktrace --info; test_status=$?; adb logcat -d -t 5000 > "$GITHUB_WORKSPACE/android-export-logcat.txt" || true; adb logcat -d -s DEEBTest:I DEEBExport:I chromium:E AndroidRuntime:E > "$GITHUB_WORKSPACE/android-export-focused-logcat.txt" || true; echo "Android instrumentation exit code: $test_status"; exit "$test_status"; }
 
       - name: Upload Android export diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: DEEB-Android-Export-Diagnostics
-          path: android-export-logcat.txt
+          path: |
+            android-export-logcat.txt
+            android-export-focused-logcat.txt
           if-no-files-found: ignore
           retention-days: 7
 
