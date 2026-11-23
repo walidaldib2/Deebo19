@@ -31,33 +31,9 @@ fields.handovers.unshift(["handover_date","تاريخ الشفت","date",1]);
 fields.emergencies.unshift(["emergency_date","تاريخ الحالة","date",1]);
 fields.tasks.unshift(["work_date","تاريخ العمل","date",1]);
 fields.absences.find(f=>f[0]==="shift")[4]=1;
-const pageGroups={follow:["daily_rosters","branch_patrols","bike_patrols","manager_rounds","incidents","tasks","handovers","absences","written_reports"],data:["branches","patrol_people","emergency_people","bikes","patrol_sites","managers","employees","documents"],emergency:["emergencies","emergency_people"]};
-const sectionPages={
-operations:{title:"التشغيل الميداني",description:"متابعة الفروع والدراجات والمديرين وتشكيل الشفت اليومي.",items:[
-{type:"daily_rosters",title:"تشكيل الشفت اليومي",description:"تحديد أفراد المرور والدراجات ومواعيد الشفت.",icon:"🗓️"},
-{type:"branch_patrols",title:"متابعة الفروع",description:"تسجيل الزيارات والمتابعات اليومية لكل فرع.",icon:"🏢"},
-{type:"bike_patrols",title:"مرور الدراجات",description:"تسجيل مرور الدراجات ومواقع الوصول.",icon:"🏍️"},
-{type:"manager_rounds",title:"مرور مديري الأقسام",description:"متابعة جولات المديرين ونتائج المرور.",icon:"👔"},
-{type:"map",title:"خريطة مرور الدراجات",description:"عرض نقاط الزيارة وخط سير الدراجات.",icon:"🗺️"}
-]},
-security:{title:"إدارة الأمن",description:"إدارة بيانات الفروع والأفراد والدراجات والمسؤولين والسجلات الأساسية.",items:[
-{type:"employees",title:"سجل الموظفين",description:"بيانات الموظفين ورقم ساب والهاتف والوظيفة.",icon:"👥"},
-{type:"patrol_people",title:"أفراد الدوريات",description:"إدارة أفراد المرور وبياناتهم.",icon:"🛡️"},
-{type:"emergency_people",title:"أفراد الطوارئ",description:"بيانات فرق الاستجابة والتخصصات.",icon:"🚑"},
-{type:"branches",title:"الفروع",description:"بيانات الفروع والمسؤولين ووسائل التواصل.",icon:"🏬"},
-{type:"bikes",title:"الدراجات",description:"سجل الدراجات وأرقامها وحالتها.",icon:"🏍️"},
-{type:"managers",title:"مديرو الأقسام",description:"بيانات المديرين والأقسام والفروع التابعة.",icon:"👔"},
-{type:"patrol_sites",title:"المخازن والمعارض ومراكز الخدمة",description:"إدارة المواقع وإحداثياتها.",icon:"📍"},
-{type:"documents",title:"خزنة المستندات",description:"حفظ بيانات المستندات ومراجعها.",icon:"🗂️"}
-]},
-assignments:{title:"التكليفات والمتابعة",description:"متابعة المهام والتسليم والاستلام والغياب والبلاغات والحالات الطارئة.",items:[
-{type:"tasks",title:"المهام اليومية",description:"توزيع المهام ومتابعة التنفيذ ونسب الإنجاز.",icon:"✅"},
-{type:"handovers",title:"تسليم واستلام الشفت",description:"توثيق ما تم تسليمه والمهام والبلاغات المفتوحة.",icon:"🔄"},
-{type:"absences",title:"غياب المسؤولين",description:"تسجيل الغياب والبديل والإجراء المتخذ.",icon:"📅"},
-{type:"incidents",title:"البلاغات والحوادث",description:"تسجيل البلاغات ومتابعة حالتها والإجراءات.",icon:"🚨"},
-{type:"emergencies",title:"حالات الطوارئ",description:"إدارة الحالات وفرق الاستجابة والإجراءات.",icon:"🆘"}
-]}
-};
+const pageGroups={follow:["daily_rosters","branch_patrols","written_reports"],data:["branches","employees","patrol_people","emergency_people","bikes","patrol_sites","managers","documents","custom_data"],emergency:["emergencies","emergency_people"]};
+const sectionMenus={operations:{title:"التشغيل الميداني",items:[["follow","متابعة الفروع"],["map","مرور الدراجات"],["bikeMaps","خرائط الدراجات"],["managerRounds","مرور المديرين"]]},security:{title:"إدارة الأمن",items:[["employees","سجل الموظفين"],["attendance","الغياب والاستئذان"],["incidents","الحوادث والبلاغات"],["emergency","الطوارئ"]]},tasksGroup:{title:"التكليفات والمتابعة",items:[["tasks","المهام والتكليفات"],["handovers","تسليم واستلام الشفت"]]},reportsGroup:{title:"التقارير والسجلات",items:[["reports","مركز التقارير"],["stats","الإحصائيات"]]},system:{title:"إدارة النظام",items:[["data","تسجيل البيانات"],["backup","النسخ الاحتياطي والاستعادة"],["settings","الإعدادات"]]}};
+const sectionMenus={operations:{title:"التشغيل الميداني",items:[["follow","متابعة الفروع"],["map","مرور الدراجات"],["bikeMaps","خرائط الدراجات"],["managerRounds","مرور المديرين"]]},security:{title:"إدارة الأمن",items:[["employees","سجل الموظفين"],["attendance","الغياب والاستئذان"],["incidents","الحوادث والبلاغات"],["emergency","الطوارئ"]]},tasksGroup:{title:"التكليفات والمتابعة",items:[["tasks","المهام والتكليفات"],["handovers","تسليم واستلام الشفت"]]},reportsGroup:{title:"التقارير والسجلات",items:[["reports","مركز التقارير"],["stats","الإحصائيات"]]},system:{title:"إدارة النظام",items:[["data","تسجيل البيانات"],["backup","النسخ الاحتياطي والاستعادة"],["settings","الإعدادات"]]}};
 let cache=[],currentPage="home",currentType=null,currentEdit=null,currentEmployeeDetailId=null,weatherTimer=null,archiveTimer=null,searchTerm="",deferredInstallPrompt=null;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const normalize=v=>String(v||"").trim().toLocaleLowerCase("ar").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي");
@@ -519,17 +495,23 @@ function home(){if(localStorage.getItem("deboo_weather_city")==="Shibin El Kom")
 }
 async function weather(city){if(!city)return;localStorage.setItem("deboo_weather_city",city);$("#weatherDesc").textContent="جارٍ جلب البيانات...";try{const g=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=ar&format=json`);const j=await g.json();if(!j.results?.length)throw Error("لم يتم العثور على الموقع");await weatherCoords(j.results[0].latitude,j.results[0].longitude,j.results[0].name)}catch(e){$("#weatherDesc").textContent="تعذر تحديث الطقس";$("#weatherExtra").textContent=e.message}}
 async function weatherCoords(lat,lon,name="موقعك"){try{const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m&timezone=auto`);if(!r.ok)throw Error("خدمة الطقس غير متاحة");const j=await r.json(),c=j.current;const desc=({0:"سماء صافية",1:"غالبًا صافٍ",2:"غائم جزئيًا",3:"غائم",45:"ضباب",48:"ضباب متجمد",51:"رذاذ خفيف",61:"مطر خفيف",63:"مطر متوسط",65:"مطر غزير",71:"ثلوج خفيفة",80:"زخات مطر",95:"عواصف رعدية"})[c.weather_code]||"حالة جوية متغيرة";$("#weatherTemp").textContent=Math.round(c.temperature_2m)+"°";$("#weatherDesc").textContent=desc+" — "+name;$("#weatherExtra").textContent=`الرطوبة ${c.relative_humidity_2m}% • الرياح ${c.wind_speed_10m} كم/س • المحسوسة ${c.apparent_temperature}°`;$("#weatherUpdated").textContent="آخر تحديث: "+new Date().toLocaleTimeString("ar-EG")}catch(e){$("#weatherDesc").textContent="تعذر تحديث الطقس";$("#weatherExtra").textContent=e.message}}
-function sectionLanding(p){
- const config=sectionPages[p];if(!config)return;
- const cards=config.items.map(item=>{
-  const count=item.type==="map"?rows("bike_patrols").length:rows(item.type).length;
-  const action=item.type==="map"?'data-section-map="1"':'data-section-type="'+item.type+'"';
-  return '<button type="button" class="section-card" '+action+'><span class="section-card-icon">'+item.icon+'</span><span class="section-card-copy"><b>'+item.title+'</b><small>'+item.description+'</small></span><span class="section-card-count">'+count+'</span></button>';
- }).join("");
- area.innerHTML=pageHead(config.title)+'<p class="section-description">'+config.description+'</p><div class="section-card-grid">'+cards+'</div>';
- $("[data-section-type]").forEach(button=>button.addEventListener("click",()=>{currentEdit=null;currentEmployeeDetailId=null;renderEntity(button.dataset.sectionType);}));
- $("[data-section-map]").forEach(button=>button.addEventListener("click",()=>{currentPage="operations";mapPage();}));
+function statisticsPage(){
+ const count=t=>rows(t).length;
+ const openInc=rows("incidents").filter(x=>x.payload?.status!=="مغلق").length;
+ const openTasks=rows("tasks").filter(x=>x.payload?.status!=="مكتملة").length;
+ const lateTasks=rows("tasks").filter(x=>x.payload?.due_date&&x.payload.due_date<new Date().toLocaleDateString("en-CA")&&x.payload?.status!=="مكتملة").length;
+ const today=new Date().toLocaleDateString("en-CA");
+ const todayVisits=rows("branch_patrols").filter(x=>String(x.payload?.patrol_date||"").slice(0,10)===today).length;
+ const bikeVisits=rows("bike_patrols").filter(x=>String(x.payload?.patrol_date||"").slice(0,10)===today).length;
+ area.innerHTML=`${pageHead("الإحصائيات")}
+ <div class="card"><h2>ملخص التشغيل</h2>${stats([["الفروع",count("branches")],["متابعات الفروع اليوم",todayVisits],["مرور الدراجات اليوم",bikeVisits],["الموظفون المسجلون",count("employees")],["البلاغات المفتوحة",openInc],["المهام المفتوحة",openTasks],["المهام المتأخرة",lateTasks],["حالات الطوارئ",count("emergencies")]])}</div>
+ <div class="card"><h2>السجلات حسب القسم</h2>${stats(Object.entries(labels).filter(([type])=>count(type)>0).map(([type,label])=>[label,count(type)]))}</div>`;
 }
+async function openArchivePage(){await reports();$("#showArchive")?.click();}
+async function openArchivePage(){await reports();$("#showArchive")?.click();}
+function openBackupPage(){settings();const card=[...area.querySelectorAll(".card")].find(x=>x.textContent.includes("النسخ الاحتياطي والاستعادة"));card?.scrollIntoView({behavior:"smooth",block:"start"});}
+function sectionPage(key){const section=sectionMenus[key];if(!section)throw new Error("القسم غير معروف: "+key);area.innerHTML=pageHead(section.title)+"<div class=\"tiles section-tiles\">"+section.items.map(item=>"<button class=\"tile\" type=\"button\" data-subpage=\""+item[0]+"\"><span>›</span><b>"+item[1]+"</b></button>").join("")+"</div>";area.querySelectorAll("[data-subpage]").forEach(button=>button.addEventListener("click",()=>render(button.dataset.subpage)));}
+
 function groupPage(p){const list=pageGroups[p]||[];area.innerHTML=`${pageHead(p==="follow"?"المتابعة":"البيانات")}<div class="subnav">${list.map((t,i)=>`<button data-type="${t}" class="${i===0?"active":""}">${labels[t]}</button>`).join("")}</div><div id="groupContent"></div>`;$$(".subnav button").forEach(b=>b.onclick=()=>{$$(".subnav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");currentEdit=null;currentEmployeeDetailId=null;renderEntity(b.dataset.type)});renderEntity(list[0]);}
 function dataManagementPage(){
  area.innerHTML=`${pageHead("إدارة البيانات",`<button class="secondary" id="backSettings">العودة للإعدادات</button>`)}<p class="muted">إدارة بيانات الفروع والأفراد والدراجات والمديرين والموظفين والمستندات من مكان واحد.</p><div class="subnav">${pageGroups.data.map((t,i)=>`<button data-type="${t}" class="${i===0?"active":""}">${labels[t]}</button>`).join("")}</div><div id="groupContent"></div>`;
@@ -556,7 +538,7 @@ function comparePatrolTimes(a,b){
 }
 function mapPage(){
  const today=new Date().toLocaleDateString("en-CA");
- area.innerHTML=pageHead("خريطة مرور الدراجات",'<button class="secondary" id="backOperations">رجوع للتشغيل الميداني</button><button class="secondary" id="mapToday">اليوم</button>')+
+ area.innerHTML=pageHead("مرور الدراجات",'<button class="primary" id="openBikePatrolRecords">تسجيل مرور جديد</button><button class="secondary" id="mapToday">اليوم</button>')+
  '<div class="card"><p class="muted">يعرض التطبيق نقاط الوصول التي تم حفظ إحداثياتها مع مرور الدراجات. اختر التاريخ والدراجة لعرض خط سير الزيارات حسب التوقيت.</p><div class="form"><div class="field"><label>تاريخ المرور</label><input id="mapDate" type="date" value="'+today+'"></div><div class="field"><label>الدراجة</label><select id="mapBike"><option value="">كل الدراجات</option>'+[...new Set(cache.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived).map(x=>String(x.payload?.bike||"").trim()).filter(Boolean))].sort().map(v=>'<option>'+esc(v)+'</option>').join("")+'</select></div></div><div id="bikeRouteSummary"></div></div>';
  const paint=()=>{
   const date=$("#mapDate").value,bike=$("#mapBike").value;
@@ -567,8 +549,64 @@ function mapPage(){
   const routeUrl=coords.length>1?"https://www.google.com/maps/dir/?api=1&origin="+encodeURIComponent(coords[0])+"&destination="+encodeURIComponent(coords[coords.length-1])+(coords.length>2?"&waypoints="+encodeURIComponent(coords.slice(1,-1).join("|")):"")+"&travelmode=driving":coords.length===1?"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(coords[0]):"";
   $("#bikeRouteSummary").innerHTML='<div class="stats"><div class="stat"><strong>'+visits.length+'</strong><span>إجمالي الزيارات</span></div><div class="stat"><strong>'+located.length+'</strong><span>نقاط على الخريطة</span></div><div class="stat"><strong>'+new Set(visits.map(x=>x.payload?.bike||"")).size+'</strong><span>عدد الدراجات</span></div></div>'+(routeUrl?'<div class="actions"><a class="primary" target="_blank" rel="noopener" href="'+routeUrl+'">فتح خط السير على خرائط Google</a></div>':'<p class="notice">لا توجد إحداثيات محفوظة لهذه الزيارات. أضف إحداثيات الوصول أو شارك موقع واتساب مع التطبيق حتى تظهر النقاط على الخريطة.</p>')+(points.length?'<div class="table-wrap"><table><thead><tr><th>م</th><th>التوقيت</th><th>الدراجة</th><th>المكان</th><th>الإحداثيات</th><th>الخريطة</th></tr></thead><tbody>'+points.map((x,i)=>{const lat=Number(x.p.lat),lng=Number(x.p.lng),ok=String(x.p.lat??"").trim()!==""&&String(x.p.lng??"").trim()!==""&&Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180;return '<tr><td>'+(i+1)+'</td><td>'+esc(x.p.patrol_time||"—")+'</td><td>'+esc(x.p.bike||"—")+'</td><td>'+esc(x.p.site||x.p.branch||"غير محدد")+'</td><td>'+(ok?lat.toFixed(6)+", "+lng.toFixed(6):"غير مسجل")+'</td><td>'+(ok?'<a target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat='+lat+'&mlon='+lng+'#map=16/'+lat+'/'+lng+'">عرض النقطة</a>':"—")+'</td></tr>';}).join("")+'</tbody></table></div>':'<div class="empty">لا توجد زيارات دراجات مسجلة في هذا التاريخ.</div>');
  };
- $("#mapDate").onchange=paint;$("#mapBike").onchange=paint;$("#mapToday").onclick=()=>{$("#mapDate").value=today;$("#mapBike").value="";paint();};$("#backOperations")?.addEventListener("click",()=>{currentPage="operations";sectionLanding("operations");});paint();
+ $("#openBikePatrolRecords").onclick=()=>render("bikepatrol");$("#mapDate").onchange=paint;$("#mapBike").onchange=paint;$("#mapToday").onclick=()=>{$("#mapDate").value=today;$("#mapBike").value="";paint();};paint();
 }
+function renderBikeLeafletMap(targetId, points){
+ const target=document.getElementById(targetId);if(!target)return;
+ if(!points.length){target.innerHTML='<div class="empty">لا توجد إحداثيات صحيحة لعرضها على الخريطة.</div>';return;}
+ const draw=()=>{
+  if(!window.L||!document.getElementById(targetId))return;
+  const el=document.getElementById(targetId);if(el.dataset.mapReady==="1")return;el.dataset.mapReady="1";
+  const map=L.map(el,{scrollWheelZoom:false});
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',crossOrigin:true}).addTo(map);
+  const latlngs=points.map(p=>[p.lat,p.lng]);
+  const byBike=new Map();points.forEach(p=>{const key=String(p.bike||"دراجة غير محددة");if(!byBike.has(key))byBike.set(key,[]);byBike.get(key).push([p.lat,p.lng]);});
+  byBike.forEach((line)=>{if(line.length>1)L.polyline(line,{color:"#8b1732",weight:4,opacity:.75}).addTo(map);});
+  points.forEach((p,i)=>{
+   const safe=v=>String(v||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+   const popup='<b>'+(i+1)+'. '+safe(p.bike||"دراجة غير محددة")+'</b><br>'+safe(p.site||"موقع المرور")+'<br>'+safe(p.date||"")+' '+safe(p.time||"");
+   L.marker([p.lat,p.lng],{icon:L.divIcon({className:"deeb-map-pin",html:'<span>'+(i+1)+'</span>',iconSize:[30,30],iconAnchor:[15,15]})}).addTo(map).bindPopup(popup);
+  });
+  map.fitBounds(L.latLngBounds(latlngs).pad(.18),{maxZoom:16});setTimeout(()=>map.invalidateSize(),150);
+ };
+ if(window.L){draw();return;}
+ if(!document.getElementById("deebLeafletCss")){const css=document.createElement("link");css.id="deebLeafletCss";css.rel="stylesheet";css.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";document.head.appendChild(css);}
+ let js=document.getElementById("deebLeafletJs");if(!js){js=document.createElement("script");js.id="deebLeafletJs";js.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";js.onload=draw;js.onerror=()=>{target.innerHTML='<div class="notice">تعذر تحميل الخريطة. تحقق من اتصال الإنترنت وحاول مرة أخرى.</div>';};document.head.appendChild(js);}else if(window.L)draw();
+}
+function bikeMapsPage(){
+ const bikes=[...new Set(cache.filter(x=>x.entity_type==="bike_patrols").map(x=>String(x.payload?.bike||"").trim()).filter(Boolean).concat(cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived).map(x=>String(x.payload?.number||"").trim()).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,"ar",{numeric:true}));
+ const dateValue=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
+ const todayDate=new Date(),today=dateValue(todayDate),yesterdayDate=new Date(todayDate);yesterdayDate.setDate(yesterdayDate.getDate()-1);const yesterday=dateValue(yesterdayDate);
+ area.innerHTML=pageHead("خرائط الدراجات",'<button class="secondary" id="openBikeMapReports">تقارير خرائط الدراجات</button><button class="primary" id="openBikePatrolRecords">تسجيل مرور جديد</button>')+
+ '<div class="card"><p class="muted">اعرض تحركات كل الدراجات في يوم واحد أو اختر دراجة محددة. اختر نفس التاريخ في خانتي البداية والنهاية لعرض يوم بعينه. تظهر النقاط المحفوظة بإحداثياتها فقط. لا يوجد تتبع مباشر؛ المسار يعتمد على سجلات المرور التي تم حفظها.</p><div class="form"><div class="field"><label>الدراجة</label><select id="individualBikeMap"><option value="">كل الدراجات</option>'+bikes.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("")+'</select></div><div class="field"><label>من تاريخ</label><input id="bikeMapFrom" type="date" value="'+today+'"></div><div class="field"><label>إلى تاريخ</label><input id="bikeMapTo" type="date" value="'+today+'"></div></div><div class="actions"><button class="secondary" id="bikeMapYesterday">خريطة أمس</button><button class="secondary" id="bikeMapToday">خريطة اليوم</button></div><div id="individualBikeMapContent"><div class="empty">جارٍ تجهيز خريطة اليوم.</div></div></div>';
+ const normalizePatrolDate=value=>{
+  let raw=String(value??"").trim().replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+  if(!raw)return "";
+  const iso=raw.match(/^(\\d{4})[-/.](\\d{1,2})[-/.](\\d{1,2})/);
+  if(iso)return iso[1]+"-"+String(iso[2]).padStart(2,"0")+"-"+String(iso[3]).padStart(2,"0");
+  const dmy=raw.match(/^(\\d{1,2})[-/.](\\d{1,2})[-/.](\\d{4})/);
+  if(dmy)return dmy[3]+"-"+String(dmy[2]).padStart(2,"0")+"-"+String(dmy[1]).padStart(2,"0");
+  const parsed=new Date(raw);
+  return Number.isNaN(parsed.getTime())?"":dateValue(parsed);
+ };
+ const visitDate=x=>normalizePatrolDate(x.payload?.patrol_date)||normalizePatrolDate(x.created_at);
+ const paint=()=>{
+  const bike=$("#individualBikeMap").value,from=$("#bikeMapFrom").value,to=$("#bikeMapTo").value,host=$("#individualBikeMapContent");
+  const visits=cache.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived&&(!bike||String(x.payload?.bike||"").trim()===bike)).filter(x=>{const d=visitDate(x);return (!from||d>=from)&&(!to||d<=to);}).sort((a,b)=>visitDate(a).localeCompare(visitDate(b))||comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time));
+  const located=visits.filter(x=>validCoordinatePair(x.payload?.lat,x.payload?.lng));
+  const coords=located.map(x=>Number(x.payload.lat)+","+Number(x.payload.lng));
+  const routeUrl=bike?(coords.length>1?"https://www.google.com/maps/dir/?api=1&origin="+encodeURIComponent(coords[0])+"&destination="+encodeURIComponent(coords[coords.length-1])+(coords.length>2?"&waypoints="+encodeURIComponent(coords.slice(1,-1).join("|")):"")+"&travelmode=driving":coords.length===1?"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(coords[0]):""):"";
+  host.innerHTML='<style>.deeb-live-map{height:380px;width:100%;margin:14px 0;border:1px solid #c99a32;border-radius:10px;z-index:1}.deeb-map-pin{background:transparent;border:0}.deeb-map-pin span{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:2px solid white;border-radius:50%;background:#8b1732;color:#fff;font-weight:bold;box-shadow:0 1px 5px #333}</style><div class="stats"><div class="stat"><strong>'+visits.length+'</strong><span>إجمالي الزيارات</span></div><div class="stat"><strong>'+located.length+'</strong><span>نقاط على الخريطة</span></div><div class="stat"><strong>'+Math.max(0,visits.length-located.length)+'</strong><span>مواقع بلا إحداثيات</span></div></div>'+(located.length?'<div id="individualBikeLeafletMap" class="deeb-live-map"></div>':'<p class="notice">'+(visits.length?'السجلات موجودة، لكن لا توجد إحداثيات محفوظة لعرضها على الخريطة.':'لا توجد زيارات مسجلة في الفترة المحددة.')+'</p>')+(routeUrl?'<div class="actions"><a class="primary" target="_blank" rel="noopener" href="'+routeUrl+'">فتح مسار الدراجة على خرائط Google</a></div>':'')+(visits.length?'<div class="table-wrap"><table><thead><tr><th>م</th><th>الدراجة</th><th>التاريخ</th><th>الوقت</th><th>الفرع / المكان</th><th>الإحداثيات</th><th>النقطة</th></tr></thead><tbody>'+visits.map((x,i)=>{const p=x.payload||{},ok=validCoordinatePair(p.lat,p.lng),lat=Number(p.lat),lng=Number(p.lng);return '<tr><td>'+(i+1)+'</td><td>'+esc(p.bike||"—")+'</td><td>'+esc(p.patrol_date||String(x.created_at||"").slice(0,10)||"—")+'</td><td>'+esc(p.patrol_time||"—")+'</td><td>'+esc(p.site||p.branch||"غير محدد")+'</td><td>'+(ok?lat.toFixed(6)+", "+lng.toFixed(6):"غير مسجل")+'</td><td>'+(ok?'<a target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat='+lat+'&mlon='+lng+'#map=16/'+lat+'/'+lng+'">عرض النقطة</a>':"—")+'</td></tr>';}).join("")+'</tbody></table></div>':'');
+  if(located.length)renderBikeLeafletMap("individualBikeLeafletMap",located.map(x=>({lat:Number(x.payload.lat),lng:Number(x.payload.lng),bike:x.payload.bike,site:x.payload.site||x.payload.branch,date:x.payload.patrol_date,time:x.payload.patrol_time})));
+ };
+ ["individualBikeMap","bikeMapFrom","bikeMapTo"].forEach(id=>$("#"+id).onchange=paint);
+ $("#bikeMapYesterday").onclick=()=>{$("#bikeMapFrom").value=yesterday;$("#bikeMapTo").value=yesterday;paint();};
+ $("#bikeMapToday").onclick=()=>{$("#bikeMapFrom").value=today;$("#bikeMapTo").value=today;paint();};
+ $("#openBikePatrolRecords").onclick=()=>render("bikepatrol");
+ $("#openBikeMapReports").onclick=()=>render("bikeMapReports");
+ paint();
+}
+
 function reports(){
  const data=cache.filter(x=>!x.is_archived);
  const nowDate=new Date(),today=nowDate.toLocaleDateString("en-CA"),monthStart=[nowDate.getFullYear(),String(nowDate.getMonth()+1).padStart(2,"0"),"01"].join("-");
@@ -897,7 +935,41 @@ $("#backupBtn").onclick=async()=>{const button=$("#backupBtn");button.disabled=t
  $("#checkNotifications").onclick=()=>checkAlerts(true);checkAlerts(false);
  try{const a=await DebooDB.audit();$("#auditArea").innerHTML=a.map(x=>`<div class="notice">${esc(x.action)} — ${esc(x.reason||"")} <small>${new Date(x.created_at).toLocaleString("ar-EG")}</small></div>`).join("")||"لا توجد أحداث"}catch(e){$("#auditArea").textContent=e.message}
 }
-function render(p){currentPage=p;currentType=null;document.querySelector(".app-shell")?.classList.toggle("page-open",p!=="home");$$(".tile").forEach(b=>b.classList.toggle("active",b.dataset.page===p));searchTerm=$("#globalSearch").value||"";if(p==="home")home();else if(["operations","security","assignments"].includes(p))sectionLanding(p);else if(p==="follow")groupPage(p);else if(p==="emergency")emergencyPage();else if(p==="map")mapPage();else if(p==="reports")reports();else if(p==="settings")settings();window.scrollTo({top:$("#contentArea").offsetTop-12,behavior:"smooth"})}
+function render(p){
+ currentPage=p;currentType=null;
+ try{
+  if(!area)throw new Error("منطقة عرض الأقسام غير موجودة في الصفحة.");
+  document.querySelector(".app-shell")?.classList.toggle("page-open",p!=="landing");
+  document.querySelectorAll(".tile").forEach(b=>b.classList.toggle("active",b.dataset.page===(p==="landing"?"home":p)));
+  searchTerm=$("#globalSearch")?.value||"";
+  if(p==="landing"){area.innerHTML="";}
+  else if(p==="home")home();
+  else if(sectionMenus[p])sectionPage(p);
+  else if(p==="follow")groupPage(p);
+  else if(p==="emergency")emergencyPage();
+  else if(p==="map")mapPage();
+  else if(p==="bikeMaps")bikeMapsPage();
+    else if(p==="bikepatrol")bikePatrolPage();
+  else if(p==="reports")reports().catch(error=>{console.error("DEEB reports load failed:",error);area.innerHTML=pageHead("تعذر تحميل التقارير والسجلات")+'<div class="card notice">'+esc(error?.message||error)+'</div>';});
+  else if(p==="employees")singleSectionPage("سجل الموظفين","employees");
+  else if(p==="managerRounds")singleSectionPage("مرور المديرين","manager_rounds");
+  else if(p==="handovers")singleSectionPage("تسليم واستلام الشفت","handovers");
+  else if(p==="data")dataManagementPage();
+  else if(p==="attendance")singleSectionPage("سجل الغياب والاستئذان","absences");
+  else if(p==="incidents")singleSectionPage("الحوادث والبلاغات","incidents");
+  else if(p==="tasks")singleSectionPage("المهام والتكليفات","tasks");
+  else if(p==="stats")statisticsPage();
+  else if(p==="archive")openArchivePage();
+  else if(p==="backup")openBackupPage();
+  else if(p==="settings")settings();
+  else throw new Error("القسم المطلوب غير مربوط بصفحة داخل التطبيق: "+p);
+  if(p!=="home"&&!area.innerHTML.trim())throw new Error("القسم لم يُنشئ محتوى للعرض.");
+  window.scrollTo({top:area.offsetTop-12,behavior:"smooth"});
+ }catch(error){
+  console.error("DEEB section navigation failed:",p,error);
+  if(area)area.innerHTML=pageHead("تعذر فتح القسم")+ '<div class="card"><h3>حدث خطأ أثناء فتح هذا القسم</h3><p class="notice">'+esc(error?.message||String(error))+'</p><button class="primary" type="button" data-back-home>العودة للرئيسية</button></div>';
+ }
+}
 window.DEebRender=render;
 $$("[data-page]").forEach(b=>b.onclick=()=>render(b.dataset.page));
 document.addEventListener("click",e=>{if(e.target.closest("[data-back-home]"))render("home")});
