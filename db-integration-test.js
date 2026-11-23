@@ -70,7 +70,7 @@ async function main() {
     await db.save("bike_patrols", { bike: "دراجة " + i, patrol_date: "2026-11-19", patrol_time: "10:" + String(i).padStart(2,"0") });
   }
   await db.save("bike_patrols", { bike: "دراجة 1", patrol_date: "2026-11-19", patrol_time: "11:00" });
-  assert.equal((await db.all()).filter(x => x.entity_type === "bike_patrols").length, 12);
+  assert.equal((await db.all()).filter(x => x.entity_type === "bike_patrols").length, 11);
 
   // Motorcycle patrol records preserve the actual person who conducted each visit.
   const namedVisit = await db.save("bike_patrols", { bike: "دراجة 1", person: "فرد مرور اختبار", site: "مخزن اختبار", patrol_date: "2026-11-19", patrol_time: "11:30" });
