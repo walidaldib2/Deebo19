@@ -291,22 +291,29 @@ public class FileExportPlugin extends Plugin {
             input=android.os.ParcelFileDescriptor.open(tempPdf,android.os.ParcelFileDescriptor.MODE_READ_ONLY);
             renderer=new android.graphics.pdf.PdfRenderer(input);
             int pageCount=renderer.getPageCount();
+            Log.i("DEEBExport","Opened generated PDF; pageCount="+pageCount);
             if(pageCount<1||pageCount>100)throw new Exception("عدد صفحات PDF الناتج غير صالح ("+pageCount+").");
             final int width=1588,height=2246;
             for(int index=0;index<pageCount;index++){
               if(finished.get())return;
+              Log.i("DEEBExport","Opening PDF page "+(index+1)+"/"+pageCount);
               android.graphics.pdf.PdfRenderer.Page page=renderer.openPage(index);
+              Log.i("DEEBExport","Opened PDF page "+(index+1)+"; starting bitmap allocation");
               Bitmap bitmap=null;
               try{
                 bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
+                Log.i("DEEBExport","Allocated PNG bitmap page "+(index+1)+"; freeHeap="+Runtime.getRuntime().freeMemory()+", maxHeap="+Runtime.getRuntime().maxMemory());
                 bitmap.eraseColor(Color.WHITE);
+                Log.i("DEEBExport","Starting PdfRenderer.render for page "+(index+1));
                 page.render(bitmap,new android.graphics.Rect(0,0,width,height),null,android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_PRINT);
+                Log.i("DEEBExport","Completed PdfRenderer.render for page "+(index+1));
                 int nonWhite=0;
                 int stepX=Math.max(1,width/400),stepY=Math.max(1,height/400);
                 for(int y=0;y<height&&nonWhite==0;y+=stepY)for(int x=0;x<width;x+=stepX){
                   int pixel=bitmap.getPixel(x,y);
                   if(Color.red(pixel)<248||Color.green(pixel)<248||Color.blue(pixel)<248){nonWhite++;break;}
                 }
+                Log.i("DEEBExport","Completed blank-page scan for page "+(index+1)+"; nonWhiteSamples="+nonWhite);
                 if(nonWhite==0)throw new Exception("صفحة التقرير رقم "+(index+1)+" فارغة؛ تم إيقاف الحفظ.");
                 ContentValues values=new ContentValues();
                 values.put(MediaStore.Images.Media.DISPLAY_NAME,baseName+"-"+String.format(java.util.Locale.US,"%02d",index+1)+".png");
@@ -315,29 +322,47 @@ public class FileExportPlugin extends Plugin {
                   values.put(MediaStore.Images.Media.RELATIVE_PATH,Environment.DIRECTORY_PICTURES+"/DEEB");
                   values.put(MediaStore.Images.Media.IS_PENDING,1);
                 }
+                Log.i("DEEBExport","Inserting MediaStore row for page "+(index+1));
                 Uri uri=getContext().getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values);
+                Log.i("DEEBExport","MediaStore insert finished for page "+(index+1)+"; uriPresent="+(uri!=null));
                 if(uri==null)throw new Exception("تعذر إنشاء صورة التقرير رقم "+(index+1)+".");
                 createdUris.add(uri);
                 try(OutputStream out=getContext().getContentResolver().openOutputStream(uri)){
+                  Log.i("DEEBExport","Opened PNG output stream for page "+(index+1)+"; starting PNG compression");
                   if(out==null||!bitmap.compress(Bitmap.CompressFormat.PNG,100,out))throw new Exception("تعذر كتابة صورة التقرير رقم "+(index+1)+".");
                   out.flush();
+                  Log.i("DEEBExport","PNG compression and flush finished for page "+(index+1));
                 }catch(Exception writeError){
                   getContext().getContentResolver().delete(uri,null,null);createdUris.remove(uri);throw writeError;
                 }
                 if(Build.VERSION.SDK_INT>=29){
                   ContentValues ready=new ContentValues();ready.put(MediaStore.Images.Media.IS_PENDING,0);
+                  Log.i("DEEBExport","Publishing PNG page "+(index+1));
                   getContext().getContentResolver().update(uri,ready,null,null);
                 }
                 Log.i("DEEBExport","Saved PNG page "+(index+1)+"/"+pageCount);
-              }finally{if(bitmap!=null&&!bitmap.isRecycled())bitmap.recycle();page.close();}
+              }finally{
+                Log.i("DEEBExport","Releasing bitmap and PDF page "+(index+1));
+                if(bitmap!=null&&!bitmap.isRecycled())bitmap.recycle();
+                page.close();
+                Log.i("DEEBExport","Released bitmap and PDF page "+(index+1));
+              }
             }
             if(finished.compareAndSet(false,true)){
               cleanup.run();
               JSObject result=new JSObject();result.put("count",pageCount);result.put("saved",true);result.put("format","A4 PNG");result.put("source","Android PdfDocument + PdfRenderer");
               call.resolve(result);
             }
-          }catch(Exception e){fail.reject("تعذر تحويل صفحات التقرير إلى صور: "+e.getMessage());}
-          finally{try{if(renderer!=null)renderer.close();}catch(Exception ignored){}try{if(input!=null)input.close();}catch(Exception ignored){}}
+          }catch(Throwable e){
+            Log.e("DEEBExport","PDF-to-PNG conversion failed: "+e.getClass().getName()+": "+e.getMessage(),e);
+            fail.reject("تعذر تحويل صفحات التقرير إلى صور: "+e.getClass().getSimpleName()+": "+e.getMessage());
+          }
+          finally{
+            Log.i("DEEBExport","Closing PDF renderer and input descriptor");
+            try{if(renderer!=null)renderer.close();}catch(Exception ignored){}
+            try{if(input!=null)input.close();}catch(Exception ignored){}
+            Log.i("DEEBExport","PDF renderer and input descriptor closed");
+          }
         }
       });
       String imageHtml=html.replace("width=device-width,initial-scale=1","width=794,initial-scale=1,maximum-scale=1,user-scalable=no").replace("width=device-width, initial-scale=1","width=794, initial-scale=1, maximum-scale=1, user-scalable=no").replace("@media print","@media all");
@@ -347,7 +372,7 @@ public class FileExportPlugin extends Plugin {
       imageHtml+="<style>.report-page-number{display:none!important}</style>";
       Log.i("DEEBExport", "Loading report HTML into hidden WebView; htmlChars="+imageHtml.length());
       view.loadDataWithBaseURL("https://localhost/",imageHtml,"text/html","UTF-8",null);
-      handler.postDelayed(()->{if(!finished.get())fail.reject("انتهت مهلة تجهيز صور التقرير بعد 120 ثانية. حاول مرة أخرى.");},120000);
+      handler.postDelayed(()->{if(!finished.get()){Log.e("DEEBExport","Export watchdog fired after 120 seconds");fail.reject("انتهت مهلة تجهيز صور التقرير بعد 120 ثانية. حاول مرة أخرى.");}},120000);
     });
   }
   @PluginMethod public void printHtml(PluginCall call) {
