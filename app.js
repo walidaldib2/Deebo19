@@ -400,6 +400,24 @@ function renderEntity(type){
  const editing=currentEdit;
  const host=$("#groupContent")||area;
  host.innerHTML=`${host===area?pageHead(labels[type],`<button class="primary" id="addRecord">+ إضافة سجل</button>`):`<div class="page-head"><h2>${labels[type]}</h2><button class="primary" id="addRecord">${type==="written_reports"?"+ إضافة تقرير يومي":type==="memos"?"+ إضافة مذكرة":"+ إضافة سجل"}</button></div>`}<div class="card"><div class="inline"><span class="pill">${rows(type).length} سجل</span><input id="localFilter" placeholder="تصفية النتائج..." value="${esc(searchTerm)}"></div></div>${patrolShiftContextMarkup(type)}${editing?.id||editing?formHTML(type,editing):""}<div class="card">${table(type)}</div>`;
+
+ if(type==="memos"){
+  const memoEditor=$("#recordForm")?.elements.namedItem("report_text");
+  if(memoEditor){
+   memoEditor.classList.add("memo-editor-text");
+   memoEditor.rows=16;
+   memoEditor.placeholder="اكتب نص المذكرة هنا...";
+   Object.assign(memoEditor.style,{
+    display:"block",width:"100%",minHeight:"340px",padding:"15px 16px",
+    fontFamily:'"Noto Naskh Arabic","Noto Sans Arabic",Tahoma,Arial,sans-serif',
+    fontSize:"18px",fontWeight:"500",lineHeight:"2.05",direction:"rtl",
+    textAlign:"right",letterSpacing:"normal",whiteSpace:"pre-wrap",
+    resize:"vertical",background:"#fffdf8",border:"1.5px solid #c99a32",
+    borderRadius:"12px",color:"#17233b"
+   });
+  }
+ }
+
  const saveShiftContext=$("#savePatrolShiftContext");
  if(saveShiftContext)saveShiftContext.addEventListener("click",()=>{
   const branch=$("#patrolSessionBranch")?.value.trim()||"",supervisor=$("#patrolSessionSupervisor")?.value.trim()||"",shift=$("#patrolSessionShift")?.value||"";
