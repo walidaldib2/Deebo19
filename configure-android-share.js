@@ -318,7 +318,7 @@ public class FileExportPlugin extends Plugin {
         }
       });
       String imageHtml=html.replace("width=device-width,initial-scale=1","width=794,initial-scale=1,maximum-scale=1,user-scalable=no").replace("width=device-width, initial-scale=1","width=794, initial-scale=1, maximum-scale=1, user-scalable=no").replace("@media print","@media all");
-      String tailSpacer="<div id=\"deeb-export-scroll-spacer\" aria-hidden=\"true\" style=\"display:block!important;clear:both!important;width:1px!important;height:1123px!important;min-height:1123px!important;max-height:1123px!important;margin:0!important;padding:0!important;border:0!important;visibility:hidden!important;\"></div>";
+      String tailSpacer="<div id=\\\"deeb-export-scroll-spacer\\\" aria-hidden=\\\"true\\\" style=\\\"display:block!important;clear:both!important;width:1px!important;height:1123px!important;min-height:1123px!important;max-height:1123px!important;margin:0!important;padding:0!important;border:0!important;visibility:hidden!important;\\\"></div>";
       int bodyEnd=imageHtml.toLowerCase(java.util.Locale.ROOT).lastIndexOf("</body>");
       imageHtml=bodyEnd>=0?imageHtml.substring(0,bodyEnd)+tailSpacer+imageHtml.substring(bodyEnd):imageHtml+tailSpacer;
       imageHtml+="<style>.report-page-number{display:none!important}</style>";
