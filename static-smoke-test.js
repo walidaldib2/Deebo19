@@ -210,7 +210,7 @@ if (!workflow.includes('grep -q "BiometricAuth" www/biometric.bundle.js')) throw
 const index = fs.readFileSync(path.join(root,'index.html'),'utf8');
 if (!index.includes('function startupFailure(message)') || !index.includes('unhandledrejection') || !index.includes('startupRetry')) throw new Error('Android startup diagnostics and recovery panel are missing');
 
-if (!app.includes('$(".tile").forEach') || !app.includes('$("[data-page]").forEach')) throw new Error('Navigation must iterate NodeLists, not querySelector single elements');
+if (!app.includes('document.addEventListener("click",event=>{const button=event.target.closest("#mainTiles [data-page], .stories [data-page]")')) throw new Error('Navigation must delegate clicks from the main tiles and story cards');
 if (/(?<!\$)\$\([^)]*\)\.forEach/.test(app)) throw new Error('A single-element querySelector is being used as a NodeList');
 
 if (!app.includes('const normalize=v=>String(v||"").trim().toLocaleLowerCase("ar")') || !app.includes('normalize(row.name).includes(normalize(searchTerm))')) throw new Error('Global Arabic search normalization for branch patrol grid is missing');
