@@ -533,7 +533,6 @@ function statisticsPage(){
  <div class="card"><h2>السجلات حسب القسم</h2>${stats(Object.entries(labels).filter(([type])=>count(type)>0).map(([type,label])=>[label,count(type)]))}</div>`;
 }
 async function openArchivePage(){await reports();$("#showArchive")?.click();}
-async function openArchivePage(){await reports();$("#showArchive")?.click();}
 function openBackupPage(){settings();const card=[...area.querySelectorAll(".card")].find(x=>x.textContent.includes("النسخ الاحتياطي والاستعادة"));card?.scrollIntoView({behavior:"smooth",block:"start"});}
 function sectionPage(key){const section=sectionMenus[key];if(!section)throw new Error("القسم غير معروف: "+key);area.innerHTML=pageHead(section.title)+"<div class=\"tiles section-tiles\">"+section.items.map(item=>"<button class=\"tile\" type=\"button\" data-subpage=\""+item[0]+"\"><span>›</span><b>"+item[1]+"</b></button>").join("")+"</div>";area.querySelectorAll("[data-subpage]").forEach(button=>button.addEventListener("click",()=>render(button.dataset.subpage)));}
 
