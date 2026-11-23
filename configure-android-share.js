@@ -161,11 +161,13 @@ public class FileExportPlugin extends Plugin {
     }
   }
   @PluginMethod public void saveHtmlAsImages(PluginCall call) {
+    Log.i("DEEBExport", "saveHtmlAsImages native method entered");
     final String html=call.getString("html","");
     final String requestedName=call.getString("name","DEEB-report");
     final String baseName=(requestedName==null||requestedName.trim().isEmpty()?"DEEB-report":requestedName.trim()).replace("/","_").replace(String.valueOf((char)92),"_");
     if(html.trim().isEmpty()){call.reject("لا توجد بيانات لتحويلها إلى صور");return;}
     getActivity().runOnUiThread(()->{
+      Log.i("DEEBExport", "Export UI task started");
       final Handler handler=new Handler(Looper.getMainLooper());
       final float density=getContext().getResources().getDisplayMetrics().density;
       final int webWidth=(int)Math.ceil(794.0*density);
@@ -207,6 +209,7 @@ public class FileExportPlugin extends Plugin {
       view.getSettings().setLoadWithOverviewMode(false);
       view.setInitialScale(100);
       root.addView(view,new FrameLayout.LayoutParams(webWidth,(int)Math.ceil(1123*density)));
+      Log.i("DEEBExport", "Hidden report WebView attached; waiting for page load");
       view.setWebViewClient(new WebViewClient(){
         @Override public void onPageFinished(WebView v,String url){
           Log.i("DEEBExport","Hidden report WebView page finished: "+url);
@@ -342,6 +345,7 @@ public class FileExportPlugin extends Plugin {
       int bodyEnd=imageHtml.toLowerCase(java.util.Locale.ROOT).lastIndexOf("</body>");
       imageHtml=bodyEnd>=0?imageHtml.substring(0,bodyEnd)+tailSpacer+imageHtml.substring(bodyEnd):imageHtml+tailSpacer;
       imageHtml+="<style>.report-page-number{display:none!important}</style>";
+      Log.i("DEEBExport", "Loading report HTML into hidden WebView; htmlChars="+imageHtml.length());
       view.loadDataWithBaseURL("https://localhost/",imageHtml,"text/html","UTF-8",null);
       handler.postDelayed(()->{if(!finished.get())fail.reject("انتهت مهلة تجهيز صور التقرير بعد 120 ثانية. حاول مرة أخرى.");},120000);
     });
