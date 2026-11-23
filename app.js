@@ -117,10 +117,11 @@ function extractSharedCoordinates(value){
  const decoded=(()=>{try{return decodeURIComponent(s.replace(/\\+/g,"%2B"));}catch(_){return s;}})();
  const candidates=[s,decoded];
  const patterns=[
-  /geo:([-+]?\d{1,2}\.\d+)\s*[,;]\s*([-+]?\d{1,3}\.\d+)/i,
-  /@([-+]?\d{1,2}\.\d+),\s*([-+]?\d{1,3}\.\d+)/,
+  // Exact dropped pin coordinates take precedence over the map's approximate camera center.
   /!3d([-+]?\d{1,2}\.\d+)!4d([-+]?\d{1,3}\.\d+)/i,
-  /[?&](?:q|query|ll|center|destination|origin)=([-+]?\d{1,2}\.\d+)(?:%2C|,|%252C)([-+]?\d{1,3}\.\d+)/i
+  /geo:([-+]?\d{1,2}\.\d+)\s*[,;]\s*([-+]?\d{1,3}\.\d+)/i,
+  /[?&](?:q|query|ll|center|destination|origin)=([-+]?\d{1,2}\.\d+)(?:%2C|,|%252C)([-+]?\d{1,3}\.\d+)/i,
+  /@([-+]?\d{1,2}\.\d+),\s*([-+]?\d{1,3}\.\d+)/
  ];
  for(const candidate of candidates)for(const re of patterns){const m=candidate.match(re);if(m){const lat=Number(m[1]),lng=Number(m[2]);if(lat>=-90&&lat<=90&&lng>=-180&&lng<=180)return {lat,lng};}}
  return null;
@@ -130,6 +131,29 @@ function nearestPatrolSite(coords){
  const rad=x=>x*Math.PI/180;
  const distance=(a,b)=>{const dLat=rad(b.lat-a.lat),dLng=rad(b.lng-a.lng),v=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLng/2)**2;return 6371000*2*Math.atan2(Math.sqrt(v),Math.sqrt(1-v));};
  return cache.filter(x=>x.entity_type==="patrol_sites"&&!x.is_archived&&validCoordinatePair(x.payload?.lat,x.payload?.lng)).map(x=>({row:x,meters:distance(coords,{lat:Number(x.payload.lat),lng:Number(x.payload.lng)})})).filter(x=>x.meters<=500).sort((x,y)=>x.meters-y.meters)[0]?.row||null;
+}
+async function resolveBikePatrolLocation(input, sourceText="", isCurrent=()=>true){
+ const form=input?.form||$("#recordForm");
+ if(!form||!input)return null;
+ const original=String(input.value||"").trim();
+ let coords=extractSharedCoordinates(String(sourceText||"")+" "+original);
+ if(!coords&&/^https:\/\//i.test(original)){
+  const resolver=window.DEEBNativePlugins?.ShareIntent;
+  if(resolver?.resolveSharedLocation){
+   try{
+    const resolved=await resolver.resolveSharedLocation({url:original});
+    if(!isCurrent()||String(input.value||"").trim()!==original)return null;
+    coords=extractSharedCoordinates(String(resolved?.url||"")+" "+String(resolved?.content||""));
+   }catch(error){console.warn("DEEB Google Maps short-link resolution:",error);}
+  }
+ }
+ if(!coords||!isCurrent()||String(input.value||"").trim()!==original)return null;
+ const latField=form.elements.namedItem("lat"),lngField=form.elements.namedItem("lng");
+ if(latField)latField.value=coords.lat.toFixed(6);
+ if(lngField)lngField.value=coords.lng.toFixed(6);
+ const site=nearestPatrolSite(coords);
+ if(site&&form.elements.namedItem("site"))form.elements.namedItem("site").value=site.payload.name;
+ return coords;
 }
 let lastSharedLocationPayload="";
 async function consumeSharedLocation(sharedText=""){
@@ -149,28 +173,12 @@ async function consumeSharedLocation(sharedText=""){
  const form=$("#recordForm");if(!form)return;
  const linkField=form.elements.namedItem("location_url");
  if(linkField)linkField.value=locationUrl;
- let coords=extractSharedCoordinates(raw+" "+locationUrl);
- if(!coords&&/^https?:\/\//i.test(locationUrl)){
-  const resolver=window.DEEBNativePlugins?.ShareIntent;
-  if(resolver?.resolveSharedLocation){
-   try{
-    const resolved=await resolver.resolveSharedLocation({url:locationUrl});
-    const resolvedUrl=String(resolved?.url||"");
-    coords=extractSharedCoordinates(resolvedUrl);
-    if(coords&&linkField)linkField.value=locationUrl;
-   }catch(error){console.warn("DEEB Google Maps short-link resolution:",error);}
-  }
- }
- if(coords){
-  form.elements.namedItem("lat").value=coords.lat.toFixed(6);
-  form.elements.namedItem("lng").value=coords.lng.toFixed(6);
-  const site=nearestPatrolSite(coords);
-  if(site&&form.elements.namedItem("site"))form.elements.namedItem("site").value=site.payload.name;
- }else{
+ let coords=linkField?await resolveBikePatrolLocation(linkField,raw):extractSharedCoordinates(raw+" "+locationUrl);
+ if(!coords){
   const match=cache.find(x=>x.entity_type==="patrol_sites"&&!x.is_archived&&raw.toLocaleLowerCase("ar").includes(String(x.payload?.name||"").toLocaleLowerCase("ar")));
   if(match&&form.elements.namedItem("site"))form.elements.namedItem("site").value=match.payload.name;
  }
- toast(coords?"تم استلام رابط الموقع واستخراج الإحداثيات تلقائيًا. اختر الدراجة وسجّل توقيت الوصول.":"تم استلام الرابط، لكن تعذر استخراج الإحداثيات منه. سيُحفظ الرابط ويمكنك استكمال بيانات المرور.");
+ toast(coords?"تم استلام رابط الموقع واستخراج الإحداثيات تلقائيًا. اختر الدراجة وسجّل توقيت الوصول.":"تم استلام الرابط، لكن لم تظهر إحداثيات مؤكدة. سيُحفظ الرابط ويمكنك استكمال بيانات المرور.");
  form.elements.namedItem("patrol_time")?.focus();
 }
 async function consumeNativeShare(){
@@ -273,14 +281,31 @@ function bindHandoverSignature(){const canvas=$("#handoverSignature");if(!canvas
 function bindPatrolLocationInput(type){
  if(type!=="bike_patrols")return;
  const input=document.querySelector('#recordForm [name="location_url"]');if(!input)return;
- input.addEventListener("input",()=>{
+ let timer=null,sequence=0;
+ const applyDirectCoordinates=()=>{
   const coords=extractSharedCoordinates(input.value);
-  if(!coords)return;
+  if(!coords)return false;
   const form=$("#recordForm");
   form.elements.namedItem("lat").value=coords.lat.toFixed(6);
   form.elements.namedItem("lng").value=coords.lng.toFixed(6);
   const site=nearestPatrolSite(coords);
   if(site&&form.elements.namedItem("site"))form.elements.namedItem("site").value=site.payload.name;
+  return true;
+ };
+ const resolve=async()=>{
+  const current=++sequence;
+  const coords=await resolveBikePatrolLocation(input,"",()=>current===sequence);
+  if(coords)toast("تم تحويل رابط خرائط جوجل إلى إحداثيات وحفظها في حقول مرور الدراجة.");
+ };
+ input.addEventListener("input",()=>{
+  sequence++;
+  clearTimeout(timer);
+  if(applyDirectCoordinates())return;
+  if(/^https:\/\//i.test(String(input.value||"").trim()))timer=setTimeout(resolve,700);
+ });
+ input.addEventListener("blur",()=>{
+  clearTimeout(timer);
+  if(!applyDirectCoordinates())resolve();
  });
 }
 function bindGlobalSearchSuggestions(){
