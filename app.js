@@ -127,7 +127,7 @@ function nearestPatrolSite(coords){
  return cache.filter(x=>x.entity_type==="patrol_sites"&&!x.is_archived&&validCoordinatePair(x.payload?.lat,x.payload?.lng)).map(x=>({row:x,meters:distance(coords,{lat:Number(x.payload.lat),lng:Number(x.payload.lng)})})).filter(x=>x.meters<=500).sort((x,y)=>x.meters-y.meters)[0]?.row||null;
 }
 let lastSharedLocationPayload="";
-function consumeSharedLocation(sharedText=""){
+async function consumeSharedLocation(sharedText=""){
  const params=new URLSearchParams(location.search);
  const queryShare=params.get("share")==="location";
  const sharedUrlParam=params.get("url")||"";
@@ -1008,7 +1008,7 @@ function render(p){
   else if(p==="backup")openBackupPage();
   else if(p==="settings")settings();
   else throw new Error("القسم المطلوب غير مربوط بصفحة داخل التطبيق: "+p);
-  if(p!=="home"&&!area.innerHTML.trim())throw new Error("القسم لم يُنشئ محتوى للعرض.");
+  if(p!=="home"&&p!=="landing"&&!area.innerHTML.trim())throw new Error("القسم لم يُنشئ محتوى للعرض.");
   window.scrollTo({top:area.offsetTop-12,behavior:"smooth"});
  }catch(error){
   console.error("DEEB section navigation failed:",p,error);
