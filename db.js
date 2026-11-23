@@ -320,7 +320,7 @@ window.DebooDB = (() => {
       const item={...x,blob,size:blob.size};delete item.data_url;return item;
     });
     const current=await backup();
-    if(current.records.length||current.attachments.length) await downloadBlob(new Blob([JSON.stringify(current,null,2)],{type:"application/json"}),"DEEB-before-restore.json");
+    if(current.records.length||current.audit_logs.length||current.approved_reports.length||current.handover_versions.length||current.attachments.length) await downloadBlob(new Blob([JSON.stringify(current,null,2)],{type:"application/json"}),"DEEB-before-restore.json");
     const d=await openDB();
     await new Promise((resolve,reject)=>{
       const names=["records","audit_logs","approved_reports","handover_versions","attachments"];
