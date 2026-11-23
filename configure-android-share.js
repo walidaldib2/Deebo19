@@ -170,7 +170,8 @@ public class FileExportPlugin extends Plugin {
       final int webWidth=(int)Math.ceil(794.0*density);
       final FrameLayout root=(FrameLayout)getActivity().getWindow().getDecorView().findViewById(android.R.id.content);
       if(root==null){call.reject("تعذر تجهيز صفحة التقرير");return;}
-      WebView.enableSlowWholeDocumentDraw();
+      // Whole-document drawing is enabled once in MainActivity before BridgeActivity creates its WebView.
+      // Calling enableSlowWholeDocumentDraw() again here is too late and can abort the plugin call.
       final WebView view=new WebView(getContext());
       final java.util.concurrent.atomic.AtomicBoolean finished=new java.util.concurrent.atomic.AtomicBoolean(false);
       final java.util.ArrayList<Uri> createdUris=new java.util.ArrayList<>();
