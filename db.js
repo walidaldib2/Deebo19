@@ -292,6 +292,14 @@ window.DebooDB = (() => {
     const checkUnique=(rows,label)=>{const ids=rows.map(x=>x.id);if(new Set(ids).size!==ids.length)throw new Error("تحتوي النسخة على معرّفات مكررة في "+label+"؛ لم يتم تغيير بياناتك.");};
     checkUnique(obj.records,"السجلات");checkUnique(obj.audit_logs,"سجل المراجعة");checkUnique(obj.approved_reports||[],"التقارير");checkUnique(obj.handover_versions||[],"إصدارات التسليم");checkUnique(obj.attachments||[],"المرفقات");
     const recordIds=new Set(obj.records.map(x=>x.id));
+    const operationalTypes=new Set(["daily_rosters","branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies","tasks"]);
+    for(const row of obj.records){
+      if(!operationalTypes.has(row.entity_type))continue;
+      for(const key of WORK_DATE_FIELDS){
+        const value=String(row.payload?.[key]??"").trim();
+        if(value&&!isValidISODate(value))throw new Error("يوجد سجل بتاريخ غير صحيح في النسخة ("+key+")؛ لم يتم تغيير بياناتك.");
+      }
+    }
     // Validate active bike visits while allowing any number of registered bikes per day.
     const patrols=obj.records.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived);
     for(const row of patrols){
