@@ -23,12 +23,11 @@ const required = [
   "saveHtmlAsImages",
   "printHtml",
   "writeWebViewToPdf",
-  "new android.graphics.pdf.PdfDocument()",
-  "new android.graphics.pdf.PdfDocument.PageInfo.Builder(width,height,index+1).create()",
-  "v.setLayoutParams(new FrameLayout.LayoutParams(width,height))",
-  "v.scrollTo(0,scrollY)",
-  "v.draw(canvas)",
-  "document.writeTo(output)",
+  "v.createPrintDocumentAdapter(baseName)",
+  "adapter.onLayout(null,attributes",
+  "adapter.onWrite(new android.print.PageRange[]{android.print.PageRange.ALL_PAGES}",
+  "new Thread(()->renderPdfPages()",
+  "PdfRenderer",
   "WebView.enableSlowWholeDocumentDraw()",
   "PdfRenderer",
   "page.render(bitmap",
@@ -47,4 +46,4 @@ if (missing.length) {
 if (source.includes("nativeAdapter.onLayout(") || source.includes("nativeAdapter.onWrite(")) {
   throw new Error("Image export must not invoke hidden Android print callbacks directly.");
 }
-console.log("Verified whole-document WebView rendering, paginated PdfDocument-to-PNG export, blank-page detection, and cleanup.");
+console.log("Verified Android PrintDocumentAdapter pagination, PDF-to-PNG export, blank-page detection, and cleanup.");
