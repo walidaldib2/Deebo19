@@ -339,6 +339,8 @@ public class FileExportPlugin extends Plugin {
             int pageCount=renderer.getPageCount();
             if(pageCount<1||pageCount>100)throw new Exception("عدد صفحات PDF الناتج غير صالح ("+pageCount+").");
             final int width=1588,height=2246;
+            int savedPageCount=0;
+            int skippedBlankPages=0;
             for(int index=0;index<pageCount;index++){
               if(finished.get())return;
               android.graphics.pdf.PdfRenderer.Page page=renderer.openPage(index);
@@ -353,9 +355,12 @@ public class FileExportPlugin extends Plugin {
                   int pixel=bitmap.getPixel(x,y);
                   if(Color.red(pixel)<248||Color.green(pixel)<248||Color.blue(pixel)<248){nonWhite++;break;}
                 }
-                if(nonWhite==0)throw new Exception("صفحة التقرير رقم "+(index+1)+" فارغة؛ تم إيقاف الحفظ.");
+                // WebView may report a final overflow-only page because of A4 rounding.
+                // Ignore genuinely blank slices; never create an empty gallery image.
+                if(nonWhite==0){skippedBlankPages++;continue;}
+                savedPageCount++;
                 ContentValues values=new ContentValues();
-                values.put(MediaStore.Images.Media.DISPLAY_NAME,baseName+"-"+String.format(java.util.Locale.US,"%02d",index+1)+".png");
+                values.put(MediaStore.Images.Media.DISPLAY_NAME,baseName+"-"+String.format(java.util.Locale.US,"%02d",savedPageCount)+".png");
                 values.put(MediaStore.Images.Media.MIME_TYPE,"image/png");
                 if(Build.VERSION.SDK_INT>=29){
                   values.put(MediaStore.Images.Media.RELATIVE_PATH,Environment.DIRECTORY_PICTURES+"/DEEB");
@@ -376,9 +381,10 @@ public class FileExportPlugin extends Plugin {
                 }
               }finally{if(bitmap!=null&&!bitmap.isRecycled())bitmap.recycle();page.close();}
             }
+            if(savedPageCount<1)throw new Exception("لم يتم العثور على صفحات تقرير تحتوي على محتوى للحفظ.");
             if(finished.compareAndSet(false,true)){
               cleanup.run();
-              JSObject result=new JSObject();result.put("count",pageCount);result.put("saved",true);result.put("format","A4 PNG");result.put("source","Android PdfDocument + PdfRenderer");
+              JSObject result=new JSObject();result.put("count",savedPageCount);result.put("skippedBlankPages",skippedBlankPages);result.put("saved",true);result.put("format","A4 PNG");result.put("source","Android PdfDocument + PdfRenderer");
               call.resolve(result);
             }
           }catch(Exception e){fail.reject("تعذر تحويل صفحات التقرير إلى صور: "+e.getMessage());}
