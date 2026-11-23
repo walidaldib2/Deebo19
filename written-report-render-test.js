@@ -13,7 +13,7 @@ const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({
 }[char]));
 const fakeSelector = selector => selector === "#reportType" ? { value: "written_reports" } : { value: "" };
 const dayOf = record => record.payload?.report_date || String(record.created_at || "").slice(0, 10);
-const sandbox = { module: { exports: {} } };
+const sandbox = { module: { exports: {} }, $: fakeSelector, dayOf, esc: escapeHtml };
 vm.createContext(sandbox);
 vm.runInContext(
   productionFunction + "\nmodule.exports = printHtml;",
