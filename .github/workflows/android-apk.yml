@@ -14,7 +14,7 @@ on:
 
 concurrency:
   group: deeb-android-apk-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/fix/daily-report-blank-pages-2026-11-23' }}
 
 permissions:
   contents: read
