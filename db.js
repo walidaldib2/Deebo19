@@ -84,6 +84,12 @@ window.DebooDB = (() => {
     return Number.isFinite(opts.limit)&&opts.limit>=0?data.slice(0,opts.limit):data;
   }
   function localDateISO(date=new Date()) { return [date.getFullYear(),String(date.getMonth()+1).padStart(2,"0"),String(date.getDate()).padStart(2,"0")].join("-"); }
+  function isValidISODate(value) {
+    const day=String(value||"");
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(day))return false;
+    const parsed=new Date(day+"T00:00:00.000Z");
+    return Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===day;
+  }
   function recordWorkDate(row) {
     const p=row.payload||{};
     const value=p.work_date||p.patrol_date||p.incident_date||p.report_date||p.absence_date||p.handover_date||p.emergency_date||p.task_date;
@@ -283,7 +289,8 @@ window.DebooDB = (() => {
       const bike=String(row.payload?.bike||"").trim();
       const patrolDate=String(row.payload?.patrol_date||"").trim();
       const stamp=String(row.created_at||"");
-      const day=/^\d{4}-\d{2}-\d{2}$/.test(patrolDate)?patrolDate:stamp.slice(0,10);
+      const day=patrolDate||stamp.slice(0,10);
+      if(!bike||!isValidISODate(day))
       if(!bike||!/^\d{4}-\d{2}-\d{2}$/.test(day)||Number.isNaN(Date.parse(day+"T00:00:00Z")))
         throw new Error("يوجد مرور دراجة ببيانات ناقصة أو تاريخ غير صالح في النسخة؛ لم يتم تغيير بياناتك.");
     }
