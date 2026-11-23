@@ -33,7 +33,6 @@ const required = [
   "document.writeTo(output)",
   "new Thread(()->renderPdfPages()",
   "PdfRenderer",
-  "WebView.enableSlowWholeDocumentDraw()",
   "PdfRenderer",
   "page.render(bitmap",
   "bitmap.compress(Bitmap.CompressFormat.PNG,100,out)",
