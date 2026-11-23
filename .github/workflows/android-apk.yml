@@ -232,12 +232,21 @@ jobs:
           done
           exit 1
 
+      - name: Enable KVM access for Android emulator
+        run: |
+          if [ ! -e /dev/kvm ]; then
+            echo "KVM device is not available on this runner."
+            exit 1
+          fi
+          sudo chmod 666 /dev/kvm
+          ls -l /dev/kvm
+          test -r /dev/kvm && test -w /dev/kvm
+
       - name: Run Android emulator report image export test
         timeout-minutes: 18
         uses: reactivecircus/android-emulator-runner@v2
-        env:
-          ANDROID_I_WANT_MY_TCG: yes
         with:
+          disable-linux-hw-accel: false
           api-level: 35
           target: google_apis
           arch: x86_64
