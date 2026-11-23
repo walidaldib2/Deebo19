@@ -55,7 +55,7 @@ if ((many.match(/<section class="written-page">/g) || []).length !== 2) {
 if (!many.includes(longText) || !many.includes("نهاية التقرير الثاني.") || many.indexOf("مشرف 2") > many.indexOf("مشرف 3")) {
   throw new Error("Long report text must remain complete and reports must stay in date order.");
 }
-if (!many.includes("min-height:185mm") || !many.includes("font-size:20px") || many.includes("transform:scale(")) {
+if (!many.includes("min-height:185mm") || !many.includes("font-size:18px") || many.includes("transform:scale(")) {
   throw new Error("Daily report must retain readable typography and must not shrink content to fit.");
 }
 
