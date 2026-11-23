@@ -32,6 +32,7 @@ import android.net.Uri;
 import android.provider.MediaStore;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
+import android.util.Log;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.core.app.ActivityScenario;
@@ -54,17 +55,20 @@ public class ReportImageExportTest {
     public static class Callback {
         final CountDownLatch latch = new CountDownLatch(1);
         volatile String result;
-        @JavascriptInterface public void done(String value) { result = value; latch.countDown(); }
+        @JavascriptInterface public void done(String value) { Log.i("DEEBTest", "JavaScript callback received: " + value); result = value; latch.countDown(); }
     }
 
     @Test public void exportsAllReportPagesAsNonBlankA4Pngs() throws Exception {
+        Log.i("DEEBTest", "Instrumentation test started");
         android.content.Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         deleteTestImages(context);
+        Log.i("DEEBTest", "Launching MainActivity");
         ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class);
         try {
             AtomicReference<WebView> webRef = new AtomicReference<>();
             scenario.onActivity(activity -> webRef.set(activity.getBridge().getWebView()));
             WebView web = webRef.get();
+            Log.i("DEEBTest", "Activity launched; WebView available=" + (web != null));
             assertNotNull("Capacitor WebView was not created", web);
 
             boolean ready = false;
@@ -73,6 +77,7 @@ public class ReportImageExportTest {
                 if ("true".equals(state)) { ready = true; break; }
                 Thread.sleep(250);
             }
+            Log.i("DEEBTest", "Native FileExport bridge ready=" + ready);
             assertTrue("Native FileExport bridge did not become ready", ready);
 
             String html = "<!doctype html><html><head><meta name='viewport' content='width=794,initial-scale=1'>"
@@ -90,8 +95,12 @@ public class ReportImageExportTest {
                 + JSONObject.quote(html) + ",name:" + JSONObject.quote(NAME) + "})"
                 + ".then(r=>DEEBInstrumentation.done(JSON.stringify({ok:true,result:r})))"
                 + ".catch(e=>DEEBInstrumentation.done(JSON.stringify({ok:false,error:String(e)})));";
+            Log.i("DEEBTest", "Invoking saveHtmlAsImages; htmlChars=" + html.length());
             InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> web.evaluateJavascript(js, null));
-            assertTrue("Native report image export timed out", callback.latch.await(150, TimeUnit.SECONDS));
+            Log.i("DEEBTest", "Waiting for native export callback");
+            boolean callbackReceived = callback.latch.await(150, TimeUnit.SECONDS);
+            Log.i("DEEBTest", "Native export callback received=" + callbackReceived);
+            assertTrue("Native report image export timed out", callbackReceived);
             JSONObject response = new JSONObject(String.valueOf(new JSONTokener(callback.result).nextValue()));
             assertTrue("Native report image export failed: " + callback.result, response.optBoolean("ok"));
             JSONObject result = response.getJSONObject("result");
