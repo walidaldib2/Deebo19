@@ -255,16 +255,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
-            cd android
-            adb wait-for-device
-            adb shell getprop sys.boot_completed
-            adb logcat -c
-            set +e
-            timeout 480s ./gradlew connectedDebugAndroidTest --no-daemon --no-configuration-cache --max-workers=2 --console=plain --stacktrace --info
-            test_status=$?
-            adb logcat -d -t 5000 > ../android-export-logcat.txt || true
-            echo "Android instrumentation exit code: $test_status"
-            exit "$test_status"
+            cd "$GITHUB_WORKSPACE/android" && adb wait-for-device && adb shell getprop sys.boot_completed && adb logcat -c && { timeout 480s ./gradlew connectedDebugAndroidTest --no-daemon --no-configuration-cache --max-workers=2 --console=plain --stacktrace --info; test_status=$?; adb logcat -d -t 5000 > "$GITHUB_WORKSPACE/android-export-logcat.txt" || true; echo "Android instrumentation exit code: $test_status"; exit "$test_status"; }
 
       - name: Upload Android export diagnostics
         if: always()
@@ -276,6 +267,7 @@ jobs:
           retention-days: 7
 
       - name: Upload installable debug APK immediately
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: DEEB-Android-Debug-APK
