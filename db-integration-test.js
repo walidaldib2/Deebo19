@@ -78,6 +78,10 @@ async function main() {
   const attachment = await db.saveAttachment(branch.id, blob);
   assert.equal((await db.attachments(branch.id)).some(x => x.id === attachment.id), true);
   assert.ok((await db.audit()).some(x => x.record_id === branch.id && x.action === "attachment"));
+  const attachmentCountBeforeOrphan = (await db.attachments(branch.id)).length;
+  await assert.rejects(db.saveAttachment("missing-record-for-attachment", blob), /السجل المرتبط بالمرفق غير موجود/);
+  assert.equal((await db.attachments(branch.id)).length, attachmentCountBeforeOrphan);
+  assert.equal((await db.attachments("missing-record-for-attachment")).length, 0);
 
   // Daily automatic snapshots are local, bounded, and include the saved records.
   const auto = await db.createAutoBackup();
