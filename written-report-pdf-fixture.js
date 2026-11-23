@@ -42,7 +42,7 @@ const records = [
       report_date: "2026-11-22",
       shift: "مسائي",
       prepared_by: "مشرف اختبار الصفحات",
-      report_text: "بداية التقرير الطويل.\n" + longText + "\nعلامة نهاية التقرير الطويل."
+      report_text: "LONG_REPORT_START_SENTINEL\\n" + longText + "\\nLONG_REPORT_END_SENTINEL"
     }
   },
   {
@@ -53,7 +53,7 @@ const records = [
       report_date: "2026-11-23",
       shift: "ليلي",
       prepared_by: "مشرف التقرير الثاني",
-      report_text: "محتوى التقرير الثاني للتأكد من استمرار الصفحة التالية."
+      report_text: "SECOND_REPORT_CONTENT_SENTINEL محتوى التقرير الثاني للتأكد من استمرار الصفحة التالية."
     }
   }
 ];
