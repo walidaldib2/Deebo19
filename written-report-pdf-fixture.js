@@ -42,7 +42,7 @@ const records = [
       report_date: "2026-11-22",
       shift: "مسائي",
       prepared_by: "مشرف اختبار الصفحات",
-      report_text: "LONG_REPORT_START_SENTINEL\\n" + longText + "\\nLONG_REPORT_END_SENTINEL"
+      report_text: "LONG_REPORT_START_SENTINEL " + longText + " LONG_REPORT_END_SENTINEL"
     }
   },
   {
