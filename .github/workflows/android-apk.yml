@@ -188,16 +188,11 @@ jobs:
                   }
               }
           '''
-          source, count = re.subn(r"(
-\s*)buildTypes\s*\{", lambda m: m.group(1) + signing + "
-    buildTypes {", source, count=1)
+          source, count = re.subn(r"(\n\s*)buildTypes\s*\{", lambda m: m.group(1) + signing + "\n    buildTypes {", source, count=1)
           if count != 1:
               key_path.unlink(missing_ok=True)
               raise SystemExit("Could not add the Android release signing configuration.")
-          source, count = re.subn(r"(
-\s*buildTypes\s*\{\s*
-\s*release\s*\{)", r"\1
-            signingConfig signingConfigs.release", source, count=1)
+          source, count = re.subn(r"(\n\s*buildTypes\s*\{\s*\n\s*release\s*\{)", r"\1\n            signingConfig signingConfigs.release", source, count=1)
           if count != 1:
               key_path.unlink(missing_ok=True)
               raise SystemExit("Could not attach upload signing to the release build type.")
