@@ -90,12 +90,13 @@ window.DebooDB = (() => {
     const parsed=new Date(day+"T00:00:00.000Z");
     return Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===day;
   }
+  const WORK_DATE_FIELDS=["work_date","patrol_date","incident_date","report_date","absence_date","handover_date","emergency_date","task_date"];
   function recordWorkDate(row) {
     const p=row.payload||{};
-    const value=p.work_date||p.patrol_date||p.incident_date||p.report_date||p.absence_date||p.handover_date||p.emergency_date||p.task_date;
-    if(/^\d{4}-\d{2}-\d{2}$/.test(String(value||"")))return String(value);
+    const value=WORK_DATE_FIELDS.map(key=>p[key]).find(v=>String(v||"").trim());
+    if(isValidISODate(value))return String(value);
     const created=String(row.created_at||"").slice(0,10);
-    return /^\d{4}-\d{2}-\d{2}$/.test(created)?created:"";
+    return isValidISODate(created)?created:"";
   }
   function shiftIdentity(payload={}) {
     const shift=String(payload.shift||payload.shift_name||"").trim();
@@ -103,6 +104,7 @@ window.DebooDB = (() => {
     return shift&&/^\d{4}-\d{2}-\d{2}$/.test(date)?{shift_name:shift,shift_key:date+"|"+shift}:{};
   }
   async function archivePastDays(today=localDateISO()) {
+    if(!isValidISODate(today))throw new Error("تاريخ الأرشفة غير صحيح.");
     const shiftTypes=new Set(["daily_rosters","branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies","tasks"]);
     const rows=await getAll("records");
     const candidates=rows.filter(row=>{
@@ -140,6 +142,10 @@ window.DebooDB = (() => {
     const savedPayload={...payload};
     const operationalTypes=new Set(["daily_rosters","branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies","tasks"]);
     if(operationalTypes.has(type)){
+      for(const key of WORK_DATE_FIELDS){
+        const value=String(savedPayload[key]??"").trim();
+        if(value&&!isValidISODate(value))throw new Error("التاريخ المدخل غير صحيح؛ راجع اليوم والشهر والسنة.");
+      }
       const workDate=recordWorkDate({entity_type:type,payload:savedPayload,created_at:old?.created_at||now()});
       if(workDate)savedPayload.work_date=workDate;
       const shiftMeta=shiftIdentity(savedPayload);
