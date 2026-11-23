@@ -4,7 +4,7 @@
   "private": true,
   "description": "DEEB field operations PWA prepared for Capacitor Android packaging",
   "scripts": {
-    "test": "node static-smoke-test.js && node db-integration-test.js",
+    "test": "node static-smoke-test.js && node db-integration-test.js && node written-report-render-test.js",
     "android:add": "cap add android",
     "android:sync": "cap sync android",
     "android:open": "cap open android",
