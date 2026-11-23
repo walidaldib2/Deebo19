@@ -216,61 +216,45 @@ public class FileExportPlugin extends Plugin {
         }
         private void writeWebViewToPdf(WebView v){
           if(finished.get())return;
+          android.graphics.pdf.PdfDocument document=null;
           try{
-            // Let Android's print engine paginate the complete HTML document. This
-            // avoids blocking Chromium by drawing the full report synchronously on
-            // the UI thread and preserves CSS page breaks for long reports.
-            final PrintDocumentAdapter adapter=v.createPrintDocumentAdapter(baseName);
-            final PrintAttributes attributes=new PrintAttributes.Builder()
-              .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrait())
-              .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
-              .setResolution(new PrintAttributes.Resolution("DEEB","DEEB",300,300))
-              .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
-              .build();
-            adapter.onLayout(null,attributes,new CancellationSignal(),new PrintDocumentAdapter.LayoutResultCallback(){
-              @Override public void onLayoutFinished(PrintDocumentInfo info,boolean changed){
-                if(finished.get()){adapter.onFinish();return;}
-                int reportedPages=info==null?PrintDocumentInfo.PAGE_COUNT_UNKNOWN:info.getPageCount();
-                if(reportedPages>100){adapter.onFinish();fail.reject("عدد صفحات التقرير يتجاوز الحد الآمن ("+reportedPages+").");return;}
-                ParcelFileDescriptor output=null;
-                try{
-                  output=ParcelFileDescriptor.open(tempPdf,ParcelFileDescriptor.MODE_READ_WRITE|ParcelFileDescriptor.MODE_TRUNCATE);
-                  final ParcelFileDescriptor descriptor=output;
-                  adapter.onWrite(new android.print.PageRange[]{android.print.PageRange.ALL_PAGES},descriptor,new CancellationSignal(),new PrintDocumentAdapter.WriteResultCallback(){
-                    private void closeOutput(){try{descriptor.close();}catch(Exception ignored){}}
-                    @Override public void onWriteFinished(android.print.PageRange[] pages){
-                      closeOutput();
-                      adapter.onFinish();
-                      if(!finished.get())new Thread(()->renderPdfPages(),"DEEB-PDF-to-PNG").start();
-                    }
-                    @Override public void onWriteFailed(CharSequence error){
-                      closeOutput();
-                      adapter.onFinish();
-                      fail.reject("تعذر إنشاء PDF التقرير: "+String.valueOf(error));
-                    }
-                    @Override public void onWriteCancelled(){
-                      closeOutput();
-                      adapter.onFinish();
-                      fail.reject("تم إلغاء إنشاء PDF التقرير قبل حفظ الصور.");
-                    }
-                  });
-                }catch(Exception error){
-                  if(output!=null){try{output.close();}catch(Exception ignored){}}
-                  adapter.onFinish();
-                  fail.reject("تعذر بدء تصدير PDF التقرير: "+error.getMessage());
-                }
-              }
-              @Override public void onLayoutFailed(CharSequence error){
-                adapter.onFinish();
-                fail.reject("تعذر تقسيم التقرير إلى صفحات: "+String.valueOf(error));
-              }
-              @Override public void onLayoutCancelled(){
-                adapter.onFinish();
-                fail.reject("تم إلغاء تجهيز صفحات التقرير.");
-              }
-            });
+            // Render the report in fixed A4-height slices. This keeps the existing
+            // HTML/CSS layout and avoids calling Android print callbacks directly:
+            // those callbacks are framework-owned and cannot be instantiated here.
+            final int width=webWidth;
+            final int height=(int)Math.ceil(1123*density);
+            v.setLayerType(View.LAYER_TYPE_SOFTWARE,null);
+            v.setLayoutParams(new FrameLayout.LayoutParams(width,height));
+            v.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));
+            v.layout(0,0,width,height);
+            int contentHeight=(int)Math.ceil(v.getContentHeight()*v.getScale());
+            if(contentHeight<1)throw new Exception("تعذر تحديد ارتفاع محتوى التقرير.");
+            int pageCount=Math.max(1,(int)Math.ceil(contentHeight/(double)height));
+            if(pageCount>100)throw new Exception("عدد صفحات التقرير يتجاوز الحد الآمن ("+pageCount+").");
+            document=new android.graphics.pdf.PdfDocument();
+            for(int index=0;index<pageCount;index++){
+              if(finished.get())return;
+              int scrollY=Math.min(index*height,Math.max(0,contentHeight-height));
+              v.scrollTo(0,scrollY);
+              android.graphics.pdf.PdfDocument.PageInfo info=
+                new android.graphics.pdf.PdfDocument.PageInfo.Builder(width,height,index+1).create();
+              android.graphics.pdf.PdfDocument.Page page=document.startPage(info);
+              Canvas canvas=page.getCanvas();
+              canvas.drawColor(Color.WHITE);
+              v.draw(canvas);
+              document.finishPage(page);
+            }
+            try(FileOutputStream output=new FileOutputStream(tempPdf,false)){
+              document.writeTo(output);
+              output.flush();
+            }
+            document.close();
+            document=null;
+            v.scrollTo(0,0);
+            new Thread(()->renderPdfPages(),"DEEB-PDF-to-PNG").start();
           }catch(Exception error){
-            fail.reject("تعذر تجهيز التقرير للطباعة: "+error.getClass().getSimpleName()+": "+error.getMessage());
+            if(document!=null){try{document.close();}catch(Exception ignored){}}
+            fail.reject("تعذر تجهيز صفحات التقرير قبل تحويلها إلى صور: "+error.getMessage());
           }
         }
         private void renderPdfPages(){
