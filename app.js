@@ -108,7 +108,7 @@ async function openApplication(){
  try{await DebooDB.createAutoBackup();}catch(error){console.warn("DEEB automatic backup:",error);}
  if(archiveTimer)clearInterval(archiveTimer);
  archiveTimer=setInterval(async()=>{try{const result=await DebooDB.archivePastDays();if(result.archived){await refresh();console.info("DEEB archived previous-day shift records:",result.archived);}}catch(error){console.warn("DEEB automatic shift archive:",error);}},60000);
- render("home");consumeSharedLocation();consumeNativeShare();
+ render("landing");consumeSharedLocation();consumeNativeShare();
 }
 function extractSharedCoordinates(value){
  const s=String(value||"");
@@ -139,13 +139,23 @@ function consumeSharedLocation(sharedText=""){
  if(queryShare)history.replaceState({},document.title,location.pathname+location.hash);
  const extracted=(raw.match(/https?:\/\/[^\s<>"']+/i)||[])[0]||"";
  const locationUrl=(sharedUrlParam||extracted||raw).trim().replace(/[),.;]+$/,"");
- render("operations");
- const tab=document.querySelector('[data-section-type="bike_patrols"]');if(tab)tab.click();
+ render("bikepatrol");
  $("#addRecord")?.click();
  const form=$("#recordForm");if(!form)return;
  const linkField=form.elements.namedItem("location_url");
  if(linkField)linkField.value=locationUrl;
- const coords=extractSharedCoordinates(raw+" "+locationUrl);
+ let coords=extractSharedCoordinates(raw+" "+locationUrl);
+ if(!coords&&/^https?:\/\//i.test(locationUrl)){
+  const resolver=window.DEEBNativePlugins?.ShareIntent;
+  if(resolver?.resolveSharedLocation){
+   try{
+    const resolved=await resolver.resolveSharedLocation({url:locationUrl});
+    const resolvedUrl=String(resolved?.url||"");
+    coords=extractSharedCoordinates(resolvedUrl);
+    if(coords&&linkField)linkField.value=locationUrl;
+   }catch(error){console.warn("DEEB Google Maps short-link resolution:",error);}
+  }
+ }
  if(coords){
   form.elements.namedItem("lat").value=coords.lat.toFixed(6);
   form.elements.namedItem("lng").value=coords.lng.toFixed(6);
@@ -155,9 +165,24 @@ function consumeSharedLocation(sharedText=""){
   const match=cache.find(x=>x.entity_type==="patrol_sites"&&!x.is_archived&&raw.toLocaleLowerCase("ar").includes(String(x.payload?.name||"").toLocaleLowerCase("ar")));
   if(match&&form.elements.namedItem("site"))form.elements.namedItem("site").value=match.payload.name;
  }
- toast(coords?"تم استلام نقطة الموقع. اختر الدراجة وسجّل توقيت الوصول.":"تم استلام مشاركة واتساب. اختر الدراجة والمكان وسجّل توقيت الوصول.");
+ toast(coords?"تم استلام رابط الموقع واستخراج الإحداثيات تلقائيًا. اختر الدراجة وسجّل توقيت الوصول.":"تم استلام الرابط، لكن تعذر استخراج الإحداثيات منه. سيُحفظ الرابط ويمكنك استكمال بيانات المرور.");
  form.elements.namedItem("patrol_time")?.focus();
 }
+async function consumeNativeShare(){
+ const plugin=window.DEEBNativePlugins?.ShareIntent;
+ if(!plugin?.getInitialShare)return;
+ try{const result=await plugin.getInitialShare();if(result?.text)consumeSharedLocation(result.text);}
+ catch(error){console.warn("DEEB share intake:",error);}
+}
+window.addEventListener("deboo-share-intent",event=>{consumeSharedLocation(event.detail?.text||"");const plugin=window.DEEBNativePlugins?.ShareIntent;plugin?.getInitialShare?.().catch(()=>{});});
+
+const toB64=b=>btoa(String.fromCharCode(...new Uint8Array(b)));
+const fromB64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function derivePin(pin,salt){const material=await crypto.subtle.importKey("raw",new TextEncoder().encode(pin),"PBKDF2",false,["deriveBits"]);return crypto.subtle.deriveBits({name:"PBKDF2",salt,iterations:210000,hash:"SHA-256"},material,256)}
+async function storePin(pin){if(!crypto?.subtle)throw Error("التشفير الآمن غير متاح. افتح التطبيق عبر HTTPS.");if(!/^\d{4,8}$/.test(pin))throw Error("استخدم رمزًا من 4 إلى 8 أرقام.");const salt=crypto.getRandomValues(new Uint8Array(16));const hash=await derivePin(pin,salt);localStorage.setItem("deboo16_pin_v1",JSON.stringify({salt:toB64(salt),hash:toB64(hash),iterations:210000}));localStorage.removeItem("deboo16_pin_attempts")}
+async function verifyPin(pin){const cfg=JSON.parse(localStorage.getItem("deboo16_pin_v1")||"null");if(!cfg)return true;const attempts=JSON.parse(localStorage.getItem("deboo16_pin_attempts")||"{\"count\":0,\"until\":0}");if(Date.now()<attempts.until)throw Error("تم إيقاف المحاولة مؤقتًا. حاول بعد قليل.");const hash=await derivePin(pin,fromB64(cfg.salt));const a=new Uint8Array(hash),b=fromB64(cfg.hash);let diff=a.length^b.length;for(let i=0;i<Math.min(a.length,b.length);i++)diff|=a[i]^b[i];if(diff){attempts.count++;if(attempts.count>=5){attempts.count=0;attempts.until=Date.now()+30000;}localStorage.setItem("deboo16_pin_attempts",JSON.stringify(attempts));return false;}localStorage.removeItem("deboo16_pin_attempts");return true}
+$("#loginBtn").onclick=async()=>{try{const ok=await verifyPin($("#authPassword").value);if(!ok){$("#authMessage").textContent="رمز PIN غير صحيح.";$("#authPassword").value="";return;}$("#authPassword").value="";await openApplication()}catch(e){$("#authMessage").textContent=e.message}};
+async function refresh(){try{cache=await DebooDB.all();$("#branchCount").textContent=cache.filter(x=>x.entity_type==="branches").length;$("#followCount").textContent=cache.filter(x=>["branch_patrols","manager_rounds"].includes(x.entity_type)).length}catch(e){toast("تعذر تحميل البيانات: "+e.message)}}
 async function consumeNativeShare(){
  const plugin=window.DEEBNativePlugins?.ShareIntent;
  if(!plugin?.getInitialShare)return;
@@ -607,6 +632,25 @@ function bikeMapsPage(){
  paint();
 }
 
+function bikeMapReportsPage(){
+ const bikes=[...new Set(cache.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived).map(x=>String(x.payload?.bike||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ar",{numeric:true}));
+ const today=new Date().toLocaleDateString("en-CA");
+ area.innerHTML=pageHead("تقرير خرائط الدراجات",'<button class="secondary" id="backToBikeMaps">العودة لخرائط الدراجات</button>')+
+ '<div class="card"><p class="muted">عرض سجلات مسار الدراجة على الخريطة خلال فترة محددة. تم الإبقاء على أدوات طباعة PDF وحفظ الصور الحالية دون تغيير.</p><div class="form"><div class="field"><label>الدراجة</label><select id="bikeMapReportBike"><option value="">كل الدراجات</option>'+bikes.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("")+'</select></div><div class="field"><label>من تاريخ</label><input id="bikeMapReportFrom" type="date" value="'+today+'"></div><div class="field"><label>إلى تاريخ</label><input id="bikeMapReportTo" type="date" value="'+today+'"></div></div><div id="bikeMapReportPreview"></div></div>';
+ const build=()=>{
+  const bike=$("#bikeMapReportBike").value,from=$("#bikeMapReportFrom").value,to=$("#bikeMapReportTo").value;
+  const visits=cache.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived&&(!bike||String(x.payload?.bike||"").trim()===bike)).filter(x=>{const d=String(x.payload?.patrol_date||x.created_at||"").slice(0,10);return (!from||d>=from)&&(!to||d<=to);}).sort((a,b)=>String(a.payload?.patrol_date||a.created_at||"").slice(0,10).localeCompare(String(b.payload?.patrol_date||b.created_at||"").slice(0,10))||comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time));
+  const located=visits.filter(x=>validCoordinatePair(x.payload?.lat,x.payload?.lng));
+  const host=$("#bikeMapReportPreview");
+  host.innerHTML='<div class="stats"><div class="stat"><strong>'+visits.length+'</strong><span>إجمالي الزيارات</span></div><div class="stat"><strong>'+located.length+'</strong><span>نقاط بإحداثيات</span></div><div class="stat"><strong>'+(visits.length-located.length)+'</strong><span>مواقع بلا إحداثيات</span></div></div>'+(located.length?'<div id="bikeMapReportLeafletMap" class="deeb-live-map"></div>':'<div class="notice">لا توجد إحداثيات محفوظة في الفترة المحددة.</div>')+(visits.length?'<div class="table-wrap"><table><thead><tr><th>م</th><th>الدراجة</th><th>التاريخ</th><th>الوقت</th><th>المكان</th><th>الإحداثيات</th></tr></thead><tbody>'+visits.map((x,i)=>{const p=x.payload||{},ok=validCoordinatePair(p.lat,p.lng);return '<tr><td>'+(i+1)+'</td><td>'+esc(p.bike||"—")+'</td><td>'+esc(p.patrol_date||String(x.created_at||"").slice(0,10))+'</td><td>'+esc(p.patrol_time||"—")+'</td><td>'+esc(p.site||p.branch||"غير محدد")+'</td><td>'+(ok?Number(p.lat).toFixed(6)+", "+Number(p.lng).toFixed(6):"غير مسجل")+'</td></tr>';}).join("")+'</tbody></table></div>':'<div class="empty">لا توجد زيارات في الفترة المحددة.</div>');
+  if(located.length)renderBikeLeafletMap("bikeMapReportLeafletMap",located.map(x=>({lat:Number(x.payload.lat),lng:Number(x.payload.lng),bike:x.payload.bike,site:x.payload.site||x.payload.branch,date:x.payload.patrol_date,time:x.payload.patrol_time})));
+ };
+ ["bikeMapReportBike","bikeMapReportFrom","bikeMapReportTo"].forEach(id=>$("#"+id).addEventListener("change",build));
+ $("#backToBikeMaps").addEventListener("click",()=>render("bikeMaps"));
+ build();
+}
+function bikePatrolPage(){singleSectionPage("مرور الدراجات","bike_patrols");}
+
 function reports(){
  const data=cache.filter(x=>!x.is_archived);
  const nowDate=new Date(),today=nowDate.toLocaleDateString("en-CA"),monthStart=[nowDate.getFullYear(),String(nowDate.getMonth()+1).padStart(2,"0"),"01"].join("-");
@@ -949,6 +993,7 @@ function render(p){
   else if(p==="emergency")emergencyPage();
   else if(p==="map")mapPage();
   else if(p==="bikeMaps")bikeMapsPage();
+  else if(p==="bikeMapReports")bikeMapReportsPage();
     else if(p==="bikepatrol")bikePatrolPage();
   else if(p==="reports")reports().catch(error=>{console.error("DEEB reports load failed:",error);area.innerHTML=pageHead("تعذر تحميل التقارير والسجلات")+'<div class="card notice">'+esc(error?.message||error)+'</div>';});
   else if(p==="employees")singleSectionPage("سجل الموظفين","employees");
