@@ -78,6 +78,7 @@ public class ReportImageExportTest {
             String html = "<!doctype html><html><head><meta name='viewport' content='width=794,initial-scale=1'>"
                 + "<style>html,body{margin:0;padding:0;width:794px} .page{height:900px;width:794px;box-sizing:border-box;"
                 + "padding:32px;background:#eeeeee;border-bottom:8px solid #8b1e3f;font:32px sans-serif;color:#123456}"
+                + ".page:nth-of-type(1){background:#ff0000}.page:nth-of-type(2){background:#00aa00}.page:nth-of-type(3){background:#0000ff}"
                 + ".marker{width:180px;height:180px;background:#d4af37}</style></head><body>"
                 + "<section class='page'><div class='marker'></div>PAGE_ONE_SENTINEL</section>"
                 + "<section class='page'><div class='marker'></div>PAGE_TWO_SENTINEL</section>"
@@ -105,6 +106,8 @@ public class ReportImageExportTest {
                 assertNotNull(cursor);
                 assertEquals("Expected one PNG for each report page", 3, cursor.getCount());
                 Set<Long> pageFingerprints = new HashSet<>();
+                int pageIndex = 0;
+                int[] expectedPageColors = { 0x00ff0000, 0x0000aa00, 0x000000ff };
                 while (cursor.moveToNext()) {
                     long id = cursor.getLong(0);
                     Uri imageUri = Uri.withAppendedPath(collection, Long.toString(id));
@@ -115,6 +118,11 @@ public class ReportImageExportTest {
                         try {
                             assertEquals(1588, bitmap.getWidth());
                             assertEquals(2246, bitmap.getHeight());
+                            assertTrue("Unexpected extra exported page", pageIndex < expectedPageColors.length);
+                            int pageStartColor = bitmap.getPixel(700, 100) & 0x00ffffff;
+                            assertEquals("Page " + (pageIndex + 1) + " starts inside the wrong report section (overlap or skipped content)",
+                                expectedPageColors[pageIndex], pageStartColor);
+                            pageIndex++;
                             boolean nonWhite = false;
                             for (int y = 80; y < bitmap.getHeight() && !nonWhite; y += 160) {
                                 for (int x = 80; x < bitmap.getWidth(); x += 160) {
@@ -132,6 +140,7 @@ public class ReportImageExportTest {
                         } finally { bitmap.recycle(); }
                     }
                 }
+                assertEquals("All expected report sections must appear at their own page starts", 3, pageIndex);
             }
         } finally {
             scenario.close();
