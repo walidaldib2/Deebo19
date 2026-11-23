@@ -89,20 +89,3 @@
 .field input[type="time"]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:1;}
 html[data-theme="light"] .branch-patrol-grid .branch-visit-value{color:#fff!important;}
 html[data-theme="light"] .field input[type="time"]{color:#fff!important;-webkit-text-fill-color:#fff!important;color-scheme:dark;}
-
-
-/* DEEB main-section navigation — isolated from report and print styles. */
-.section-description{margin:0 0 16px;color:var(--muted);line-height:1.8;font-size:15px}
-.section-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.section-card{display:flex;align-items:center;gap:12px;min-width:0;min-height:104px;padding:15px;border:1px solid var(--gold);border-radius:17px;background:linear-gradient(145deg,#10213a,#081528);color:var(--white);text-align:right}
-.section-card:active{transform:scale(.99)}
-.section-card-icon{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;border:1px solid #9a7946;border-radius:13px;background:#182b45;font-size:23px}
-.section-card-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:5px}
-.section-card-copy b{font-size:16px;color:var(--gold2);line-height:1.45}
-.section-card-copy small{font-size:12px;line-height:1.6;color:#c1c9d5}
-.section-card-count{display:grid;place-items:center;flex:0 0 30px;min-width:30px;height:30px;border-radius:50%;background:#6f5627;color:#fff;font-weight:800;font-size:13px}
-html[data-theme="light"] .section-card{background:#fff;color:#172033}
-html[data-theme="light"] .section-card-icon{background:#f4e7c7}
-html[data-theme="light"] .section-card-copy b{color:#6a4b13}
-html[data-theme="light"] .section-card-copy small{color:#536174}
-@media(max-width:520px){.section-card-grid{grid-template-columns:1fr}.section-card{min-height:88px;padding:12px}.section-card-copy b{font-size:15px}}
