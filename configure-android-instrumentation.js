@@ -91,15 +91,22 @@ public class ReportImageExportTest {
                 + "</body></html>";
             Callback callback = new Callback();
             InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> web.addJavascriptInterface(callback, "DEEBInstrumentation"));
-            String js = "window.DEEBNativePlugins.FileExport.saveHtmlAsImages({html:"
-                + JSONObject.quote(html) + ",name:" + JSONObject.quote(NAME) + "})"
-                + ".then(r=>DEEBInstrumentation.done(JSON.stringify({ok:true,result:r})))"
-                + ".catch(e=>DEEBInstrumentation.done(JSON.stringify({ok:false,error:String(e)})));";
-            Log.i("DEEBTest", "Invoking saveHtmlAsImages; htmlChars=" + html.length());
+            String js = "(function(){try{"
+                + "var plugin=window.DEEBNativePlugins&&window.DEEBNativePlugins.FileExport;"
+                + "if(!plugin||typeof plugin.saveHtmlAsImages!=='function'){"
+                + "DEEBInstrumentation.done(JSON.stringify({ok:false,error:'bridge-method-unavailable'}));return;}"
+                + "var promise=plugin.saveHtmlAsImages({html:" + JSONObject.quote(html)
+                + ",name:" + JSONObject.quote(NAME) + "});"
+                + "if(!promise||typeof promise.then!=='function'){"
+                + "DEEBInstrumentation.done(JSON.stringify({ok:false,error:'plugin-did-not-return-promise'}));return;}"
+                + "promise.then(function(r){DEEBInstrumentation.done(JSON.stringify({ok:true,result:r}));})"
+                + ".catch(function(e){DEEBInstrumentation.done(JSON.stringify({ok:false,error:String(e),message:e&&e.message,code:e&&e.code}));});"
+                + "}catch(e){DEEBInstrumentation.done(JSON.stringify({ok:false,error:'sync:'+String(e),stack:e&&e.stack}));}})();";
+            Log.e("DEEBTest", "Invoking saveHtmlAsImages; htmlChars=" + html.length());
             InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> web.evaluateJavascript(js, null));
-            Log.i("DEEBTest", "Waiting for native export callback");
+            Log.e("DEEBTest", "Waiting for native export callback");
             boolean callbackReceived = callback.latch.await(150, TimeUnit.SECONDS);
-            Log.i("DEEBTest", "Native export callback received=" + callbackReceived);
+            Log.e("DEEBTest", "Native export callback received=" + callbackReceived + "; payload=" + callback.result);
             assertTrue("Native report image export timed out", callbackReceived);
             JSONObject response = new JSONObject(String.valueOf(new JSONTokener(callback.result).nextValue()));
             assertTrue("Native report image export failed: " + callback.result, response.optBoolean("ok"));
