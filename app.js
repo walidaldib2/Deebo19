@@ -1032,7 +1032,7 @@ $("#backupBtn").onclick=async()=>{const button=$("#backupBtn");button.disabled=t
 function bikePatrolPage(){singleSectionPage("مرور الدراجات","bike_patrols");}
 function bikePatrolDeletedPage(){
  area.innerHTML=pageHead("محذوفات مرور الدراجات",'<button class="secondary" type="button" id="backToBikePatrols">العودة لمرور الدراجات</button>')+'<div id="bikeDeletedContent" class="card"><div class="muted">جارٍ تحميل المحذوفات...</div></div>';
- $("#backToBikePatrols").onclick=()=>render("map");
+ $("#backToBikePatrols").onclick=()=>render("bikepatrol");
  DebooDB.all({deleted:true}).then(items=>{
   const deleted=items.filter(x=>x.entity_type==="bike_patrols").sort((a,b)=>String(b.deleted_at||"").localeCompare(String(a.deleted_at||"")));
   const host=$("#bikeDeletedContent");if(!host)return;
