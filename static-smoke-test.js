@@ -388,3 +388,33 @@ if (!app.includes('deeb-map-details') || !app.includes('deebRouteStatus') || !ap
 if (!app.includes('data-deeb-route-ready') || !app.includes('saveHtmlAsImages')) throw new Error('Bike map image export must preserve map and route readiness markers');
 const exporter = fs.readFileSync(path.join(root,'configure-android-share.js'),'utf8');
 if (!exporter.includes('var mapWait=new Promise') || !exporter.includes('data-deeb-map-tiles') || !exporter.includes('data-deeb-route-ready')) throw new Error('Android image export must wait for map tiles and route completion before capturing the report');
+
+
+// Navigation regression checks: every section-menu entry must resolve to one route.
+const menuEntries = [...menuSource.matchAll(/\["([^"]+)","[^"]+"\]/g)].map(match => match[1]);
+if (new Set(menuEntries).size !== menuEntries.length) {
+  const duplicates = menuEntries.filter((page, index) => menuEntries.indexOf(page) !== index);
+  throw new Error('A navigation destination appears more than once: ' + [...new Set(duplicates)].join(', '));
+}
+const renderStart = appSource.indexOf('function render(p){');
+const renderEnd = appSource.indexOf('window.DEebRender=render;', renderStart);
+const renderSource = renderStart >= 0 && renderEnd > renderStart ? appSource.slice(renderStart, renderEnd) : '';
+if (!renderSource) throw new Error('Main render dispatcher could not be located.');
+for (const page of menuEntries) {
+  if (!renderSource.includes('p==="' + page + '"')) {
+    throw new Error('Section-menu destination has no render route: ' + page);
+  }
+}
+const dataPageStart = appSource.indexOf('function dataManagementPage()');
+const dataPageEnd = appSource.indexOf('\nfunction emergencyPage()', dataPageStart);
+const dataPageSource = dataPageStart >= 0 && dataPageEnd > dataPageStart ? appSource.slice(dataPageStart, dataPageEnd) : '';
+if (!dataPageSource.includes('pageHead("البيانات الأساسية"') || !dataPageSource.includes('id="backSystem"') || !dataPageSource.includes('رجوع للبيانات والإعدادات')) {
+  throw new Error('Master-data page title or return-to-settings navigation is missing.');
+}
+if (new Set([...pageGroupsDataTypes()]).size !== pageGroupsDataTypes().length) {
+  throw new Error('A master-data record type is duplicated in the data navigation.');
+}
+function pageGroupsDataTypes() {
+  const match = groupsSource.match(/data:\[([^\]]*)\]/);
+  return match ? [...match[1].matchAll(/"([^"]+)"/g)].map(item => item[1]) : [];
+}
