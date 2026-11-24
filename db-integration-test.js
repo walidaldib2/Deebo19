@@ -60,6 +60,28 @@ async function main() {
   const secondPersonVisit = await db.save("bike_patrols", { bike: "دراجة 1", person: "فرد آخر", site: "معرض اختبار", patrol_date: "2026-11-19", patrol_time: "11:45" });
   assert.equal((await db.getRecord(secondPersonVisit.id)).payload.person, "فرد آخر");
 
+  // Soft-deleted motorcycle visits must be recoverable until the 30-day retention expires.
+  const recoverableVisit = await db.save("bike_patrols", {
+    bike: "دراجة استعادة اختبار", person: "فرد اختبار", site: "موقع اختبار",
+    patrol_date: "2026-11-20", patrol_time: "12:00"
+  });
+  await db.softDelete(recoverableVisit.id);
+  assert.equal((await db.all()).some(x => x.id === recoverableVisit.id), false, "Soft-deleted visits must leave active operations");
+  assert.equal((await db.all({ deleted: true })).some(x => x.id === recoverableVisit.id), true, "Soft-deleted visits must appear in their recovery list");
+  await db.restoreDeleted(recoverableVisit.id);
+  assert.equal((await db.all()).some(x => x.id === recoverableVisit.id), true, "Restored visits must return to active operations");
+  assert.equal((await db.all({ deleted: true })).some(x => x.id === recoverableVisit.id), false, "Restored visits must leave the deleted list");
+
+  const expiredVisit = await db.save("bike_patrols", {
+    bike: "دراجة انتهاء اختبار", person: "فرد اختبار", site: "موقع اختبار",
+    patrol_date: "2026-11-20", patrol_time: "12:30"
+  });
+  await db.softDelete(expiredVisit.id);
+  const expiredCount = await db.purgeExpiredDeleted(new Date(Date.now() + 31 * 24 * 60 * 60 * 1000));
+  assert.ok(expiredCount >= 1, "Expired soft-deleted visits must be purged after the retention window");
+  assert.equal(await db.getRecord(expiredVisit.id), null, "Purged visits must no longer exist in the records store");
+  assert.ok((await db.audit()).some(x => x.record_id === expiredVisit.id && x.action === "permanent_delete"), "Permanent expiry must remain visible in the audit log");
+
   // Handover snapshots and report approvals remain linked to their records.
   const handover = await db.save("handovers", { sender: "مُسلّم", receiver: "مُستلم" });
   const history = await db.handoverHistory(handover.id);
