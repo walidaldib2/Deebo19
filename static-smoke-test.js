@@ -328,6 +328,10 @@ if (!app.includes('تم تحديث النسخة التلقائية لهذا ال
 const androidAssets = fs.readFileSync(path.join(root,'prepare-android.js'),'utf8');
 if (androidAssets.includes('"scanner.js"') || html.includes('src="scanner.js"') || sw.includes('./scanner.js')) throw new Error('Document scanner assets must not be staged or cached');
 
+// Bike patrol reports: valid numeric latitude/longitude always take priority over a saved WhatsApp map URL.
+if (!app.includes('const coordinates=validCoordinatePair(lat,lng)?("خط العرض: "+lat+"\\nخط الطول: "+lng):(locationUrl||"—");')) throw new Error('Bike patrol report must show numeric coordinates instead of the map URL when both coordinates are valid');
+if (!app.includes('const coordinates=validCoordinatePair(lat,lng)?("خط العرض: "+lat+" | خط الطول: "+lng):(locationUrl||"");')) throw new Error('Bike patrol spreadsheet export must prioritize valid numeric coordinates over the map URL');
+
 const readableRules = [
   'const readableReportHtml=html=>html.replace("</style>"',
   '.report-body{color:#000!important;font-size:20px!important;font-weight:800!important',
