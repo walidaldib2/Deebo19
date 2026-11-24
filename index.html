@@ -46,26 +46,13 @@
   <input id="globalSearch" type="search" placeholder="ابحث عن اسم أو فرع أو بلاغ أو مهمة...">
 </section>
 <section class="tiles" id="mainTiles">
-  <button class="tile active" data-page="home"><span>🏠</span><b>الرئيسية</b></button>
-  <button class="tile" data-page="follow"><span>📞</span><b>المتابعة</b></button>
-  <button class="tile" data-page="emergency"><span>🚨</span><b>الطوارئ</b></button>
-  <button class="tile" data-page="map"><span>🗺️</span><b>خريطة الدراجات</b></button>
-  <button class="tile" data-page="reports"><span>📋</span><b>التقارير</b></button>
-  <button class="tile" data-page="settings"><span>⚙️</span><b>الإعدادات</b></button>
+  <button class="tile active" data-page="home"><span>🏢</span><b>التشغيل الميداني</b></button>
+  <button class="tile" data-page="emergency"><span>🛡️</span><b>إدارة الأمن</b></button>
+  <button class="tile" data-page="follow"><span>📋</span><b>التكليفات والمتابعة</b></button>
+  <button class="tile" data-page="reports"><span>📊</span><b>التقارير</b></button>
+  <button class="tile" data-page="settings"><span>⚙️</span><b>إدارة النظام</b></button>
 </section>
-<section class="stories">
-  <div class="section-title"><span></span><h2>DEEB Stories</h2><span></span></div>
-  <div class="story-grid">
-    <button class="story-card" data-page="follow">
-      <span class="story-number" id="followCount">0</span>
-      <b>متابعات الشفت</b><small>سجل المرور والمتابعة</small>
-    </button>
-    <button class="story-card" data-page="settings">
-      <span class="story-number" id="branchCount">0</span>
-      <b>الفروع المسجلة</b><small>إدارة البيانات من الإعدادات</small>
-    </button>
-  </div>
-</section>
+<button class="hidden" type="button" data-page="map" aria-hidden="true" tabindex="-1">خريطة الدراجات</button>
 <section id="contentArea" class="content-area"></section>
 </div>
 </main>
