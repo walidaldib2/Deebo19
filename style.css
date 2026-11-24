@@ -89,3 +89,6 @@
 .field input[type="time"]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:1;}
 html[data-theme="light"] .branch-patrol-grid .branch-visit-value{color:#fff!important;}
 html[data-theme="light"] .field input[type="time"]{color:#fff!important;-webkit-text-fill-color:#fff!important;color-scheme:dark;}
+
+/* Dashboard is section six; weather is the only persistent panel outside sections. */
+.weather-panel{margin:20px 0 0}
