@@ -37,6 +37,22 @@ if (!imageExport.includes('pdfCaptureStarted.compareAndSet(false,true)') || !ima
 if (imageExport.includes('createPrintDocumentAdapter("DEEB-image-export")') || imageExport.includes('nativeAdapter.onLayout') || imageExport.includes('nativeAdapter.onWrite')) throw new Error('Image export must not invoke Android framework print callbacks directly');
 for (const required of ['setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrait())','setResolution(new PrintAttributes.Resolution("DEEB","DEEB",300,300))','setMinMargins(PrintAttributes.Margins.NO_MARGINS)','createPrintDocumentAdapter(jobName)','setJavaScriptEnabled(true)']) if (!printHandler.includes(required)) throw new Error('Android printing must use fixed A4 print attributes and the native print adapter: '+required);
 const appSource = fs.readFileSync(path.join(root,'app.js'),'utf8');
+
+const memoFormAndPrintStart=appSource.indexOf('fields.memos=fields.written_reports.map(field=>field.slice());');
+const memoFormAndPrintEnd=appSource.indexOf('const rowsForExport=',memoFormAndPrintStart);
+const memoFormAndPrintSource=memoFormAndPrintStart>=0&&memoFormAndPrintEnd>memoFormAndPrintStart?appSource.slice(memoFormAndPrintStart,memoFormAndPrintEnd):'';
+const memoPrintStart=memoFormAndPrintSource.indexOf('const printHtml=d=>');
+const memoPrintEnd=memoFormAndPrintSource.indexOf('const refreshReport=()=>',memoPrintStart);
+const memoPrintSource=memoPrintStart>=0&&memoPrintEnd>memoPrintStart?memoFormAndPrintSource.slice(memoPrintStart,memoPrintEnd):'';
+if (!memoFormAndPrintSource.includes('(["written_reports","memos"].includes(type)&&f[0]==="report_title")') ||
+    !memoPrintSource.includes('if(["written_reports","memos"].includes($("#reportType").value))') ||
+    !memoPrintSource.includes('const documentTitle=$("#reportType").value==="memos"?"مذكرة":"التقرير اليومي";') ||
+    !memoPrintSource.includes('<section class="written-page">') ||
+    !memoPrintSource.includes('<div class="meta">') ||
+    !memoPrintSource.includes('<div class="report-body">') ||
+    memoPrintSource.includes('<table') || memoPrintSource.includes('<tr>') || memoPrintSource.includes('<th>') || memoPrintSource.includes('<td>')) {
+  throw new Error('Memo must reuse the daily report form and exact document layout, changing only its title without adding tables, columns, or rows.');
+}
 const attachmentSaveStart=appSource.indexOf('const files=[...($("#documentFiles")?.files||[])];');
 const attachmentSaveEnd=appSource.indexOf('const persisted=await DebooDB.getRecord(saved.id);',attachmentSaveStart);
 const attachmentSaveSource=attachmentSaveStart>=0&&attachmentSaveEnd>attachmentSaveStart?appSource.slice(attachmentSaveStart,attachmentSaveEnd):'';
