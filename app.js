@@ -850,7 +850,7 @@ async function reports(){
   }
   if($("#reportType").value==="branch_patrols"){
    const groups=branchGroupsFor(d),slots=5,title="تقرير متابعة الفروع",formatDate=value=>value?new Date(value+"T12:00:00").toLocaleDateString("ar-EG",{day:"numeric",month:"long",year:"numeric"}):"—",formatDayDate=value=>{if(!value)return "—";const date=new Date(value+"T12:00:00");return Number.isNaN(date.getTime())?esc(value):esc(date.toLocaleDateString("ar-EG",{weekday:"long",day:"numeric",month:"long",year:"numeric"}));},period=formatDate($("#fromDate").value)+" — "+formatDate($("#toDate").value),issued=formatDate(new Date().toLocaleDateString("en-CA"));
-   const pageSize=8,reportPages=Array.from({length:Math.max(1,Math.ceil(groups.length/pageSize))},(_,i)=>groups.slice(i*pageSize,(i+1)*pageSize)),branchSheets=reportPages.map((page,pageIndex)=>{
+   const pageSize=10,reportPages=Array.from({length:Math.max(1,Math.ceil(groups.length/pageSize))},(_,i)=>groups.slice(i*pageSize,(i+1)*pageSize)),branchSheets=reportPages.map((page,pageIndex)=>{
     const continuation=pageIndex>0,pageTitle=continuation?"باقي "+title:title;
     const rows=page.map(g=>'<tr><td>'+esc(g.branch+(g.continuation?" — استكمال":""))+'</td><td>'+esc(g.supervisor)+'</td>'+Array.from({length:slots},(_,i)=>'<td>'+esc(g.visits[i]?.payload?.patrol_time||"")+'</td>').join("")+'</tr>').join("")+Array.from({length:Math.max(0,pageSize-page.length)},()=>'<tr class="branch-empty-row">'+Array.from({length:2+slots},()=>'<td></td>').join("")+'</tr>').join("");
     const pageFooter="";
@@ -940,6 +940,15 @@ async function reports(){
  .bike-sheet-section .bike-table td.bike-coordinates,.bike-sheet-section .bike-table td.bike-notes{font-size:12px!important;line-height:1.25!important}
  .bike-sheet-section .bike-table td.bike-patrol-times{font-size:11px!important;line-height:1.35!important}
  .bike-sheet-section .report-foot,.bike-sheet-section .report-page-note{font-size:10px!important;line-height:1.3!important}
+ /* Branch follow-up PDF only: centered A4 page with equal side margins and ten rows. */
+  @page branch-followup{size:A4 portrait;margin:2mm 3mm 1mm 3mm!important}
+  @media print{
+   .branch-sheet-section{page:branch-followup!important;box-sizing:border-box!important;width:204mm!important;min-width:204mm!important;max-width:204mm!important;height:294mm!important;min-height:294mm!important;max-height:294mm!important;margin:0!important;padding:2mm 0!important;left:auto!important;right:auto!important;transform:none!important;overflow:visible!important}
+   .branch-sheet-section .branch-table-wrap{flex:1 1 auto!important;min-height:0!important;width:100%!important}
+   .branch-sheet-section .branch-table{width:100%!important;height:100%!important;table-layout:fixed!important}
+   .branch-sheet-section .branch-table tbody tr{height:19mm!important;min-height:19mm!important;break-inside:avoid!important;page-break-inside:avoid!important}
+   .branch-sheet-section .branch-table tbody td{height:19mm!important;min-height:19mm!important;padding:3px 4px!important;vertical-align:middle!important}
+  }
  /* Unified A4 print safe area: symmetric side margins and visible breathing room above the DEEB masthead. */
  @page{size:A4 portrait;margin:2mm 3mm 1mm!important}
  @media print{
