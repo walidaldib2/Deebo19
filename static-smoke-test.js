@@ -408,7 +408,7 @@ for (const page of menuEntries) {
 const dataPageStart = appSource.indexOf('function dataManagementPage()');
 const dataPageEnd = appSource.indexOf('\nfunction emergencyPage()', dataPageStart);
 const dataPageSource = dataPageStart >= 0 && dataPageEnd > dataPageStart ? appSource.slice(dataPageStart, dataPageEnd) : '';
-if (!dataPageSource.includes('pageHead("البيانات الأساسية"') || !dataPageSource.includes('id="backSystem"') || !dataPageSource.includes('رجوع للبيانات والإعدادات')) {
+if (!dataPageSource.includes('pageHead("البيانات الأساسية"') || !/id=\\?"backSystem\\?"/.test(dataPageSource) || !dataPageSource.includes('رجوع للبيانات والإعدادات')) {
   throw new Error('Master-data page title or return-to-settings navigation is missing.');
 }
 if (new Set([...pageGroupsDataTypes()]).size !== pageGroupsDataTypes().length) {
