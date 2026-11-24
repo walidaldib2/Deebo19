@@ -790,14 +790,14 @@ async function reports(){
   const groups=bikeGroupsFor(d).filter(g=>selectedBikeReport==="all"||g.bike===selectedBikeReport);
   const visits=groups.flatMap(g=>g.visits);
   let index=0;
-  return html.replace(/(<td class="bike-coordinates">)[\\s\\S]*?(<\\/td>)/g,(match,open,close)=>{
+  return html.replace(/(<td class="bike-coordinates">)[\s\S]*?(<\/td>)/g,(match,open,close)=>{
    const visit=visits[index++];
    if(!visit)return match;
    const p=visit.payload||{};
    const location=validCoordinatePair(p.lat,p.lng)
-    ? "خط العرض: "+String(p.lat).trim()+"\\nخط الطول: "+String(p.lng).trim()
+    ? "خط العرض: "+String(p.lat).trim()+"\nخط الطول: "+String(p.lng).trim()
     : String(p.location_url||"").trim();
-   return open+esc(location||"—").replace(/\\n/g,"<br>")+close;
+   return open+esc(location||"—").replace(/\n/g,"<br>")+close;
   });
  };
  const printHtml=d=>{
