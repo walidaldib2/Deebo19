@@ -248,6 +248,8 @@ public class FileExportPlugin extends Plugin {
       WebView.enableSlowWholeDocumentDraw();
       final WebView view=new WebView(getContext());
       final java.util.concurrent.atomic.AtomicBoolean finished=new java.util.concurrent.atomic.AtomicBoolean(false);
+      // WebView may report the same completed page more than once. Only one callback may start the PDF/PNG pipeline.
+      final java.util.concurrent.atomic.AtomicBoolean pdfCaptureStarted=new java.util.concurrent.atomic.AtomicBoolean(false);
       final java.util.ArrayList<Uri> createdUris=new java.util.ArrayList<>();
       final File tempPdf;
       try{tempPdf=File.createTempFile("deeb-report-",".pdf",getContext().getCacheDir());}
@@ -291,7 +293,7 @@ public class FileExportPlugin extends Plugin {
           });
         }
         private void writeWebViewToPdf(WebView v){
-          if(finished.get())return;
+          if(finished.get()||!pdfCaptureStarted.compareAndSet(false,true))return;
           android.graphics.pdf.PdfDocument document=null;
           try{
             final int width=webWidth;
