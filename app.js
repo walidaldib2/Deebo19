@@ -581,7 +581,7 @@ function renderBikeLeafletMap(targetId, points){
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',crossOrigin:true}).addTo(map);
   const latlngs=points.map(p=>[p.lat,p.lng]);
   const byBike=new Map();points.forEach(p=>{const key=String(p.bike||"دراجة غير محددة");if(!byBike.has(key))byBike.set(key,[]);byBike.get(key).push([p.lat,p.lng]);});
-  byBike.forEach((line)=>{if(line.length>1)L.polyline(line,{color:"#8b1732",weight:4,opacity:.75}).addTo(map);});
+  byBike.forEach((line)=>{if(line.length>1)L.polyline(line,{color:"#8b1732",weight:4,opacity:.75,dashArray:targetId==="bikeMapReportLeafletMap"?"7 5":null}).addTo(map);});if(targetId==="bikeMapReportLeafletMap"&&points.length>1){const coords=points.map(p=>p.lng+","+p.lat).join(";");fetch("https://router.project-osrm.org/route/v1/driving/"+coords+"?overview=full&geometries=geojson&steps=false").then(r=>{if(!r.ok)throw new Error("route");return r.json();}).then(data=>{if(data.code==="Ok"&&data.routes?.[0]){const road=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);L.polyline(road,{color:"#8b1732",weight:5,opacity:.9}).addTo(map);const status=document.getElementById("deebRouteStatus");if(status)status.textContent="المسار مرسوم على شبكة الطرق حسب الإحداثيات المسجلة.";}}).catch(()=>{const status=document.getElementById("deebRouteStatus");if(status)status.textContent="تعذر جلب مسار الطرق؛ الخط المتقطع يوضح ترتيب نقاط المرور المسجلة فقط.";});}
   points.forEach((p,i)=>{
    const safe=v=>String(v||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
    const popup='<b>'+(i+1)+'. '+safe(p.bike||"دراجة غير محددة")+'</b><br>'+safe(p.site||"موقع المرور")+'<br>'+safe(p.date||"")+' '+safe(p.time||"");
@@ -660,7 +660,7 @@ function bikeMapReportsPage(){
   const footer='<div class="report-foot"><span>تم إنشاء التقرير بواسطة DEEB</span><span>اعتماد المسؤول: __________________</span></div>';
   const printBody='<section class="bike-sheet-section">'+head+mapMarkup+note+routeLink+footer+'</section>';
   reportHtml='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DEEB | '+esc(reportTitle)+'</title>'+style+printMapScript+'</head><body>'+printBody+'</body></html>';
-  host.innerHTML='<style>'+style.slice(7,style.lastIndexOf("</style>"))+'</style><section class="bike-sheet-section">'+head+(located.length?'<div id="bikeMapReportLeafletMap" class="deeb-report-map"></div>'+mapMarkup.slice(mapMarkup.indexOf('<div class="deeb-map-details"')):'' )+note+routeLink+footer+'</section>';
+  host.innerHTML='<style>'+style.slice(7,style.lastIndexOf("</style>"))+'</style><section class="bike-sheet-section">'+head+(located.length?'<div id="bikeMapReportLeafletMap" class="deeb-report-map"></div><p id="deebRouteStatus" class="deeb-route-status">جارٍ تجهيز تفاصيل الطريق...</p>'+mapMarkup.slice(mapMarkup.indexOf('<div class="deeb-map-details"')):'' )+note+routeLink+footer+'</section>';
   if(located.length)renderBikeLeafletMap("bikeMapReportLeafletMap",mapPoints);
  };
  ["bikeMapReportBike","bikeMapReportFrom","bikeMapReportTo"].forEach(id=>$("#"+id).onchange=build);
