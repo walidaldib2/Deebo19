@@ -36,6 +36,16 @@ if (!imageExport.includes('writeWebViewToPdf(v)') || !imageExport.includes('WebV
 if (imageExport.includes('createPrintDocumentAdapter("DEEB-image-export")') || imageExport.includes('nativeAdapter.onLayout') || imageExport.includes('nativeAdapter.onWrite')) throw new Error('Image export must not invoke Android framework print callbacks directly');
 for (const required of ['setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrait())','setResolution(new PrintAttributes.Resolution("DEEB","DEEB",300,300))','setMinMargins(PrintAttributes.Margins.NO_MARGINS)','createPrintDocumentAdapter(jobName)','setJavaScriptEnabled(true)']) if (!printHandler.includes(required)) throw new Error('Android printing must use fixed A4 print attributes and the native print adapter: '+required);
 const appSource = fs.readFileSync(path.join(root,'app.js'),'utf8');
+const attachmentSaveStart=appSource.indexOf('const files=[...($("#documentFiles")?.files||[])];');
+const attachmentSaveEnd=appSource.indexOf('const persisted=await DebooDB.getRecord(saved.id);',attachmentSaveStart);
+const attachmentSaveSource=attachmentSaveStart>=0&&attachmentSaveEnd>attachmentSaveStart?appSource.slice(attachmentSaveStart,attachmentSaveEnd):'';
+if (!attachmentSaveSource.includes('file.size>15*1024*1024') ||
+    !attachmentSaveSource.includes('let savedRecord=null;') ||
+    !attachmentSaveSource.includes('const saved=savedRecord=await DebooDB.save(type,payload,editId);') ||
+    !attachmentSaveSource.includes('currentEdit=await DebooDB.getRecord(savedRecord.id)||savedRecord;') ||
+    !attachmentSaveSource.includes('أضف الملفات المتبقية فقط')) {
+  throw new Error('Document save must validate attachment sizes before creating a record and resume partial attachment uploads without creating duplicate records.');
+}
 
 const navigationStart = html.indexOf('<section class="tiles" id="mainTiles">');
 const navigationEnd = html.indexOf('</section>', navigationStart);
