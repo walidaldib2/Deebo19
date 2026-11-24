@@ -522,6 +522,15 @@ function renderEntity(type){
  $$('[data-archive]').forEach(b=>b.onclick=async()=>{if(!confirm("تأكيد أرشفة السجل؟ لن يتم حذفه نهائيًا."))return;try{await DebooDB.archive(b.dataset.archive);await refresh();renderEntity(type);toast("تمت الأرشفة");}catch(e){toast(e.message);}});
  $$("[data-soft-delete]").forEach(b=>b.onclick=async()=>{if(!confirm("سيتم نقل بند المرور إلى المحذوفات لمدة 30 يومًا، ويمكنك استعادته خلالها. هل تريد المتابعة؟"))return;try{await DebooDB.softDelete(b.dataset.softDelete);await refresh();renderEntity(type);toast("تم نقل بند المرور إلى المحذوفات.");}catch(e){toast(e.message||"تعذر نقل بند المرور إلى المحذوفات.");}});
 }
+function landing(){
+ const city=localStorage.getItem("deboo_weather_city")||"Cairo";
+ area.innerHTML='<section class="weather-compact card" aria-label="ملخص أحوال الطقس"><div class="weather-compact-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><path d="M8 1v2m0 10v2M1 8h2m10 0h2m-2.1-4.9-1.4 1.4M4.5 11.5l-1.4 1.4"/><path d="M10 18h8a3 3 0 0 0 .2-6A5 5 0 0 0 8.5 14"/></svg></div><div class="weather-compact-main"><div class="weather-compact-title">أحوال الطقس <span id="weatherUpdated" class="pill">جارٍ التحديث</span></div><div class="weather-compact-line"><strong id="weatherTemp">--°</strong><span id="weatherDesc">جارٍ جلب حالة الجو...</span></div><small id="weatherExtra" class="muted">الطقس يحتاج اتصالًا بالإنترنت</small></div><div class="weather-compact-actions"><button class="secondary" id="weatherGo" type="button" aria-label="تحديث الطقس">تحديث</button><button class="secondary" id="weatherGPS" type="button" aria-label="استخدام موقعي">موقعي</button></div><input id="weatherCity" type="hidden" value="'+esc(city)+'"></section>';
+ $("#weatherGo").onclick=()=>weather($("#weatherCity").value||"Cairo");
+ $("#weatherGPS").onclick=async()=>{try{const p=await currentCoordinates();weatherCoords(p.latitude,p.longitude)}catch(e){toast(e.message||"تعذر تحديد موقعك الحالي")}};
+ if(navigator.onLine)weather(city);else{$("#weatherDesc").textContent="في انتظار الاتصال بالإنترنت";$("#weatherExtra").textContent="سيتم تحديث الطقس عند عودة الاتصال."}
+ if(window.__debooWeatherTimer)clearInterval(window.__debooWeatherTimer);
+ window.__debooWeatherTimer=setInterval(()=>{if(["home","landing"].includes(currentPage)&&navigator.onLine){const selected=$("#weatherCity")?.value||localStorage.getItem("deboo_weather_city")||"Cairo";weather(selected)}},30*60*1000);
+}
 function home(){if(localStorage.getItem("deboo_weather_city")==="Shibin El Kom")localStorage.setItem("deboo_weather_city","Cairo");const count=t=>rows(t).length;const openInc=rows("incidents").filter(x=>x.payload.status!=="مغلق").length;const openTasks=rows("tasks").filter(x=>!["مكتملة"].includes(x.payload.status)).length;const late=rows("tasks").filter(x=>x.payload.due_date&&new Date(x.payload.due_date)<new Date()&&x.payload.status!=="مكتملة").length;
  area.innerHTML=`${pageHead("لوحة التحكم",`<button class="secondary" id="refreshBtn">تحديث البيانات</button> <button class="secondary" id="logoutBtn">تسجيل الخروج</button>`)}
  ${stats([["إجمالي الفروع",count("branches")],["أفراد الدوريات",count("patrol_people")],["أفراد الطوارئ",count("emergency_people")],["الدراجات",count("bikes")],["البلاغات المفتوحة",openInc],["المهام الجارية",openTasks],["المهام المتأخرة",late],["حالات الطوارئ",count("emergencies")]])}
@@ -1097,7 +1106,7 @@ function render(p){
   document.querySelector(".app-shell")?.classList.toggle("page-open",p!=="landing");
   document.querySelectorAll(".tile").forEach(b=>b.classList.toggle("active",b.dataset.page===(p==="landing"?"home":p)));
   searchTerm=$("#globalSearch")?.value||"";
-  if(p==="landing"){area.innerHTML="";}
+  if(p==="landing")landing();
   else if(p==="home")home();
   else if(sectionMenus[p])sectionPage(p);
   else if(p==="follow")groupPage(p);
@@ -1133,9 +1142,9 @@ document.addEventListener("click",e=>{if(e.target.closest("[data-back-home]"))re
 bindGlobalSearchSuggestions();$("#globalSearch").addEventListener("input",e=>{const value=e.target.value,caret=e.target.selectionStart;searchTerm=value;if(currentType){renderEntity(currentType);const next=$("#globalSearch");if(next){next.focus();next.setSelectionRange(caret,caret)}}});
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;if(currentPage==="settings")settings();});
 window.addEventListener("appinstalled",()=>{deferredInstallPrompt=null;toast("تم تثبيت DEEB على الجهاز.");if(currentPage==="settings")settings();});
-window.addEventListener("online",()=>{const el=$("#deviceStatus");if(el)el.textContent="عاد الاتصال بالإنترنت.";if(currentPage==="home"){const city=$("#weatherCity")?.value||localStorage.getItem("deboo_weather_city")||"Cairo";weather(city);}});
+window.addEventListener("online",()=>{const el=$("#deviceStatus");if(el)el.textContent="عاد الاتصال بالإنترنت.";if(["home","landing"].includes(currentPage)){const city=$("#weatherCity")?.value||localStorage.getItem("deboo_weather_city")||"Cairo";weather(city);}});
 window.addEventListener("offline",()=>{const el=$("#deviceStatus");if(el)el.textContent="أنت تعمل دون اتصال؛ البيانات المحلية تظل متاحة.";const desc=$("#weatherDesc"),extra=$("#weatherExtra");if(desc)desc.textContent="لا يوجد اتصال بالإنترنت";if(extra)extra.textContent="سيتم تحديث الطقس تلقائيًا عند عودة الاتصال.";});
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&currentPage==="home"&&navigator.onLine){const city=$("#weatherCity")?.value||localStorage.getItem("deboo_weather_city")||"Cairo";weather(city);}});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&["home","landing"].includes(currentPage)&&navigator.onLine){const city=$("#weatherCity")?.value||localStorage.getItem("deboo_weather_city")||"Cairo";weather(city);}});
 // Auto-lock the local interface whenever the app is backgrounded, but only when PIN protection is enabled.
 function lockApplication(){if(!pinLockEnabled())return;const root=$("#appRoot"),auth=$("#authPanel");if(root&&!root.classList.contains("hidden")){root.classList.add("hidden");auth?.classList.remove("hidden");$("#authPassword").value="";$("#authMessage").textContent="تم قفل التطبيق تلقائيًا. أدخل رمز PIN للمتابعة.";}}
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")lockApplication();});
