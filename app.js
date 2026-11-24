@@ -568,7 +568,7 @@ function reports(){
    g.visits.sort((a,b)=>dayOf(a).localeCompare(dayOf(b))||compareVisitTime(a,b));
    const sites=g.visits.map(v=>{
     const p=v.payload||{},site=String(p.site||p.branch||p.location||"غير محدد").trim();
-    const lat=String(p.lat??"").trim(),lng=String(p.lng??"").trim(),locationUrl=String(p.location_url??"").trim();const coordinates=[lat?"خط العرض: "+lat:"",lng?"خط الطول: "+lng:"",locationUrl].filter(Boolean).join("\n")||"—";
+    const lat=String(p.lat??"").trim(),lng=String(p.lng??"").trim(),locationUrl=String(p.location_url??"").trim();const coordinates=validCoordinatePair(lat,lng)?("خط العرض: "+lat+"\nخط الطول: "+lng):(locationUrl||"—");
     return {site,entries:[{date:dayOf(v),time:String(p.patrol_time||"—"),coordinates,notes:String(p.notes||"").trim()}],times:[String(p.patrol_time||"—")]};
    });
    return {date:g.date,bike:g.bike,person:String(bp.person||"").trim()||"—",code:bp.code||"—",type:bp.type||bp.description||"—",visits:g.visits,sites};
@@ -624,7 +624,7 @@ function reports(){
    bikeGroupsFor(d).filter(g=>selectedBikeReport==="all"||g.bike===selectedBikeReport).forEach(g=>g.visits.forEach(v=>{
     const p=v.payload||{};
     const site=String(p.site||p.branch||p.location||"غير محدد");
-    const coordinates=[p.lat!==undefined&&String(p.lat).trim()?"خط العرض: "+String(p.lat):"",p.lng!==undefined&&String(p.lng).trim()?"خط الطول: "+String(p.lng):"",p.location_url!==undefined?String(p.location_url):""].filter(Boolean).join(" | ");
+    const lat=String(p.lat??"").trim(),lng=String(p.lng??"").trim(),locationUrl=String(p.location_url??"").trim();const coordinates=validCoordinatePair(lat,lng)?("خط العرض: "+lat+" | خط الطول: "+lng):(locationUrl||"");
     out.push([dayOf(v),String(p.person||p.responsible||g.person),g.bike,g.code,g.type,site,String(p.patrol_time||""),coordinates]);
    }));
    return out;
