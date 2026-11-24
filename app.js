@@ -1037,7 +1037,7 @@ function bikePatrolDeletedPage(){
   const deleted=items.filter(x=>x.entity_type==="bike_patrols").sort((a,b)=>String(b.deleted_at||"").localeCompare(String(a.deleted_at||"")));
   const host=$("#bikeDeletedContent");if(!host)return;
   if(!deleted.length){host.innerHTML='<div class="empty">لا توجد بنود مرور دراجات في المحذوفات.</div>';return;}
-  host.innerHTML='<div class="notice">تُحذف البنود تلقائيًا بعد مرور 30 يومًا من تاريخ نقلها إلى المحذوفات.</div><div class="table-wrap"><table><thead><tr><th>الدراجة</th><th>الفرد</th><th>المكان</th><th>تاريخ المرور</th><th>المتبقي</th><th>إجراء</th></tr></thead><tbody>'+deleted.map(row=>{
+  host.innerHTML='<div class="notice">تُحذف البنود نهائيًا تلقائيًا بعد مرور 30 يومًا من تاريخ نقلها إلى المحذوفات.</div><div class="table-wrap"><table><thead><tr><th>الدراجة</th><th>الفرد</th><th>المكان</th><th>تاريخ المرور</th><th>المتبقي</th><th>إجراء</th></tr></thead><tbody>'+deleted.map(row=>{
    const p=row.payload||{},deletedAt=Date.parse(row.deleted_at||row.updated_at||row.created_at),days=Math.max(0,30-Math.floor((Date.now()-deletedAt)/86400000));
    return '<tr><td>'+esc(p.bike||"—")+'</td><td>'+esc(p.person||"—")+'</td><td>'+esc(p.site||"—")+'</td><td>'+esc(p.patrol_date||"—")+'</td><td>'+days+' يوم</td><td><button type="button" class="tiny" data-restore-deleted="'+esc(row.id)+'">استعادة</button></td></tr>';
   }).join("")+'</tbody></table></div>';
