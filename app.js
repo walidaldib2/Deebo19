@@ -943,11 +943,11 @@ async function reports(){
  /* Branch follow-up PDF only: centered A4 page with equal side margins and ten rows. */
   @page branch-followup{size:A4 portrait;margin:2mm 3mm 1mm 3mm!important}
   @media print{
-   .branch-sheet-section{page:branch-followup!important;box-sizing:border-box!important;width:204mm!important;min-width:204mm!important;max-width:204mm!important;height:294mm!important;min-height:294mm!important;max-height:294mm!important;margin:0!important;padding:2mm 0!important;left:auto!important;right:auto!important;transform:none!important;overflow:visible!important}
-   .branch-sheet-section .branch-table-wrap{flex:1 1 auto!important;min-height:0!important;width:100%!important}
-   .branch-sheet-section .branch-table{width:100%!important;height:100%!important;table-layout:fixed!important}
-   .branch-sheet-section .branch-table tbody tr{height:19mm!important;min-height:19mm!important;break-inside:avoid!important;page-break-inside:avoid!important}
-   .branch-sheet-section .branch-table tbody td{height:19mm!important;min-height:19mm!important;padding:3px 4px!important;vertical-align:middle!important}
+   .branch-pdf-mode .branch-sheet-section{page:branch-followup!important;box-sizing:border-box!important;width:204mm!important;min-width:204mm!important;max-width:204mm!important;height:294mm!important;min-height:294mm!important;max-height:294mm!important;margin:0!important;padding:2mm 0!important;left:auto!important;right:auto!important;transform:none!important;overflow:visible!important}
+   .branch-pdf-mode .branch-sheet-section .branch-table-wrap{flex:1 1 auto!important;min-height:0!important;width:100%!important}
+   .branch-pdf-mode .branch-sheet-section .branch-table{width:100%!important;height:100%!important;table-layout:fixed!important}
+   .branch-pdf-mode .branch-sheet-section .branch-table tbody tr{height:19mm!important;min-height:19mm!important;break-inside:avoid!important;page-break-inside:avoid!important}
+   .branch-pdf-mode .branch-sheet-section .branch-table tbody td{height:19mm!important;min-height:19mm!important;padding:3px 4px!important;vertical-align:middle!important}
   }
  /* Unified A4 print safe area: symmetric side margins and visible breathing room above the DEEB masthead. */
  @page{size:A4 portrait;margin:2mm 3mm 1mm!important}
@@ -971,9 +971,10 @@ async function reports(){
   try{
    const html=readableReportHtml(printHtml(d));
    const outputHtml=reportCoordinatesOnly(html,d);
+   const printHtmlOutput=$("#reportType").value==="branch_patrols"?outputHtml.replace("<body>","<body class=\"branch-pdf-mode\">"):outputHtml;
    const native=window.DEEBNativePlugins?.FileExport;
-   if(native?.printHtml){const result=await native.printHtml({html:outputHtml});if(result?.started!==true)throw new Error("لم تبدأ خدمة الطباعة على الجهاز.");}
-   else{const w=window.open("","_blank");if(!w)throw new Error("تعذر فتح نافذة الطباعة؛ اسمح بالنوافذ المنبثقة.");w.document.open();w.document.write(outputHtml);w.document.close();w.focus();setTimeout(()=>w.print(),700);}
+   if(native?.printHtml){const result=await native.printHtml({html:printHtmlOutput});if(result?.started!==true)throw new Error("لم تبدأ خدمة الطباعة على الجهاز.");}
+   else{const w=window.open("","_blank");if(!w)throw new Error("تعذر فتح نافذة الطباعة؛ اسمح بالنوافذ المنبثقة.");w.document.open();w.document.write(printHtmlOutput);w.document.close();w.focus();setTimeout(()=>w.print(),700);}
    toast("تم إرسال التقرير إلى خدمة الطباعة.");
   }catch(e){toast("تعذرت طباعة التقرير: "+(e?.message||e));}
   finally{button.disabled=false;button.textContent=oldText;}
