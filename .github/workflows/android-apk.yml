@@ -11,6 +11,7 @@ on:
       - feature/deboo-pro-upgrade
       - feature/stronger-print-reports
       - fix/print-coordinate-priority-build1340
+      - feature/deeb-premium-gold-ui-2026-11-24
 
 concurrency:
   group: deeb-android-apk-${{ github.event_name }}-${{ github.ref }}
