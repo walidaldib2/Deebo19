@@ -795,7 +795,7 @@ async function reports(){
    if(!visit)return match;
    const p=visit.payload||{};
    const location=validCoordinatePair(p.lat,p.lng)
-    ? "خط العرض: "+String(p.lat).trim()+"\nخط الطول: "+String(p.lng).trim()
+    ? "خط العرض: "+String(p.lat).trim()+" | خط الطول: "+String(p.lng).trim()
     : String(p.location_url||"").trim();
    return open+esc(location||"—").replace(/\n/g,"<br>")+close;
   });
