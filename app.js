@@ -919,11 +919,11 @@ async function reports(){
   if(!d.length&&!hasBikeReport){toast("لا توجد سجلات في الفترة المحددة");return;}
   button.disabled=true;const oldText=button.textContent;button.textContent="جارٍ تجهيز الطباعة...";
   try{
-   let html=readableReportHtml(printHtml(d));
-   if(paperOnly)html=paperPrintCoordinatesOnly(html,d);
+   const html=readableReportHtml(printHtml(d));
+   const outputHtml=paperOnly?paperPrintCoordinatesOnly(html,d):html;
    const native=window.DEEBNativePlugins?.FileExport;
-   if(native?.printHtml){const result=await native.printHtml({html});if(result?.started!==true)throw new Error("لم تبدأ خدمة الطباعة على الجهاز.");}
-   else{const w=window.open("","_blank");if(!w)throw new Error("تعذر فتح نافذة الطباعة؛ اسمح بالنوافذ المنبثقة.");w.document.open();w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),700);}
+   if(native?.printHtml){const result=await native.printHtml({html:outputHtml});if(result?.started!==true)throw new Error("لم تبدأ خدمة الطباعة على الجهاز.");}
+   else{const w=window.open("","_blank");if(!w)throw new Error("تعذر فتح نافذة الطباعة؛ اسمح بالنوافذ المنبثقة.");w.document.open();w.document.write(outputHtml);w.document.close();w.focus();setTimeout(()=>w.print(),700);}
    toast("تم إرسال التقرير إلى خدمة الطباعة.");
   }catch(e){toast("تعذرت طباعة التقرير: "+(e?.message||e));}
   finally{button.disabled=false;button.textContent=oldText;}
