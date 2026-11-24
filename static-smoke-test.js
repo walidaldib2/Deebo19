@@ -414,6 +414,20 @@ if (!exporter.includes('PdfRenderer.Page.RENDER_MODE_FOR_PRINT') ||
   throw new Error('Report image export must render print-quality pages, reject blank pages, and remove partial images on failure.');
 }
 
+if (!exporter.includes('final int width=1588,height=2246') ||
+    !exporter.includes('Environment.DIRECTORY_PICTURES+"/DEEB"') ||
+    !exporter.includes('baseName+"-"+String.format(java.util.Locale.US,"%02d",index+1)+".png"') ||
+    !exporter.includes('MediaStore.Images.Media.IS_PENDING,1') ||
+    !exporter.includes('MediaStore.Images.Media.IS_PENDING,0')) {
+  throw new Error('Report image export must save numbered A4 portrait PNG pages into Pictures/DEEB without exposing incomplete files.');
+}
+if (!exporter.includes('if(pageCount<1||pageCount>100)') ||
+    !exporter.includes('handler.postDelayed(()->{if(!finished.get())fail.reject("انتهت مهلة تجهيز صور التقرير بعد 120 ثانية.') ||
+    !exporter.includes('if(tempPdf.exists())tempPdf.delete()') ||
+    !exporter.includes('getContentResolver().delete(uri,null,null)')) {
+  throw new Error('Report image export must cap page count, enforce a timeout, clean temporary PDFs, and delete incomplete image files.');
+}
+
 // Navigation regression checks: every section-menu entry must resolve to one route.
 const menuEntries = [...menuSource.matchAll(/\["([^"]+)","[^"]+"\]/g)].map(match => match[1]);
 if (new Set(menuEntries).size !== menuEntries.length) {
