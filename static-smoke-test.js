@@ -390,6 +390,30 @@ const exporter = fs.readFileSync(path.join(root,'configure-android-share.js'),'u
 if (!exporter.includes('var mapWait=new Promise') || !exporter.includes('data-deeb-map-tiles') || !exporter.includes('data-deeb-route-ready')) throw new Error('Android image export must wait for map tiles and route completion before capturing the report');
 
 
+// Export regression checks: validate the XLSX package structure, RTL worksheet,
+// CSV quoting/BOM, and Android A4 print/image rendering safeguards.
+const xlsxStart = appSource.indexOf('const createXlsx=rows=>');
+const xlsxEnd = appSource.indexOf('const reportCoordinatesOnly=', xlsxStart);
+const xlsxSource = xlsxStart >= 0 && xlsxEnd > xlsxStart ? appSource.slice(xlsxStart, xlsxEnd) : '';
+if (!xlsxSource.includes('t="inlineStr"') || !xlsxSource.includes('sheetView rightToLeft="1"') ||
+    !xlsxSource.includes('replace(/&/g,"&amp;")') || !xlsxSource.includes('[0x50,0x4b,0x03,0x04') ||
+    !xlsxSource.includes('[0x50,0x4b,0x01,0x02') || !xlsxSource.includes('[0x50,0x4b,0x05,0x06')) {
+  throw new Error('Excel export must produce a valid UTF-8 ZIP/XLSX package with escaped Arabic-compatible inline strings and RTL layout.');
+}
+if (!appSource.includes('replace(/"/g,\'""\')') || !appSource.includes('"\\ufeff"+csv')) {
+  throw new Error('CSV export must escape embedded quotes and include a UTF-8 BOM for Arabic spreadsheet compatibility.');
+}
+if (!exporter.includes('PrintAttributes.MediaSize.ISO_A4.asPortrait()') ||
+    !exporter.includes('new PrintAttributes.Resolution("DEEB","DEEB",300,300)') ||
+    !exporter.includes('waitForReportResources(v, handler, 30000')) {
+  throw new Error('Android print export must wait for report resources and use portrait A4 at 300 dpi.');
+}
+if (!exporter.includes('PdfRenderer.Page.RENDER_MODE_FOR_PRINT') ||
+    !exporter.includes('صفحة التقرير رقم ') ||
+    !exporter.includes('removePartialImages.run()')) {
+  throw new Error('Report image export must render print-quality pages, reject blank pages, and remove partial images on failure.');
+}
+
 // Navigation regression checks: every section-menu entry must resolve to one route.
 const menuEntries = [...menuSource.matchAll(/\["([^"]+)","[^"]+"\]/g)].map(match => match[1]);
 if (new Set(menuEntries).size !== menuEntries.length) {
