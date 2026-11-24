@@ -40,13 +40,26 @@ const appSource = fs.readFileSync(path.join(root,'app.js'),'utf8');
 const navigationStart = html.indexOf('<section class="tiles" id="mainTiles">');
 const navigationEnd = html.indexOf('</section>', navigationStart);
 const navigationHtml = navigationStart >= 0 && navigationEnd > navigationStart ? html.slice(navigationStart, navigationEnd) : '';
-for (const page of ['home','operations','security','tasksGroup','reportsGroup','system']) {
+for (const page of ['home','operations','security','reportsGroup','system']) {
   if (!navigationHtml.includes('data-page="'+page+'"')) throw new Error('Main navigation tile is missing: '+page);
 }
-for (const label of ['لوحة التحكم','التشغيل الميداني','إدارة الأمن','التكليفات والمتابعة','التقارير والسجلات','إدارة النظام']) {
+for (const label of ['لوحة التحكم','التشغيل الميداني','إدارة الأمن','التقارير والسجلات','البيانات والإعدادات']) {
   if (!navigationHtml.includes(label)) throw new Error('Main navigation label was lost: '+label);
 }
 for (const required of ['class="tile-icon"','viewBox="0 0 24 24"']) if (!navigationHtml.includes(required)) throw new Error('Premium vector navigation icon system is missing: '+required);
+if ((navigationHtml.match(/data-page=/g)||[]).length !== 5) throw new Error('Home must contain exactly five primary navigation tiles.');
+const menuStart=appSource.indexOf('const sectionMenus=');
+const menuEnd=appSource.indexOf(';',menuStart);
+const menuSource=menuStart>=0&&menuEnd>menuStart?appSource.slice(menuStart,menuEnd+1):'';
+if (!menuSource.includes('["tasks","المهام والتكليفات"]') || !menuSource.includes('["handovers","تسليم واستلام الشفت"]')) throw new Error('Tasks and handovers must remain available under field operations.');
+if (menuSource.includes('tasksGroup:')) throw new Error('Tasks group must not remain as a duplicate top-level section.');
+const groupsStart=appSource.indexOf('const pageGroups=');
+const groupsEnd=appSource.indexOf(';',groupsStart);
+const groupsSource=groupsStart>=0&&groupsEnd>groupsStart?appSource.slice(groupsStart,groupsEnd+1):'';
+if (!groupsSource.includes('data:["branches","patrol_people","bikes"') || groupsSource.includes('"employees"') || groupsSource.includes('"emergency_people"')) throw new Error('Employee and emergency-person registries must not be duplicated in general master data.');
+if (!groupsSource.includes('emergency:["emergencies","emergency_people"]')) throw new Error('Emergency personnel must remain available inside the emergency section.');
+if (!appSource.includes('else if(p==="tasksGroup"){render("operations");return;}')) throw new Error('Legacy tasks-group route must safely redirect to field operations.');
+
 for (const required of ['function landing(){','function home(){','async function weather(city){','async function weatherCoords(']) if (!appSource.includes(required)) throw new Error('Core dashboard/weather feature was lost: '+required);
 for (const required of ['id="weatherTemp"','id="weatherDesc"','id="weatherExtra"','id="weatherGo"','id="weatherGPS"']) if (!appSource.includes(required)) throw new Error('Landing weather control is missing: '+required);
 for (const route of ['follow','emergency','map','bikeMaps','bikeMapReports','bikepatrol','reports','employees','managerRounds','handovers','data','attendance','incidents','tasks','stats','archive','backup','settings']) {
