@@ -414,6 +414,18 @@ if (!dataPageSource.includes('pageHead("البيانات الأساسية"') || 
 if (new Set([...pageGroupsDataTypes()]).size !== pageGroupsDataTypes().length) {
   throw new Error('A master-data record type is duplicated in the data navigation.');
 }
+const dataTypes = pageGroupsDataTypes();
+if (dataTypes.includes('employees') || dataTypes.includes('emergency_people')) {
+  throw new Error('Employee registry and emergency responders must not be duplicated in master-data navigation.');
+}
+if (!menuSource.includes('["employees","سجل الموظفين"]') || !groupsSource.includes('emergency:["emergencies","emergency_people"]')) {
+  throw new Error('Employee registry must remain under Security and emergency responders must remain under Emergency.');
+}
+const allGroupedTypes = [...groupsSource.matchAll(/(?:follow|data|emergency):\[([^\]]*)\]/g)]
+  .flatMap(match => [...match[1].matchAll(/"([^"]+)"/g)].map(item => item[1]));
+if (new Set(allGroupedTypes).size !== allGroupedTypes.length) {
+  throw new Error('A record type appears in more than one grouped data page.');
+}
 function pageGroupsDataTypes() {
   const match = groupsSource.match(/data:\[([^\]]*)\]/);
   return match ? [...match[1].matchAll(/"([^"]+)"/g)].map(item => item[1]) : [];
