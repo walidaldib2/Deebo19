@@ -1,0 +1,3 @@
+Restored source snapshot requested by the project owner.
+Base commit: d2030e734bfcc8f2368842b43dc18b47233f745d
+This marker triggers the Android build for the restored source.
