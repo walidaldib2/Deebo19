@@ -42,8 +42,8 @@ const attachmentSaveSource=attachmentSaveStart>=0&&attachmentSaveEnd>attachmentS
 if (!attachmentSaveSource.includes('file.size>15*1024*1024') ||
     !attachmentSaveSource.includes('let savedRecord=null;') ||
     !attachmentSaveSource.includes('const saved=savedRecord=await DebooDB.save(type,payload,editId);') ||
-    !attachmentSaveSource.includes('currentEdit=await DebooDB.getRecord(savedRecord.id)||savedRecord;') ||
-    !attachmentSaveSource.includes('أضف الملفات المتبقية فقط')) {
+    !appSource.includes('currentEdit=await DebooDB.getRecord(savedRecord.id)||savedRecord;') ||
+    !appSource.includes('أضف الملفات المتبقية فقط')) {
   throw new Error('Document save must validate attachment sizes before creating a record and resume partial attachment uploads without creating duplicate records.');
 }
 
