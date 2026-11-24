@@ -338,7 +338,7 @@ const readableRules = [
   '.report-table td,.branch-table td,.bike-table td{color:#000!important',
   '.report-table td,.branch-table td,.bike-table td{color:#000!important;-webkit-text-fill-color:#000!important;font-size:19px!important;font-weight:800!important',
   '.bike-table td.bike-coordinates,.bike-table td.bike-patrol-times{font-size:16px!important;font-weight:800!important',
-  'html:readableReportHtml(printHtml(d))',
+  'reportCoordinatesOnly(readableReportHtml(printHtml(d)),d)',
   'const html=readableReportHtml(printHtml(d));'
 ];
 for (const rule of readableRules) if (!app.includes(rule)) throw new Error('All report outputs must apply high-contrast black, larger, bold data text: '+rule);
