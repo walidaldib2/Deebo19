@@ -348,3 +348,9 @@ if (!app.includes('.meta span,.overview-item b,.metric b,.bike-meta b{font-size:
 if (!app.includes('.bike-table td.bike-coordinates,.bike-table td.bike-patrol-times{font-size:16px!important;font-weight:800!important')) throw new Error('Bike patrol time and coordinate data must use 16px bold typography');
 
 if (!app.includes('.report-table th,.branch-table th,.bike-table th{font-size:16px!important;font-weight:900!important')) throw new Error('Report table headings must remain smaller than data text');
+
+if (!app.includes('fields.memos=fields.written_reports.map(field=>field.slice());')) throw new Error('Memo fields must be an exact clone of the daily written-report fields');
+if (!app.includes('deeb-map-details') || !app.includes('deebRouteStatus') || !app.includes('router.project-osrm.org/route/v1/driving/')) throw new Error('Bike map report must include detailed route points, road routing, and route status');
+if (!app.includes('data-deeb-route-ready') || !app.includes('saveHtmlAsImages')) throw new Error('Bike map image export must preserve map and route readiness markers');
+const exporter = fs.readFileSync(path.join(root,'configure-android-share.js'),'utf8');
+if (!exporter.includes('var mapWait=new Promise') || !exporter.includes('data-deeb-map-tiles') || !exporter.includes('data-deeb-route-ready')) throw new Error('Android image export must wait for map tiles and route completion before capturing the report');
