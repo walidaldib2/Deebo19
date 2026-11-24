@@ -499,12 +499,15 @@ function renderEntity(type){
   if(type==="bike_patrols"&&!payload.patrol_date){const oldDate=currentEdit?.payload?.patrol_date||String(currentEdit?.payload?.patrol_time||"").slice(0,10);const now=new Date();payload.patrol_date=oldDate||[now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0")].join("-");}
   if(type==="branches"&&!payload.name){if(status)status.textContent="اكتب اسم الفرع أولًا.";toast("اسم الفرع مطلوب.");form.elements.namedItem("name")?.focus();return;}
   const files=[...($("#documentFiles")?.files||[])];
+  const oversizedFile=files.find(file=>file.size>15*1024*1024);
+  if(oversizedFile){toast("الملف "+oversizedFile.name+" يتجاوز الحد المسموح 15 ميجابايت. لم يتم حفظ السجل.");if(status)status.textContent="اختر مرفقات لا يتجاوز حجم كل منها 15 ميجابايت.";return;}
   let editId=currentEdit?.id||null;
   if(type==="daily_rosters"&&!editId){const existing=cache.find(x=>x.entity_type==="daily_rosters"&&!x.is_archived&&x.payload?.work_date===payload.work_date&&x.payload?.shift===payload.shift);if(existing)editId=existing.id;}
   if(saveButton){saveButton.disabled=true;saveButton.textContent="جارٍ الحفظ...";}
   if(status)status.textContent="جارٍ حفظ البيانات على هذا الجهاز...";
+  let savedRecord=null;
   try{
-   const saved=await DebooDB.save(type,payload,editId);
+   const saved=savedRecord=await DebooDB.save(type,payload,editId);
    if(["documents","incidents"].includes(type))for(const file of files)await DebooDB.saveAttachment(saved.id,file);
    const persisted=await DebooDB.getRecord(saved.id);
    if(!persisted||persisted.entity_type!==type)throw new Error("لم يتم تأكيد وجود السجل في قاعدة البيانات بعد الحفظ. أعد المحاولة.");
@@ -512,6 +515,13 @@ function renderEntity(type){
    await refresh();renderEntity(type);toast("تم حفظ السجل والتحقق من وجوده في قاعدة البيانات.");
   }catch(e){
    const message=e?.message||"سبب غير معروف";
+   if(savedRecord){
+    currentEdit=await DebooDB.getRecord(savedRecord.id)||savedRecord;
+    await refresh();
+    renderEntity(type);
+    toast("تم حفظ السجل، لكن تعذر حفظ كل المرفقات. راجع المرفقات المحفوظة وأضف الملفات المتبقية فقط.");
+    return;
+   }
    if(status)status.textContent="فشل الحفظ: "+message;
    toast("فشل الحفظ: "+message);
    if(saveButton){saveButton.disabled=false;saveButton.textContent="إعادة محاولة الحفظ";}
