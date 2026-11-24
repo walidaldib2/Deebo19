@@ -597,14 +597,14 @@ function renderBikeLeafletMap(targetId, points){
   if(!window.L||!document.getElementById(targetId))return;
   const el=document.getElementById(targetId);if(el.dataset.mapReady==="1")return;el.dataset.mapReady="1";
   const map=L.map(el,{scrollWheelZoom:false});
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',crossOrigin:true}).addTo(map);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,maxNativeZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',crossOrigin:true}).addTo(map);
   const latlngs=points.map(p=>[p.lat,p.lng]);
   const byBike=new Map();points.forEach(p=>{const key=String(p.bike||"دراجة غير محددة");if(!byBike.has(key))byBike.set(key,[]);byBike.get(key).push([p.lat,p.lng]);});
   byBike.forEach((line)=>{if(line.length>1)L.polyline(line,{color:"#8b1732",weight:4,opacity:.75,dashArray:targetId==="bikeMapReportLeafletMap"?"7 5":null}).addTo(map);});if(targetId==="bikeMapReportLeafletMap"&&points.length>1){const coords=points.map(p=>p.lng+","+p.lat).join(";");fetch("https://router.project-osrm.org/route/v1/driving/"+coords+"?overview=full&geometries=geojson&steps=false").then(r=>{if(!r.ok)throw new Error("route");return r.json();}).then(data=>{if(data.code==="Ok"&&data.routes?.[0]){const road=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);L.polyline(road,{color:"#8b1732",weight:5,opacity:.9}).addTo(map);const status=document.getElementById("deebRouteStatus");if(status)status.textContent="المسار مرسوم على شبكة الطرق حسب الإحداثيات المسجلة.";}}).catch(()=>{const status=document.getElementById("deebRouteStatus");if(status)status.textContent="تعذر جلب مسار الطرق؛ الخط المتقطع يوضح ترتيب نقاط المرور المسجلة فقط.";});}
   points.forEach((p,i)=>{
    const safe=v=>String(v||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
    const popup='<b>'+(i+1)+'. '+safe(p.bike||"دراجة غير محددة")+'</b><br>'+safe(p.site||"موقع المرور")+'<br>'+safe(p.date||"")+' '+safe(p.time||"");
-   L.marker([p.lat,p.lng],{icon:L.divIcon({className:"deeb-map-pin",html:'<span>'+(i+1)+'</span>',iconSize:[30,30],iconAnchor:[15,15]})}).addTo(map).bindPopup(popup);
+   const marker=L.marker([p.lat,p.lng],{icon:L.divIcon({className:"deeb-map-pin",html:'<span>'+(i+1)+'</span>',iconSize:[30,30],iconAnchor:[15,15]})}).addTo(map).bindPopup(popup);marker.on("click",()=>map.setView([p.lat,p.lng],19));
   });
   map.fitBounds(L.latLngBounds(latlngs).pad(.18),{maxZoom:16});setTimeout(()=>map.invalidateSize(),150);
  };
