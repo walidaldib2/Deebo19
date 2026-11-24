@@ -147,16 +147,13 @@ window.DebooDB = (() => {
       if(!bike) throw new Error("يجب تحديد رقم الدراجة.");
       await new Promise((resolve,reject)=>{
         const tx=d.transaction(["records","audit_logs"],"readwrite");
-        const store=tx.objectStore("records"),req=store.getAll();
-        let validationError=null;
-        req.onsuccess=()=>{
-          store.put(row);
-          tx.objectStore("audit_logs").put(auditItem);
-        };
-        req.onerror=()=>{validationError=req.error||new Error("تعذر قراءة سجلات مرور الدراجات.");try{tx.abort()}catch{}};
+        // Motorcycle visits are intentionally repeatable; no uniqueness scan is needed.
+        // Persist the visit and its audit entry atomically without loading the full records store.
+        tx.objectStore("records").put(row);
+        tx.objectStore("audit_logs").put(auditItem);
         tx.oncomplete=resolve;
-        tx.onerror=()=>reject(validationError||tx.error||new Error("فشل حفظ مرور الدراجة وسجل المراجعة."));
-        tx.onabort=()=>reject(validationError||tx.error||new Error("تم إلغاء حفظ مرور الدراجة."));
+        tx.onerror=()=>reject(tx.error||new Error("فشل حفظ مرور الدراجة وسجل المراجعة."));
+        tx.onabort=()=>reject(tx.error||new Error("تم إلغاء حفظ مرور الدراجة."));
       });
     } else if(type==="handovers") {
       const versionNumber=(old?.payload?._version||0)+1;
