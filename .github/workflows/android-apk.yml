@@ -1,5 +1,5 @@
 name: Build DEEB Android APK
-# Rebuild after the latest branch-report layout and readability updates.
+# Rebuild restored previous bike-map layout and route-opening behavior.
 
 on:
   workflow_dispatch:
