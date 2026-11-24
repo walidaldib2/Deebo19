@@ -39,11 +39,11 @@ for (const required of ['setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrai
 const appSource = fs.readFileSync(path.join(root,'app.js'),'utf8');
 
 const memoFormAndPrintStart=appSource.indexOf('fields.memos=fields.written_reports.map(field=>field.slice());');
-const memoFormAndPrintEnd=appSource.indexOf('const rowsForExport=',memoFormAndPrintStart);
+const memoFormAndPrintEnd=appSource.indexOf('function formHTML(',memoFormAndPrintStart);
 const memoFormAndPrintSource=memoFormAndPrintStart>=0&&memoFormAndPrintEnd>memoFormAndPrintStart?appSource.slice(memoFormAndPrintStart,memoFormAndPrintEnd):'';
-const memoPrintStart=memoFormAndPrintSource.indexOf('const printHtml=d=>');
-const memoPrintEnd=memoFormAndPrintSource.indexOf('const refreshReport=()=>',memoPrintStart);
-const memoPrintSource=memoPrintStart>=0&&memoPrintEnd>memoPrintStart?memoFormAndPrintSource.slice(memoPrintStart,memoPrintEnd):'';
+const memoPrintStart=appSource.indexOf('const printHtml=d=>');
+const memoPrintEnd=appSource.indexOf('if($("#reportType").value==="branch_patrols")',memoPrintStart);
+const memoPrintSource=memoPrintStart>=0&&memoPrintEnd>memoPrintStart?appSource.slice(memoPrintStart,memoPrintEnd):'';
 if (!memoFormAndPrintSource.includes('(["written_reports","memos"].includes(type)&&f[0]==="report_title")') ||
     !memoPrintSource.includes('if(["written_reports","memos"].includes($("#reportType").value))') ||
     !memoPrintSource.includes('const documentTitle=$("#reportType").value==="memos"?"مذكرة":"التقرير اليومي";') ||
