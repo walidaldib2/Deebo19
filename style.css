@@ -133,3 +133,25 @@ body{background:radial-gradient(ellipse at 50% 0%,#172943 0,#091626 48%,#050b14 
  .search-panel{padding:16px;border-radius:18px}
 }
 @media(prefers-reduced-motion:reduce){.tile{transition:none}}
+
+
+/* Compact weather summary on the uncluttered landing screen */
+.weather-compact{display:flex;align-items:center;gap:14px;padding:13px 16px;margin-top:20px;border-radius:17px;background:linear-gradient(110deg,#14263b,#0b1829 70%,#18283b);border:1px solid #b58a43;box-shadow:0 6px 18px #0003,inset 0 1px #fff2}
+.weather-compact-icon{width:43px;height:43px;flex:0 0 43px;display:grid;place-items:center;border-radius:14px;background:linear-gradient(145deg,#26364b,#101c2b);border:1px solid #b58a43}
+.weather-compact-icon svg{width:27px;height:27px;fill:none;stroke:#f0d58d;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.weather-compact-main{min-width:0;flex:1}
+.weather-compact-title{display:flex;align-items:center;gap:9px;flex-wrap:wrap;color:#f2d995;font-weight:800;font-size:14px}
+.weather-compact-title .pill{font-size:10px;padding:3px 7px}
+.weather-compact-line{display:flex;align-items:baseline;gap:10px;margin:2px 0}
+.weather-compact-line strong{font-size:27px;line-height:1;color:#ffe6a0;text-shadow:0 0 12px #d9b65a44}
+.weather-compact-line span{font-size:14px;font-weight:700;color:#f7f3e9}
+.weather-compact-main small{font-size:11px}
+.weather-compact-actions{display:flex;gap:6px;flex-wrap:wrap}
+.weather-compact-actions button{padding:8px 11px;font-size:12px;min-height:36px}
+@media(max-width:520px){
+ .weather-compact{gap:9px;padding:11px 10px;flex-wrap:wrap}
+ .weather-compact-icon{width:37px;height:37px;flex-basis:37px}
+ .weather-compact-main{flex:1 1 calc(100% - 55px)}
+ .weather-compact-actions{width:100%;padding-right:46px}
+ .weather-compact-actions button{flex:1}
+}
