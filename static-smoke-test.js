@@ -63,7 +63,7 @@ if (!app.includes('$(\"#enableBiometric\").onclick=async()=>') || !app.includes(
 if (!app.includes('localStorage.removeItem(BIOMETRIC_KEY)') || !app.includes('سيفتح التطبيق مباشرة دون PIN أو بصمة')) throw new Error('Direct unlock / biometric reset flow is missing');
 if (!app.includes('يمكنك الدخول باستخدام PIN')) throw new Error('Biometric PIN fallback message is missing');
 if (!app.includes('function lockApplication()') || !app.includes('document.visibilityState==="hidden"') || !app.includes('window.addEventListener("pagehide",lockApplication)')) throw new Error('Automatic PIN lock hooks are missing');
-if (!sw.includes('deebo-local-v10-23')) throw new Error('Service worker cache version was not bumped');
+if (!sw.includes('deebo-local-v10-25')) throw new Error('Service worker cache version was not bumped');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 if (!db.includes('function localDateISO(date=new Date())') || !db.includes('function recordWorkDate(row)') || !db.includes('function shiftIdentity(payload={})') || !db.includes('is_archived:!!old?.is_archived') || !db.includes('shift_key')) throw new Error('Date/shift identity and archived-record edit preservation are required');
 if (!db.includes(String.raw`/^\d{4}-\d{2}-\d{2}$/`) || db.includes(String.raw`/^\\d{4}-\\d{2}-\\d{2}$/`)) throw new Error('Work-date validation must match real ISO calendar dates, not literal backslash characters');
