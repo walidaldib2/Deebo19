@@ -1108,7 +1108,8 @@ function render(p){
   searchTerm=$("#globalSearch")?.value||"";
   if(p==="landing")landing();
   else if(p==="home")home();
-  else if(p==="tasksGroup"){render("operations");return;}\n  else if(sectionMenus[p])sectionPage(p);
+  else if(p==="tasksGroup"){render("operations");return;}
+  else if(sectionMenus[p])sectionPage(p);
   else if(p==="follow")groupPage(p);
   else if(p==="emergency")emergencyPage();
   else if(p==="map")mapPage();
