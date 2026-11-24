@@ -32,6 +32,15 @@ fields.emergencies.unshift(["emergency_date","تاريخ الحالة","date",1]
 fields.tasks.unshift(["work_date","تاريخ العمل","date",1]);
 fields.absences.find(f=>f[0]==="shift")[4]=1;
 const pageGroups={follow:["daily_rosters","branch_patrols","bike_patrols","manager_rounds","incidents","tasks","handovers","absences","written_reports"],data:["branches","patrol_people","emergency_people","bikes","patrol_sites","managers","employees","documents"],emergency:["emergencies","emergency_people"]};
+
+const sectionMenus={
+ operations:{title:"التشغيل الميداني",items:[["daily_rosters","entity"],["branch_patrols","entity"],["bike_patrols","entity"],["manager_rounds","entity"],["map","page","خريطة مرور الدراجات"]]},
+ security:{title:"إدارة الأمن",items:[["employees","entity"],["patrol_people","entity"],["emergency_people","entity"],["incidents","entity"],["emergencies","entity"]]},
+ tasksGroup:{title:"التكليفات والمتابعة",items:[["tasks","entity"],["handovers","entity"],["absences","entity"]]},
+ reportsGroup:{title:"التقارير والسجلات",items:[["written_reports","entity"],["reports","page","مركز التقارير"]]},
+ system:{title:"إدارة النظام",items:[["branches","entity"],["bikes","entity"],["managers","entity"],["patrol_sites","entity"],["documents","entity"],["settings","page","الإعدادات"]]}
+};
+
 let cache=[],currentPage="home",currentType=null,currentEdit=null,currentEmployeeDetailId=null,weatherTimer=null,archiveTimer=null,searchTerm="",deferredInstallPrompt=null;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const normalize=v=>String(v||"").trim().toLocaleLowerCase("ar").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي");
@@ -857,7 +866,24 @@ $("#backupBtn").onclick=async()=>{const button=$("#backupBtn");button.disabled=t
  $("#checkNotifications").onclick=()=>checkAlerts(true);checkAlerts(false);
  try{const a=await DebooDB.audit();$("#auditArea").innerHTML=a.map(x=>`<div class="notice">${esc(x.action)} — ${esc(x.reason||"")} <small>${new Date(x.created_at).toLocaleString("ar-EG")}</small></div>`).join("")||"لا توجد أحداث"}catch(e){$("#auditArea").textContent=e.message}
 }
-function render(p){currentPage=p;currentType=null;document.querySelector(".app-shell")?.classList.toggle("page-open",p!=="home");$$(".tile").forEach(b=>b.classList.toggle("active",b.dataset.page===p));searchTerm=$("#globalSearch")?.value||"";if(p==="home")home();else if(p==="follow")groupPage(p);else if(p==="emergency")emergencyPage();else if(p==="map")mapPage();else if(p==="reports")reports();else if(p==="settings")settings();window.scrollTo({top:$("#contentArea").offsetTop-12,behavior:"smooth"})}
+function sectionPage(key){
+ const section=sectionMenus[key];
+ if(!section)return;
+ area.innerHTML=pageHead(section.title)+`<div class="subnav section-items">${section.items.map((item,i)=>{const label=item[2]||labels[item[0]];return `<button type="button" data-section-item="${item[0]}" data-kind="${item[1]}" class="${i===0?"active":""}>${label}</button>`;}).join("")}</div><div id="groupContent"></div>`;
+ $("#contentArea [data-section-item]").forEach(button=>button.addEventListener("click",()=>{
+  $("#contentArea [data-section-item]").forEach(x=>x.classList.remove("active"));
+  button.classList.add("active");
+  currentEdit=null;currentEmployeeDetailId=null;
+  const key=button.dataset.sectionItem;
+  if(button.dataset.kind==="entity")renderEntity(key);
+  else if(key==="map")mapPage();
+  else if(key==="reports")reports();
+  else if(key==="settings")settings();
+ }));
+ const first=section.items[0];
+ if(first[1]==="entity")renderEntity(first[0]);
+}
+function render(p){currentPage=p;currentType=null;document.querySelector(".app-shell")?.classList.toggle("page-open",p!=="home");$(".tile").forEach(b=>b.classList.toggle("active",b.dataset.page===p));searchTerm=$("#globalSearch")?.value||"";if(p==="home")home();else if(sectionMenus[p])sectionPage(p);else if(p==="follow")groupPage(p);else if(p==="emergency")emergencyPage();else if(p==="map")mapPage();else if(p==="reports")reports();else if(p==="settings")settings();window.scrollTo({top:$("#contentArea").offsetTop-12,behavior:"smooth"})}
 window.DEebRender=render;
 $$("[data-page]").forEach(b=>b.onclick=()=>render(b.dataset.page));
 document.addEventListener("click",e=>{if(e.target.closest("[data-back-home]"))render("home")});
