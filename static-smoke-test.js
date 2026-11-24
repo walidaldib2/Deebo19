@@ -180,6 +180,9 @@ if (!app.includes('locationUrl=String(p.location_url??"").trim()') || !app.inclu
 if (!app.includes('const displayRows=visible.flatMap') || !app.includes('continuation:i>0,visits:g.visits.slice(i*5,(i+1)*5)') || !app.includes('g.branch+(g.continuation?" — استكمال":"")')) throw new Error('Branch patrol continuation rows beyond five visits are missing from the screen or reports');
 if (!app.includes('تقرير متابعة الفروع') || !app.includes('data:') && !app.includes('branchGroupsFor(d)')) throw new Error('Branch report matrix is missing');
 const branchPrintStart=app.indexOf('const groups=branchGroupsFor(d),slots=5,title=',app.indexOf('const printHtml='));
+const branchPrintEnd=app.indexOf('\n  }',branchPrintStart);
+const branchPrint=branchPrintStart>=0&&branchPrintEnd>branchPrintStart?app.slice(branchPrintStart,branchPrintEnd):'';
+if (!branchPrint.includes('const pageSize=8') || !branchPrint.includes('height:19mm!important') || !branchPrint.includes('break-inside:avoid!important')) throw new Error('Branch follow-up PDF must use a safer rows-per-page limit while preserving row height and avoiding row splits');
 const branchPrintEnd=app.indexOf('if($("#reportType").value==="bike_patrols")',branchPrintStart);
 const branchPrint=branchPrintStart>=0&&branchPrintEnd>branchPrintStart?app.slice(branchPrintStart,branchPrintEnd):"";
 if (!branchPrint.includes('<th>الموقع</th><th>المشرف</th>') || !branchPrint.includes("<th>متابعة ") || branchPrint.includes('<th>اليوم والتاريخ</th>')) throw new Error('Branch reports must show location, supervisor and five follow-ups without a duplicate date column');
