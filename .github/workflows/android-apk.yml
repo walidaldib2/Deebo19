@@ -1,5 +1,5 @@
 name: Build DEEB Android APK
-# Rebuild after the latest branch-report layout and readability updates.
+# Rebuild restored previous bike-map layout and route-opening behavior.
 
 on:
   workflow_dispatch:
@@ -10,6 +10,7 @@ on:
     branches:
       - feature/deboo-pro-upgrade
       - feature/stronger-print-reports
+      - fix/print-coordinate-priority-build1340
 
 concurrency:
   group: deeb-android-apk-${{ github.event_name }}-${{ github.ref }}

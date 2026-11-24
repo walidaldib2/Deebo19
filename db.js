@@ -79,7 +79,7 @@ window.DebooDB = (() => {
   const configured=()=>true;
   async function all(opts={}) {
     let data=await getAll("records");
-    data=data.filter(x=>!!x.is_archived===!!opts.archived);
+    data=data.filter(x=>!!x.is_archived===!!opts.archived&&!!x.is_deleted===!!opts.deleted);
     data.sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
     return Number.isFinite(opts.limit)&&opts.limit>=0?data.slice(0,opts.limit):data;
   }
@@ -97,10 +97,10 @@ window.DebooDB = (() => {
     return shift&&/^\d{4}-\d{2}-\d{2}$/.test(date)?{shift_name:shift,shift_key:date+"|"+shift}:{};
   }
   async function archivePastDays(today=localDateISO()) {
-    const shiftTypes=new Set(["daily_rosters","branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies","tasks"]);
+    const shiftTypes=new Set(["daily_rosters","branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies","tasks","memos"]);
     const rows=await getAll("records");
     const candidates=rows.filter(row=>{
-      if(row.is_archived||!shiftTypes.has(row.entity_type))return false;
+      if(row.is_archived||row.is_deleted||!shiftTypes.has(row.entity_type))return false;
       const date=recordWorkDate(row);
       return /^\d{4}-\d{2}-\d{2}$/.test(date)&&date<today;
     });
@@ -132,14 +132,14 @@ window.DebooDB = (() => {
     const old=id?await get("records",id):null;
     if(id&&!old) throw new Error("السجل المطلوب تعديله غير موجود.");
     const savedPayload={...payload};
-    const operationalTypes=new Set(["daily_rosters","branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies","tasks"]);
+    const operationalTypes=new Set(["daily_rosters","branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies","tasks","memos"]);
     if(operationalTypes.has(type)){
       const workDate=recordWorkDate({entity_type:type,payload:savedPayload,created_at:old?.created_at||now()});
       if(workDate)savedPayload.work_date=workDate;
       const shiftMeta=shiftIdentity(savedPayload);
       if(shiftMeta.shift_key){savedPayload.shift_name=shiftMeta.shift_name;savedPayload.shift_key=shiftMeta.shift_key;}
     }
-    const row={id:id||uid(),entity_type:type,payload:savedPayload,branch_id:payload.branch_id||null,status:payload.status||"active",is_archived:!!old?.is_archived,...(old?.archived_at?{archived_at:old.archived_at}:{}),created_at:old?.created_at||now(),updated_at:now(),created_by:old?.created_by||"local"};
+    const row={id:id||uid(),entity_type:type,payload:savedPayload,branch_id:payload.branch_id||null,status:payload.status||"active",is_archived:!!old?.is_archived,is_deleted:false,...(old?.archived_at?{archived_at:old.archived_at}:{}),created_at:old?.created_at||now(),updated_at:now(),created_by:old?.created_by||"local"};
     const auditItem=makeAudit(id?"update":"create",row.id,old,row,id?(payload.edit_reason||"تعديل سجل"):"إضافة سجل");
     const d=await openDB();
     if(type==="bike_patrols") {
@@ -191,6 +191,37 @@ window.DebooDB = (() => {
     await new Promise((resolve,reject)=>{const tx=d.transaction(["records","audit_logs"],"readwrite");tx.objectStore("records").put(row);tx.objectStore("audit_logs").put(makeAudit("archive",id,old,row,reason));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("فشلت الأرشفة وسجل المراجعة."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء الأرشفة."));});
     try{await createAutoBackup();}catch(error){console.warn("DEEB automatic backup:",error);}
     return row;
+  }
+  async function softDelete(id,reason="نقل بند مرور دراجة إلى المحذوفات") {
+    const old=await get("records",id);
+    if(!old)throw new Error("بند المرور غير موجود.");
+    if(old.entity_type!=="bike_patrols")throw new Error("الحذف المؤقت متاح لبنود مرور الدراجات فقط.");
+    if(old.is_deleted)throw new Error("بند المرور موجود بالفعل في المحذوفات.");
+    const stamp=now(),row={...old,is_deleted:true,deleted_at:stamp,updated_at:stamp},d=await openDB();
+    await new Promise((resolve,reject)=>{const tx=d.transaction(["records","audit_logs"],"readwrite");tx.objectStore("records").put(row);tx.objectStore("audit_logs").put(makeAudit("soft_delete",id,old,row,reason));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("تعذر نقل بند المرور إلى المحذوفات."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء نقل بند المرور."));});
+    try{await createAutoBackup();}catch(error){console.warn("DEEB deleted-item backup:",error);}
+    return row;
+  }
+  async function restoreDeleted(id,reason="استعادة بند مرور دراجة من المحذوفات") {
+    const old=await get("records",id);
+    if(!old||!old.is_deleted||old.entity_type!=="bike_patrols")throw new Error("بند المرور غير موجود في المحذوفات.");
+    const row={...old,is_deleted:false,is_archived:false,updated_at:now()};delete row.deleted_at;delete row.archived_at;
+    const d=await openDB();
+    await new Promise((resolve,reject)=>{const tx=d.transaction(["records","audit_logs"],"readwrite");tx.objectStore("records").put(row);tx.objectStore("audit_logs").put(makeAudit("restore_deleted",id,old,row,reason));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("تعذرت استعادة بند المرور."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء الاستعادة."));});
+    try{await createAutoBackup();}catch(error){console.warn("DEEB restored-item backup:",error);}
+    return row;
+  }
+  async function purgeExpiredDeleted(nowDate=new Date()) {
+    const cutoff=nowDate.getTime()-30*24*60*60*1000;
+    const expired=(await getAll("records")).filter(row=>row.is_deleted&&Date.parse(row.deleted_at||"")<=cutoff);
+    if(!expired.length)return 0;
+    const d=await openDB();
+    await new Promise((resolve,reject)=>{const tx=d.transaction(["records","audit_logs"],"readwrite"),records=tx.objectStore("records"),logs=tx.objectStore("audit_logs");
+      expired.forEach(old=>{records.delete(old.id);logs.put(makeAudit("permanent_delete",old.id,old,null,"حذف تلقائي بعد مرور 30 يومًا في المحذوفات"));});
+      tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("تعذر تنظيف المحذوفات المنتهية."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء تنظيف المحذوفات."));
+    });
+    try{await createAutoBackup();}catch(error){console.warn("DEEB expired-deleted backup:",error);}
+    return expired.length;
   }
   async function unarchive(id,reason="استعادة سجل من الأرشيف") {
     const old=await get("records",id);if(!old)throw new Error("السجل غير موجود.");
@@ -278,7 +309,7 @@ window.DebooDB = (() => {
     checkUnique(obj.records,"السجلات");checkUnique(obj.audit_logs,"سجل المراجعة");checkUnique(obj.approved_reports||[],"التقارير");checkUnique(obj.handover_versions||[],"إصدارات التسليم");checkUnique(obj.attachments||[],"المرفقات");
     const recordIds=new Set(obj.records.map(x=>x.id));
     // Validate active bike visits while allowing any number of registered bikes per day.
-    const patrols=obj.records.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived);
+    const patrols=obj.records.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived&&!x.is_deleted);
     for(const row of patrols){
       const bike=String(row.payload?.bike||"").trim();
       const patrolDate=String(row.payload?.patrol_date||"").trim();
@@ -327,5 +358,5 @@ window.DebooDB = (() => {
     setTimeout(()=>URL.revokeObjectURL(url),1500);
     return {saved:true,name};
   }
-  return {init,configured,list,all,archivePastDays,getRecord:(id)=>get("records",id),save,archive,unarchive,audit,approve,approvedReports,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,local:true};
+  return {init,configured,list,all,archivePastDays,purgeExpiredDeleted,getRecord:(id)=>get("records",id),save,archive,unarchive,softDelete,restoreDeleted,audit,approve,approvedReports,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,local:true};
 })();

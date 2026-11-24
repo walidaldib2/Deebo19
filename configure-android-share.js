@@ -17,11 +17,17 @@ const plugin = `package ${packageName};
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 @CapacitorPlugin(name = "ShareIntent")
 public class ShareIntentPlugin extends Plugin {
@@ -33,6 +39,75 @@ public class ShareIntentPlugin extends Plugin {
         JSObject result = new JSObject();
         result.put("text", text);
         call.resolve(result);
+    }
+
+    private boolean isGoogleMapsHost(String host) {
+        if (host == null) return false;
+        String value = host.toLowerCase(java.util.Locale.US);
+        return value.equals("maps.app.goo.gl")
+            || value.equals("goo.gl")
+            || value.equals("google.com")
+            || value.endsWith(".google.com")
+            || value.equals("google.com.eg")
+            || value.endsWith(".google.com.eg");
+    }
+
+    @PluginMethod
+    public void resolveSharedLocation(PluginCall call) {
+        String raw = call.getString("url", "");
+        if (raw == null || raw.trim().isEmpty()) {
+            call.reject("رابط خرائط جوجل غير موجود.");
+            return;
+        }
+        HttpURLConnection connection = null;
+        try {
+            Uri requested = Uri.parse(raw.trim());
+            if (!"https".equalsIgnoreCase(requested.getScheme()) || !isGoogleMapsHost(requested.getHost())) {
+                call.reject("يُسمح بفك روابط خرائط جوجل الآمنة فقط.");
+                return;
+            }
+            URL target = new URL(raw.trim());
+            connection = (HttpURLConnection) target.openConnection();
+            connection.setInstanceFollowRedirects(true);
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(12000);
+            connection.setReadTimeout(12000);
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36");
+            connection.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8");
+            connection.setRequestProperty("Accept-Language", "ar,en;q=0.8");
+            int status = connection.getResponseCode();
+            String finalUrl = connection.getURL().toString();
+            Uri finalUri = Uri.parse(finalUrl);
+            if (!"https".equalsIgnoreCase(finalUri.getScheme()) || !isGoogleMapsHost(finalUri.getHost())) {
+                call.reject("انتهى تحويل الرابط إلى عنوان غير تابع لخرائط جوجل؛ تم إيقافه لأسباب أمنية.");
+                return;
+            }
+
+            StringBuilder body = new StringBuilder();
+            InputStream stream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
+            if (stream != null) {
+                try (InputStream input = stream; ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                    byte[] buffer = new byte[8192];
+                    int count, total = 0;
+                    while ((count = input.read(buffer)) != -1 && total < 1048576) {
+                        int allowed = Math.min(count, 1048576 - total);
+                        output.write(buffer, 0, allowed);
+                        total += allowed;
+                        if (allowed < count) break;
+                    }
+                    body.append(new String(output.toByteArray(), StandardCharsets.UTF_8));
+                }
+            }
+            JSObject result = new JSObject();
+            result.put("url", finalUrl);
+            result.put("content", body.toString());
+            result.put("status", status);
+            call.resolve(result);
+        } catch (Exception error) {
+            call.reject("تعذر فتح رابط خرائط جوجل واستخراج موقعه: " + error.getMessage(), error);
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
     }
 }
 `;
@@ -88,7 +163,7 @@ public class FileExportPlugin extends Plugin {
     // Wait for both ordinary <img> elements and CSS background images (including
     // pseudo-elements). Report templates are backgrounds, so document.images alone
     // can report ready while the actual reference artwork is still missing.
-    final String startScript = "(function(){window.__DEEB_REPORT_READY='pending';var urls=[];Array.prototype.forEach.call(document.images,function(i){var u=i.currentSrc||i.src;if(u)urls.push(u);});function addBg(el,p){try{var v=getComputedStyle(el,p).backgroundImage;if(!v||v==='none')return;var parts=v.split('url(');for(var k=1;k<parts.length;k++){var u=parts[k].split(')')[0].trim();if(u.charCodeAt(0)===34||u.charCodeAt(0)===39)u=u.substring(1,u.length-1);if(u&&u.indexOf('data:')!==0)urls.push(u);}}catch(e){}}var all=document.querySelectorAll('*');Array.prototype.forEach.call(all,function(el){addBg(el,null);addBg(el,'::before');addBg(el,'::after');});urls=Array.from(new Set(urls));var waits=urls.map(function(url){return new Promise(function(resolve){var im=new Image(),done=false,t=setTimeout(function(){finish(false);},20000);function finish(ok){if(done)return;done=true;clearTimeout(t);resolve(ok);}im.onload=function(){finish(true);};im.onerror=function(){finish(false);};im.src=url;if(im.complete)finish(im.naturalWidth>0);});});var fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();Promise.all([fonts].concat(waits)).then(function(results){var failed=results.slice(1).filter(function(ok){return !ok;}).length;if(failed)return 'image-error:'+failed;return new Promise(function(resolve){requestAnimationFrame(function(){requestAnimationFrame(function(){resolve('ready');});});});}).then(function(state){window.__DEEB_REPORT_READY=state;}).catch(function(){window.__DEEB_REPORT_READY='resource-error';});return 'started';})()";
+    final String startScript = "(function(){window.__DEEB_REPORT_READY='pending';var urls=[];Array.prototype.forEach.call(document.images,function(i){var u=i.currentSrc||i.src;if(u)urls.push(u);});function addBg(el,p){try{var v=getComputedStyle(el,p).backgroundImage;if(!v||v==='none')return;var parts=v.split('url(');for(var k=1;k<parts.length;k++){var u=parts[k].split(')')[0].trim();if(u.charCodeAt(0)===34||u.charCodeAt(0)===39)u=u.substring(1,u.length-1);if(u&&u.indexOf('data:')!==0)urls.push(u);}}catch(e){}}var all=document.querySelectorAll('*');Array.prototype.forEach.call(all,function(el){addBg(el,null);addBg(el,'::before');addBg(el,'::after');});urls=Array.from(new Set(urls));var waits=urls.map(function(url){return new Promise(function(resolve){var im=new Image(),done=false,t=setTimeout(function(){finish(false);},20000);function finish(ok){if(done)return;done=true;clearTimeout(t);resolve(ok);}im.onload=function(){finish(true);};im.onerror=function(){finish(false);};im.src=url;if(im.complete)finish(im.naturalWidth>0);});});var fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();var mapWait=new Promise(function(resolve){if(!document.getElementById('deebReportMap')){resolve(true);return;}var began=Date.now();(function pollMap(){var root=document.documentElement;if(root.getAttribute('data-deeb-map-ready')===\\\"1\\\"&&root.getAttribute('data-deeb-map-tiles')===\\\"ready\\\"&&root.getAttribute('data-deeb-route-ready')===\\\"1\\\"){resolve(true);return;}if(Date.now()-began>25000){resolve(false);return;}setTimeout(pollMap,150);})();});Promise.all([fonts].concat(waits).concat([mapWait])).then(function(results){var failed=results.slice(1).filter(function(ok){return !ok;}).length;if(failed)return 'image-error:'+failed;return new Promise(function(resolve){requestAnimationFrame(function(){requestAnimationFrame(function(){resolve('ready');});});});}).then(function(state){window.__DEEB_REPORT_READY=state;}).catch(function(){window.__DEEB_REPORT_READY='resource-error';});return 'started';})()";
     view.evaluateJavascript(startScript, started -> {
       final Runnable[] poll = new Runnable[1];
       poll[0] = () -> view.evaluateJavascript("window.__DEEB_REPORT_READY||'pending'", value -> {

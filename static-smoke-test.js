@@ -36,6 +36,9 @@ if (!imageExport.includes('writeWebViewToPdf(v)') || !imageExport.includes('WebV
 if (imageExport.includes('createPrintDocumentAdapter("DEEB-image-export")') || imageExport.includes('nativeAdapter.onLayout') || imageExport.includes('nativeAdapter.onWrite')) throw new Error('Image export must not invoke Android framework print callbacks directly');
 for (const required of ['setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrait())','setResolution(new PrintAttributes.Resolution("DEEB","DEEB",300,300))','setMinMargins(PrintAttributes.Margins.NO_MARGINS)','createPrintDocumentAdapter(jobName)','setJavaScriptEnabled(true)']) if (!printHandler.includes(required)) throw new Error('Android printing must use fixed A4 print attributes and the native print adapter: '+required);
 const appSource = fs.readFileSync(path.join(root,'app.js'),'utf8');
+if (!androidSetup.includes('@PluginMethod\n    public void resolveSharedLocation') || !androidSetup.includes('setInstanceFollowRedirects(true)') || !androidSetup.includes('isGoogleMapsHost(finalUri.getHost())') || !androidSetup.includes('connection.setConnectTimeout(12000)')) throw new Error('Android ShareIntent must safely expand Google Maps short links and follow redirects');
+if (!appSource.includes('async function resolveBikePatrolLocation') || !appSource.includes('input.addEventListener("blur"') || !appSource.includes('setTimeout(resolve,700)') || !appSource.includes('resolved?.content')) throw new Error('Bike patrol must resolve pasted and shared Google Maps links into saved coordinates');
+if (!appSource.includes('// Exact dropped pin coordinates take precedence over the map\'s approximate camera center.')) throw new Error('Exact Google Maps pin coordinates must take precedence over approximate map-center coordinates');
 const bikeReportDateTemplateStart=appSource.indexOf('if($("#reportType").value==="bike_patrols"){',appSource.indexOf('const printHtml'));
 const bikeReportDateTemplateEnd=appSource.indexOf('\n  }\n  const rows=rowsFor(d),counts={};',bikeReportDateTemplateStart);
 const bikeReportDateTemplate=bikeReportDateTemplateStart>=0&&bikeReportDateTemplateEnd>bikeReportDateTemplateStart?appSource.slice(bikeReportDateTemplateStart,bikeReportDateTemplateEnd):'';
@@ -60,7 +63,7 @@ if (!app.includes('$(\"#enableBiometric\").onclick=async()=>') || !app.includes(
 if (!app.includes('localStorage.removeItem(BIOMETRIC_KEY)') || !app.includes('سيفتح التطبيق مباشرة دون PIN أو بصمة')) throw new Error('Direct unlock / biometric reset flow is missing');
 if (!app.includes('يمكنك الدخول باستخدام PIN')) throw new Error('Biometric PIN fallback message is missing');
 if (!app.includes('function lockApplication()') || !app.includes('document.visibilityState==="hidden"') || !app.includes('window.addEventListener("pagehide",lockApplication)')) throw new Error('Automatic PIN lock hooks are missing');
-if (!sw.includes('deebo-local-v10-20')) throw new Error('Service worker cache version was not bumped');
+if (!sw.includes('deebo-local-v10-25')) throw new Error('Service worker cache version was not bumped');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 if (!db.includes('function localDateISO(date=new Date())') || !db.includes('function recordWorkDate(row)') || !db.includes('function shiftIdentity(payload={})') || !db.includes('is_archived:!!old?.is_archived') || !db.includes('shift_key')) throw new Error('Date/shift identity and archived-record edit preservation are required');
 if (!db.includes(String.raw`/^\d{4}-\d{2}-\d{2}$/`) || db.includes(String.raw`/^\\d{4}-\\d{2}-\\d{2}$/`)) throw new Error('Work-date validation must match real ISO calendar dates, not literal backslash characters');
@@ -110,12 +113,13 @@ for (const [needle,message] of buttonBindingChecks) if (!app.includes(needle)) t
 const imageSaveStart=app.indexOf('$("#saveReportImage").onclick=async()=>');
 const imageSaveEnd=app.indexOf('$("#pdfReport").onclick=',imageSaveStart);
 const imageSaveHandler=imageSaveStart>=0&&imageSaveEnd>imageSaveStart?app.slice(imageSaveStart,imageSaveEnd):"";
-if (!imageSaveHandler.includes('native.saveHtmlAsImages({html:readableReportHtml(printHtml(d)),name:"DEEB-report"})') || !imageSaveHandler.includes("result?.saved!==true") || !imageSaveHandler.includes("Number.isInteger(result.count)") || !imageSaveHandler.includes("result.count<1") || !imageSaveHandler.includes("finally{button.disabled=false;button.textContent=\"حفظ التقرير صورة\";")) throw new Error("Report image export must confirm at least one saved image and always restore the button state");
+if (!imageSaveHandler.includes('native.saveHtmlAsImages({html:reportCoordinatesOnly(readableReportHtml(printHtml(d)),d),name:"DEEB-report"})') || !imageSaveHandler.includes("result?.saved!==true") || !imageSaveHandler.includes("Number.isInteger(result.count)") || !imageSaveHandler.includes("result.count<1") || !imageSaveHandler.includes("finally{button.disabled=false;button.textContent=\"حفظ التقرير صورة\";")) throw new Error("Report image export must confirm at least one saved image and always restore the button state");
 
 const readableStart=app.indexOf("const readableReportHtml="),readableEnd=app.indexOf('$("#saveReportImage").onclick=',readableStart),readableCss=readableStart>=0&&readableEnd>readableStart?app.slice(readableStart,readableEnd):"";
 if(!readableCss.includes(".meta b,.overview-item span,.metric span,.bike-meta span{font-size:16px!important")||!readableCss.includes(".meta span,.overview-item b,.metric b,.bike-meta b{font-size:20px!important")||readableCss.includes("\\n .meta"))throw new Error("Shared report typography must apply metadata font sizes without escaped CSS selector separators");
 if (/\bwolf\b|ذئب/i.test(app)) throw new Error('Printed DEEB reports must not contain a wolf icon or wolf branding');
 if (app.split('DEEB</div>').length - 1 < 2) throw new Error('Both printed report templates must retain DEEB branding');
+if (!app.includes('const coordinates=validCoordinatePair(lat,lng)?("خط العرض: "+lat+" | خط الطول: "+lng):(locationUrl||"—");') || !app.includes('const coordinates=validCoordinatePair(p.lat,p.lng)?("خط العرض: "+String(p.lat).trim()+" | خط الطول: "+String(p.lng).trim()):String(p.location_url||"").trim();')) throw new Error("Bike report and spreadsheet exports must prefer valid coordinates and fall back to map URL only when coordinates are invalid");
 
 
 if (!imageExport.includes("writeWebViewToPdf(v)") || !imageExport.includes('WebView.enableSlowWholeDocumentDraw()') || !imageExport.includes('new android.graphics.pdf.PdfDocument()') || !imageExport.includes("renderer.openPage(index)") || !imageExport.includes("page.close()") || !imageExport.includes('replace("@media print","@media all")')) throw new Error("Image export must apply report styling, draw the full WebView document into paginated PDF pages, render each page independently, and close native page resources");
@@ -127,7 +131,7 @@ if (!app.includes("const timeMinutes=value=>") || !app.includes("const compareVi
 if (!app.includes('filter(([k])=>k!=="bikes")')) throw new Error('Bike patrol reports must remain selectable while generic bikes categories stay hidden');
 for(const rule of ['width:208mm!important','min-height:0!important','height:auto!important','padding:4mm!important','.bike-table th{font-size:14px!important','.bike-table td{font-size:12px!important','.bike-sheet-section:last-child{break-after:auto!important']) if(!app.includes(rule)) throw new Error('Motorcycle A4 print layout must use physical A4 width, preserve original text sizes, and fit the full report page: '+rule);
 for(const rule of ['html{display:block!important;width:100%!important','body{display:block!important;width:208mm!important','margin:0 auto!important']) if(!app.includes(rule)) throw new Error('Motorcycle report must center its fixed-width body inside the full A4 page: '+rule);
-if (!app.includes('locationUrl=String(p.location_url??"").trim()') || !app.includes('lat?"خط العرض: "+lat:""') || !app.includes('lng?"خط الطول: "+lng:""') || !app.includes('replace(/\\n/g,"<br>")')) throw new Error('Bike report must print the exact latitude, longitude and location URL entered in the app without converting or replacing them');
+if (!app.includes('locationUrl=String(p.location_url??"").trim()') || !app.includes('validCoordinatePair(lat,lng)?("خط العرض: "+lat+" | خط الطول: "+lng):(locationUrl||"—")') || !app.includes('validCoordinatePair(p.lat,p.lng)?("خط العرض: "+String(p.lat).trim()+" | خط الطول: "+String(p.lng).trim()):String(p.location_url||"").trim()')) throw new Error("Bike report must prefer valid coordinates and display the map URL only when coordinates are missing or invalid");
 if (!app.includes('const displayRows=visible.flatMap') || !app.includes('continuation:i>0,visits:g.visits.slice(i*5,(i+1)*5)') || !app.includes('g.branch+(g.continuation?" — استكمال":"")')) throw new Error('Branch patrol continuation rows beyond five visits are missing from the screen or reports');
 if (!app.includes('تقرير متابعة الفروع') || !app.includes('data:') && !app.includes('branchGroupsFor(d)')) throw new Error('Branch report matrix is missing');
 const branchPrintStart=app.indexOf('const groups=branchGroupsFor(d),slots=5,title=',app.indexOf('const printHtml='));
@@ -147,7 +151,7 @@ console.log('PASS: required files, navigation hierarchy, reports archive/restore
 
 if (!app.includes('id="pdfReport"') || !app.includes('$("#pdfReport").onclick=()=>') || !app.includes('اختر حفظ كملف PDF')) throw new Error('PDF export action is missing');
 
-if (!app.includes('data-report-type="written_reports">التقرير اليومي</button>') || app.includes('id="createWrittenReport"') || !app.includes('type==="written_reports"?"+ إضافة تقرير يومي":"+ إضافة سجل"') || !app.includes('<h1>التقرير اليومي</h1>')) throw new Error('Daily report creation must stay in Follow-up while Reports only filters and prints saved reports');
+if (!app.includes('data-report-type="written_reports">التقرير اليومي</button>') || app.includes('id="createWrittenReport"') || !app.includes('type==="written_reports"?"+ إضافة تقرير يومي":type==="memos"?"+ إضافة مذكرة":"+ إضافة سجل"') || !app.includes('<h1>التقرير اليومي</h1>')) throw new Error('Daily report creation must stay in Follow-up while Reports only filters and prints saved reports');
 
 if (!app.includes('const createXlsx=rows=>') || !app.includes('[Content_Types].xml') || !app.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') || !app.includes('DEEB-report.xlsx')) throw new Error('Excel export must create a valid XLSX workbook for Android Microsoft Excel');
 if (!app.includes('<sheetFormatPr defaultRowHeight="22"/><cols>\'+columnWidths+\'</cols><sheetData>')) throw new Error('XLSX worksheet XML elements must follow the Excel schema order');
@@ -274,8 +278,9 @@ if (!app.includes('f[0]==="lat"?\'step="any" min="-90" max="90" inputmode="decim
 if (!app.includes('const validCoordinatePair=(lat,lng)=>') || !app.includes('validCoordinatePair(x.payload?.lat,x.payload?.lng)') || !app.includes('validCoordinatePair(r.payload?.lat,r.payload?.lng)') || !app.includes('points.filter(x=>validCoordinatePair(x.p.lat,x.p.lng))')) throw new Error("Empty coordinate fields must not create false map pins or match a site at 0,0");
 if (!app.includes('rows="14" style="width:100%;min-height:280px;line-height:1.9"') || !app.includes('placeholder="اكتب ملخص الشفت، ما تم إنجازه، الملاحظات، المعوقات، والإجراءات المطلوبة..."')) throw new Error("Written report editor must provide a large guided narrative field");
 if (!app.includes('written_reports:[["report_title","عنوان التقرير","text",1]') || !app.includes('["report_date","تاريخ التقرير","date",1]') || !app.includes('["shift","الشفت","select","صباحي|مسائي|ليلي",1]') || !app.includes('["report_text","نص التقرير","textarea",1]')) throw new Error('Independent written end-of-shift report fields are missing');
-if (!app.includes('written_reports:"التقرير اليومي"') || !app.includes('"written_reports"]') || app.includes('id="createWrittenReport"') || !app.includes('data-report-type="written_reports"') || !app.includes('type==="written_reports"?"+ إضافة تقرير يومي":"+ إضافة سجل"')) throw new Error('Daily report creation must be available from Follow-up and not duplicated in Reports');
-if (!app.includes('if(type==="written_reports"){const list=rows(type)') || !app.includes('data-edit="') || !app.includes('data-archive="')) throw new Error('Written report list must show saved reports with edit and archive actions');
+if (!app.includes('written_reports:"التقرير اليومي"') || !app.includes('"written_reports","memos"]') || app.includes('id="createWrittenReport"') || !app.includes('data-report-type="written_reports"') || !app.includes('type==="written_reports"?"+ إضافة تقرير يومي":type==="memos"?"+ إضافة مذكرة":"+ إضافة سجل"')) throw new Error('Daily report creation must be available from Follow-up and not duplicated in Reports');
+if (!app.includes('if(type==="written_reports"||type==="memos"){const list=rows(type)') || !app.includes('data-edit="') || !app.includes('data-archive="')) throw new Error('Written report list must show saved reports with edit and archive actions');
+if (!app.includes('memos:"مذكرة"') || !app.includes('fields.memos=fields.written_reports.map') || !app.includes('data-report-type="memos">المذكرة</button>') || !db.includes('"tasks","memos"')) throw new Error('Memo section must clone daily report fields and remain a separate dated record type');
 if (!branchPrint.includes('.branch-sheet-section{display:flex!important;flex-direction:column!important;box-sizing:border-box!important;width:209mm!important;height:285mm!important') || !branchPrint.includes('margin:0!important;padding:2mm 1mm 2mm 0!important')) throw new Error("Branch report table must use the full printable page width and leave safe print clearance");
 if (branchPrint.includes('class="branch-page-number"') || branchPrint.includes("pageNumbering(269)")) throw new Error("Branch PDF must not show numbering at the bottom of any page");
 if (!app.includes('const pageNumber=""')) throw new Error("Bike patrol reports must omit page numbering entirely");
@@ -334,7 +339,7 @@ const readableRules = [
   '.report-table td,.branch-table td,.bike-table td{color:#000!important',
   '.report-table td,.branch-table td,.bike-table td{color:#000!important;-webkit-text-fill-color:#000!important;font-size:19px!important;font-weight:800!important',
   '.bike-table td.bike-coordinates,.bike-table td.bike-patrol-times{font-size:16px!important;font-weight:800!important',
-  'html:readableReportHtml(printHtml(d))',
+  'reportCoordinatesOnly(readableReportHtml(printHtml(d)),d)',
   'const html=readableReportHtml(printHtml(d));'
 ];
 for (const rule of readableRules) if (!app.includes(rule)) throw new Error('All report outputs must apply high-contrast black, larger, bold data text: '+rule);
@@ -343,3 +348,9 @@ if (!app.includes('.meta span,.overview-item b,.metric b,.bike-meta b{font-size:
 if (!app.includes('.bike-table td.bike-coordinates,.bike-table td.bike-patrol-times{font-size:16px!important;font-weight:800!important')) throw new Error('Bike patrol time and coordinate data must use 16px bold typography');
 
 if (!app.includes('.report-table th,.branch-table th,.bike-table th{font-size:16px!important;font-weight:900!important')) throw new Error('Report table headings must remain smaller than data text');
+
+if (!app.includes('fields.memos=fields.written_reports.map(field=>field.slice());')) throw new Error('Memo fields must be an exact clone of the daily written-report fields');
+if (!app.includes('deeb-map-details') || !app.includes('deebRouteStatus') || !app.includes('router.project-osrm.org/route/v1/driving/')) throw new Error('Bike map report must include detailed route points, road routing, and route status');
+if (!app.includes('data-deeb-route-ready') || !app.includes('saveHtmlAsImages')) throw new Error('Bike map image export must preserve map and route readiness markers');
+const exporter = fs.readFileSync(path.join(root,'configure-android-share.js'),'utf8');
+if (!exporter.includes('var mapWait=new Promise') || !exporter.includes('data-deeb-map-tiles') || !exporter.includes('data-deeb-route-ready')) throw new Error('Android image export must wait for map tiles and route completion before capturing the report');
