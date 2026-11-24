@@ -56,7 +56,9 @@ if (menuSource.includes('tasksGroup:')) throw new Error('Tasks group must not re
 const groupsStart=appSource.indexOf('const pageGroups=');
 const groupsEnd=appSource.indexOf(';',groupsStart);
 const groupsSource=groupsStart>=0&&groupsEnd>groupsStart?appSource.slice(groupsStart,groupsEnd+1):'';
-if (!groupsSource.includes('data:["branches","patrol_people","bikes"') || groupsSource.includes('"employees"') || groupsSource.includes('"emergency_people"')) throw new Error('Employee and emergency-person registries must not be duplicated in general master data.');
+const dataGroupMatch=groupsSource.match(/data:\[([^\]]*)\]/);
+const dataGroupSource=dataGroupMatch?.[1]||"";
+if (!dataGroupSource.startsWith('"branches","patrol_people","bikes"') || dataGroupSource.includes('"employees"') || dataGroupSource.includes('"emergency_people"')) throw new Error('Employee and emergency-person registries must not be duplicated in general master data.');
 if (!groupsSource.includes('emergency:["emergencies","emergency_people"]')) throw new Error('Emergency personnel must remain available inside the emergency section.');
 if (!appSource.includes('else if(p==="tasksGroup"){render("operations");return;}')) throw new Error('Legacy tasks-group route must safely redirect to field operations.');
 
