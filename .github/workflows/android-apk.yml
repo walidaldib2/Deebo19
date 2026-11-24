@@ -10,6 +10,7 @@ on:
     branches:
       - feature/deboo-pro-upgrade
       - feature/stronger-print-reports
+      - fix/print-coordinate-priority-build1340
 
 concurrency:
   group: deeb-android-apk-${{ github.event_name }}-${{ github.ref }}
