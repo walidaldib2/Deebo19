@@ -929,7 +929,7 @@ async function reports(){
   finally{button.disabled=false;button.textContent=oldText;}
  };
  $("#pdfReport").onclick=()=>{toast("من شاشة الطباعة اختر حفظ كملف PDF لتصدير التقرير.");sendReportToPrinter(false);};
- $("#printReport").onclick=()=>sendReportToPrinter(true);
+ $("#printReport").onclick=async()=>sendReportToPrinter(true);
  $("#excelReport").onclick=async()=>{const d=get();if(!d.length){toast("لا توجد سجلات للتصدير");return;}const button=$("#excelReport");button.disabled=true;const oldText=button.textContent;button.textContent="جارٍ إنشاء Excel...";try{const bytes=createXlsx(rowsForExport(d));await saveBinaryFile("DEEB-report.xlsx","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",bytes);}catch(e){toast("تعذر إنشاء ملف Excel: "+(e.message||e));}finally{button.disabled=false;button.textContent=oldText;}};
  $("#csvReport").onclick=()=>{const d=get();if(!d.length){toast("لا توجد سجلات للتصدير");return;}const q=v=>"\""+String(v??"").replace(/"/g,'""')+"\"";const csv=rowsForExport(d).map(row=>row.map(q).join(",")).join("\r\n");saveFile("DEEB-report.csv","text/csv;charset=utf-8","\ufeff"+csv);};
  $("#approveReport").onclick=async()=>{try{const d=get();if(!d.length){toast("لا توجد سجلات لاعتمادها");return;}await DebooDB.approve({title:"تقرير معتمد",created_at:new Date().toISOString(),report_type:$("#reportType").value,from_date:$("#fromDate").value,to_date:$("#toDate").value,html:readableReportHtml(printHtml(d)),data:d});toast("تم حفظ نسخة التقرير المعتمدة محليًا");}catch(e){toast("تعذر اعتماد التقرير: "+e.message);}};
