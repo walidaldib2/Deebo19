@@ -783,6 +783,23 @@ async function reports(){
   const centralBytes=join(central),localBytes=join(local),end=new Uint8Array([0x50,0x4b,0x05,0x06,...u16(0),...u16(0),...u16(Object.keys(files).length),...u16(Object.keys(files).length),...u32(centralBytes.length),...u32(localBytes.length),...u16(0)]);
   return join([localBytes,centralBytes,end]);
  };
+ // Paper-print-only location display: valid coordinates take priority over the shared map URL.
+ // Keep shared report HTML unchanged for PDF, image export, Excel/CSV, and approved snapshots.
+ const paperPrintCoordinatesOnly=(html,d)=>{
+  if($("#reportType").value!=="bike_patrols")return html;
+  const groups=bikeGroupsFor(d).filter(g=>selectedBikeReport==="all"||g.bike===selectedBikeReport);
+  const visits=groups.flatMap(g=>g.visits);
+  let index=0;
+  return html.replace(/(<td class="bike-coordinates">)[\\s\\S]*?(<\\/td>)/g,(match,open,close)=>{
+   const visit=visits[index++];
+   if(!visit)return match;
+   const p=visit.payload||{};
+   const location=validCoordinatePair(p.lat,p.lng)
+    ? "خط العرض: "+String(p.lat).trim()+"\\nخط الطول: "+String(p.lng).trim()
+    : String(p.location_url||"").trim();
+   return open+esc(location||"—").replace(/\\n/g,"<br>")+close;
+  });
+ };
  const printHtml=d=>{
     if($("#reportType").value==="written_reports"){
    const dateLabel=value=>{if(!value)return "—";const date=new Date(value+"T12:00:00");return Number.isNaN(date.getTime())?esc(value):esc(date.toLocaleDateString("ar-EG",{weekday:"long",day:"numeric",month:"long",year:"numeric"}));};
@@ -896,8 +913,23 @@ async function reports(){
  `+"</style>");
 
  $("#saveReportImage").onclick=async()=>{const d=get(),hasBikeReport=$("#reportType").value==="bike_patrols"&&cache.some(x=>x.entity_type==="bikes"&&!x.is_archived);if(!d.length&&!hasBikeReport){toast("لا توجد سجلات في الفترة المحددة");return;}const native=window.DEEBNativePlugins?.FileExport;if(!native||!native.saveHtmlAsImages){toast("حفظ التقرير في معرض الصور متاح من تطبيق DEEB على أندرويد");return;}const button=$("#saveReportImage");button.disabled=true;button.textContent="جارٍ تجهيز الصورة...";try{const result=await native.saveHtmlAsImages({html:readableReportHtml(printHtml(d)),name:"DEEB-report"});if(result?.saved!==true||!Number.isInteger(result.count)||result.count<1)throw new Error("لم يؤكد النظام حفظ صورة واحدة على الأقل.");toast("تم حفظ "+result.count+" صورة في معرض الصور داخل Pictures/DEEB");}catch(e){toast("تعذر حفظ صورة التقرير: "+(e.message||e));}finally{button.disabled=false;button.textContent="حفظ التقرير صورة";}};
- $("#pdfReport").onclick=()=>{toast("من شاشة الطباعة اختر حفظ كملف PDF لتصدير التقرير.");$("#printReport").click();};
- $("#printReport").onclick=async()=>{const button=$("#printReport");if(button.disabled)return;const d=get(),hasBikeReport=$("#reportType").value==="bike_patrols"&&cache.some(x=>x.entity_type==="bikes"&&!x.is_archived);if(!d.length&&!hasBikeReport){toast("لا توجد سجلات في الفترة المحددة");return;}button.disabled=true;const oldText=button.textContent;button.textContent="جارٍ تجهيز الطباعة...";try{const html=readableReportHtml(printHtml(d));const native=window.DEEBNativePlugins?.FileExport;if(native?.printHtml){const result=await native.printHtml({html});if(result?.started!==true)throw new Error("لم تبدأ خدمة الطباعة على الجهاز.");}else{const w=window.open("","_blank");if(!w)throw new Error("تعذر فتح نافذة الطباعة؛ اسمح بالنوافذ المنبثقة.");w.document.open();w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),700);}toast("تم إرسال التقرير إلى خدمة الطباعة.");}catch(e){toast("تعذرت طباعة التقرير: "+(e?.message||e));}finally{button.disabled=false;button.textContent=oldText;}};
+ const sendReportToPrinter=async paperOnly=>{
+  const button=$("#printReport");if(button.disabled)return;
+  const d=get(),hasBikeReport=$("#reportType").value==="bike_patrols"&&cache.some(x=>x.entity_type==="bikes"&&!x.is_archived);
+  if(!d.length&&!hasBikeReport){toast("لا توجد سجلات في الفترة المحددة");return;}
+  button.disabled=true;const oldText=button.textContent;button.textContent="جارٍ تجهيز الطباعة...";
+  try{
+   let html=readableReportHtml(printHtml(d));
+   if(paperOnly)html=paperPrintCoordinatesOnly(html,d);
+   const native=window.DEEBNativePlugins?.FileExport;
+   if(native?.printHtml){const result=await native.printHtml({html});if(result?.started!==true)throw new Error("لم تبدأ خدمة الطباعة على الجهاز.");}
+   else{const w=window.open("","_blank");if(!w)throw new Error("تعذر فتح نافذة الطباعة؛ اسمح بالنوافذ المنبثقة.");w.document.open();w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),700);}
+   toast("تم إرسال التقرير إلى خدمة الطباعة.");
+  }catch(e){toast("تعذرت طباعة التقرير: "+(e?.message||e));}
+  finally{button.disabled=false;button.textContent=oldText;}
+ };
+ $("#pdfReport").onclick=()=>{toast("من شاشة الطباعة اختر حفظ كملف PDF لتصدير التقرير.");sendReportToPrinter(false);};
+ $("#printReport").onclick=()=>sendReportToPrinter(true);
  $("#excelReport").onclick=async()=>{const d=get();if(!d.length){toast("لا توجد سجلات للتصدير");return;}const button=$("#excelReport");button.disabled=true;const oldText=button.textContent;button.textContent="جارٍ إنشاء Excel...";try{const bytes=createXlsx(rowsForExport(d));await saveBinaryFile("DEEB-report.xlsx","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",bytes);}catch(e){toast("تعذر إنشاء ملف Excel: "+(e.message||e));}finally{button.disabled=false;button.textContent=oldText;}};
  $("#csvReport").onclick=()=>{const d=get();if(!d.length){toast("لا توجد سجلات للتصدير");return;}const q=v=>"\""+String(v??"").replace(/"/g,'""')+"\"";const csv=rowsForExport(d).map(row=>row.map(q).join(",")).join("\r\n");saveFile("DEEB-report.csv","text/csv;charset=utf-8","\ufeff"+csv);};
  $("#approveReport").onclick=async()=>{try{const d=get();if(!d.length){toast("لا توجد سجلات لاعتمادها");return;}await DebooDB.approve({title:"تقرير معتمد",created_at:new Date().toISOString(),report_type:$("#reportType").value,from_date:$("#fromDate").value,to_date:$("#toDate").value,html:readableReportHtml(printHtml(d)),data:d});toast("تم حفظ نسخة التقرير المعتمدة محليًا");}catch(e){toast("تعذر اعتماد التقرير: "+e.message);}};
