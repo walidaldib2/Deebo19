@@ -857,7 +857,7 @@ $("#backupBtn").onclick=async()=>{const button=$("#backupBtn");button.disabled=t
  $("#checkNotifications").onclick=()=>checkAlerts(true);checkAlerts(false);
  try{const a=await DebooDB.audit();$("#auditArea").innerHTML=a.map(x=>`<div class="notice">${esc(x.action)} — ${esc(x.reason||"")} <small>${new Date(x.created_at).toLocaleString("ar-EG")}</small></div>`).join("")||"لا توجد أحداث"}catch(e){$("#auditArea").textContent=e.message}
 }
-function render(p){currentPage=p;currentType=null;document.querySelector(".app-shell")?.classList.toggle("page-open",p!=="home");$$(".tile").forEach(b=>b.classList.toggle("active",b.dataset.page===p));searchTerm=$("#globalSearch").value||"";if(p==="home")home();else if(p==="follow")groupPage(p);else if(p==="emergency")emergencyPage();else if(p==="map")mapPage();else if(p==="reports")reports();else if(p==="settings")settings();window.scrollTo({top:$("#contentArea").offsetTop-12,behavior:"smooth"})}
+function render(p){currentPage=p;currentType=null;document.querySelector(".app-shell")?.classList.toggle("page-open",p!=="home");$$(".tile").forEach(b=>b.classList.toggle("active",b.dataset.page===p));searchTerm=$("#globalSearch")?.value||"";if(p==="home")home();else if(p==="follow")groupPage(p);else if(p==="emergency")emergencyPage();else if(p==="map")mapPage();else if(p==="reports")reports();else if(p==="settings")settings();window.scrollTo({top:$("#contentArea").offsetTop-12,behavior:"smooth"})}
 window.DEebRender=render;
 $$("[data-page]").forEach(b=>b.onclick=()=>render(b.dataset.page));
 document.addEventListener("click",e=>{if(e.target.closest("[data-back-home]"))render("home")});
