@@ -11,6 +11,7 @@ on:
       - feature/deboo-pro-upgrade
       - feature/stronger-print-reports
       - feature/deeb-section-reorganization-2026-11-23
+      - feature/deeb-six-section-grouping-2026-11-24
 
 concurrency:
   group: deeb-android-apk-${{ github.event_name }}-${{ github.ref }}
