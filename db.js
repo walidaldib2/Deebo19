@@ -97,7 +97,7 @@ window.DebooDB = (() => {
     return shift&&/^\d{4}-\d{2}-\d{2}$/.test(date)?{shift_name:shift,shift_key:date+"|"+shift}:{};
   }
   async function archivePastDays(today=localDateISO()) {
-    const shiftTypes=new Set(["daily_rosters","branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies","tasks"]);
+    const shiftTypes=new Set(["daily_rosters","branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies","tasks","memos"]);
     const rows=await getAll("records");
     const candidates=rows.filter(row=>{
       if(row.is_archived||row.is_deleted||!shiftTypes.has(row.entity_type))return false;
@@ -132,7 +132,7 @@ window.DebooDB = (() => {
     const old=id?await get("records",id):null;
     if(id&&!old) throw new Error("السجل المطلوب تعديله غير موجود.");
     const savedPayload={...payload};
-    const operationalTypes=new Set(["daily_rosters","branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies","tasks"]);
+    const operationalTypes=new Set(["daily_rosters","branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies","tasks","memos"]);
     if(operationalTypes.has(type)){
       const workDate=recordWorkDate({entity_type:type,payload:savedPayload,created_at:old?.created_at||now()});
       if(workDate)savedPayload.work_date=workDate;
