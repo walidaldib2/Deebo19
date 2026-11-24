@@ -849,7 +849,7 @@ async function reports(){
   }
   if($("#reportType").value==="branch_patrols"){
    const groups=branchGroupsFor(d),slots=5,title="تقرير متابعة الفروع",formatDate=value=>value?new Date(value+"T12:00:00").toLocaleDateString("ar-EG",{day:"numeric",month:"long",year:"numeric"}):"—",formatDayDate=value=>{if(!value)return "—";const date=new Date(value+"T12:00:00");return Number.isNaN(date.getTime())?esc(value):esc(date.toLocaleDateString("ar-EG",{weekday:"long",day:"numeric",month:"long",year:"numeric"}));},period=formatDate($("#fromDate").value)+" — "+formatDate($("#toDate").value),issued=formatDate(new Date().toLocaleDateString("en-CA"));
-   const pageSize=10,reportPages=Array.from({length:Math.max(1,Math.ceil(groups.length/pageSize))},(_,i)=>groups.slice(i*pageSize,(i+1)*pageSize)),branchSheets=reportPages.map((page,pageIndex)=>{
+   const pageSize=8,reportPages=Array.from({length:Math.max(1,Math.ceil(groups.length/pageSize))},(_,i)=>groups.slice(i*pageSize,(i+1)*pageSize)),branchSheets=reportPages.map((page,pageIndex)=>{
     const continuation=pageIndex>0,pageTitle=continuation?"باقي "+title:title;
     const rows=page.map(g=>'<tr><td>'+esc(g.branch+(g.continuation?" — استكمال":""))+'</td><td>'+esc(g.supervisor)+'</td>'+Array.from({length:slots},(_,i)=>'<td>'+esc(g.visits[i]?.payload?.patrol_time||"")+'</td>').join("")+'</tr>').join("")+Array.from({length:Math.max(0,pageSize-page.length)},()=>'<tr class="branch-empty-row">'+Array.from({length:2+slots},()=>'<td></td>').join("")+'</tr>').join("");
     const pageFooter="";
