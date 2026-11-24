@@ -936,7 +936,7 @@ async function reports(){
  .bike-sheet-section .bike-meta span{font-size:14px!important;line-height:1.3!important}
  .bike-sheet-section .bike-meta b{font-size:16px!important;line-height:1.3!important}
  /* Motorcycle report metadata: keep each label and its value side by side to reclaim vertical space. */
- .bike-sheet-section .bike-meta>div{display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;min-width:0!important}
+ .bike-sheet-section .bike-meta>div{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;gap:7px!important;min-width:0!important}
  .bike-sheet-section .bike-meta span{display:inline!important;flex:0 0 auto!important;white-space:nowrap!important}
  .bike-sheet-section .bike-meta b{display:inline!important;min-width:0!important;margin:0!important;overflow-wrap:anywhere!important}
 
