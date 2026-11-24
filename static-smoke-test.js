@@ -38,13 +38,11 @@ if (imageExport.includes('createPrintDocumentAdapter("DEEB-image-export")') || i
 for (const required of ['setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrait())','setResolution(new PrintAttributes.Resolution("DEEB","DEEB",300,300))','setMinMargins(PrintAttributes.Margins.NO_MARGINS)','createPrintDocumentAdapter(jobName)','setJavaScriptEnabled(true)']) if (!printHandler.includes(required)) throw new Error('Android printing must use fixed A4 print attributes and the native print adapter: '+required);
 const appSource = fs.readFileSync(path.join(root,'app.js'),'utf8');
 
-const memoFormAndPrintStart=appSource.indexOf('fields.memos=fields.written_reports.map(field=>field.slice());');
-const memoFormAndPrintEnd=appSource.indexOf('function formHTML(',memoFormAndPrintStart);
-const memoFormAndPrintSource=memoFormAndPrintStart>=0&&memoFormAndPrintEnd>memoFormAndPrintStart?appSource.slice(memoFormAndPrintStart,memoFormAndPrintEnd):'';
 const memoPrintStart=appSource.indexOf('const printHtml=d=>');
 const memoPrintEnd=appSource.indexOf('if($("#reportType").value==="branch_patrols")',memoPrintStart);
 const memoPrintSource=memoPrintStart>=0&&memoPrintEnd>memoPrintStart?appSource.slice(memoPrintStart,memoPrintEnd):'';
-if (!memoFormAndPrintSource.includes('(["written_reports","memos"].includes(type)&&f[0]==="report_title")') ||
+if (!appSource.includes('fields.memos=fields.written_reports.map(field=>field.slice());') ||
+    !appSource.includes('(["written_reports","memos"].includes(type)&&f[0]==="report_title")') ||
     !memoPrintSource.includes('if(["written_reports","memos"].includes($("#reportType").value))') ||
     !memoPrintSource.includes('const documentTitle=$("#reportType").value==="memos"?"مذكرة":"التقرير اليومي";') ||
     !memoPrintSource.includes('<section class="written-page">') ||
