@@ -37,7 +37,9 @@ if (imageExport.includes('createPrintDocumentAdapter("DEEB-image-export")') || i
 for (const required of ['setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrait())','setResolution(new PrintAttributes.Resolution("DEEB","DEEB",300,300))','setMinMargins(PrintAttributes.Margins.NO_MARGINS)','createPrintDocumentAdapter(jobName)','setJavaScriptEnabled(true)']) if (!printHandler.includes(required)) throw new Error('Android printing must use fixed A4 print attributes and the native print adapter: '+required);
 const appSource = fs.readFileSync(path.join(root,'app.js'),'utf8');
 
-const navigationHtml = html.match(/<section class="tiles" id="mainTiles">([\\s\\S]*?)<\\/section>/)?.[1] || '';
+const navigationStart = html.indexOf('<section class="tiles" id="mainTiles">');
+const navigationEnd = html.indexOf('</section>', navigationStart);
+const navigationHtml = navigationStart >= 0 && navigationEnd > navigationStart ? html.slice(navigationStart, navigationEnd) : '';
 for (const page of ['home','operations','security','tasksGroup','reportsGroup','system']) {
   if (!navigationHtml.includes('data-page="'+page+'"')) throw new Error('Main navigation tile is missing: '+page);
 }
