@@ -41,18 +41,15 @@
   <p id="authMessage" class="muted"></p>
 </div>
 <div id="appRoot" class="hidden">
-<section class="search-panel">
-  <label for="globalSearch">🔎 البحث في التطبيق</label>
-  <input id="globalSearch" type="search" placeholder="ابحث عن اسم أو فرع أو بلاغ أو مهمة...">
-</section>
 <section class="tiles" id="mainTiles">
-  <button class="tile active" data-page="home"><span>🏢</span><b>التشغيل الميداني</b></button>
+  <button class="tile" data-page="home"><span>🏢</span><b>التشغيل الميداني</b></button>
   <button class="tile" data-page="emergency"><span>🛡️</span><b>إدارة الأمن</b></button>
   <button class="tile" data-page="follow"><span>📋</span><b>التكليفات والمتابعة</b></button>
   <button class="tile" data-page="reports"><span>📊</span><b>التقارير</b></button>
   <button class="tile" data-page="settings"><span>⚙️</span><b>إدارة النظام</b></button>
+  <button class="tile active" data-page="home"><span>📈</span><b>لوحة التحكم</b></button>
 </section>
-<button class="hidden" type="button" data-page="map" aria-hidden="true" tabindex="-1">خريطة الدراجات</button>
+<section class="card weather-panel" id="weatherPanel"><div class="page-head"><h2>حالة الطقس</h2><span class="pill" id="weatherUpdated">لم يتم التحديث</span></div><div class="weather"><div><div class="weather-temp" id="weatherTemp">--°</div><b id="weatherDesc">بانتظار تحديد الموقع</b><p class="muted" id="weatherExtra">الطقس يحتاج اتصالًا بالإنترنت</p></div><div class="field"><label>المدينة أو الموقع</label><div class="inline"><input id="weatherCity" placeholder="مثال: القاهرة" value="Cairo"><button class="primary" id="weatherGo">تحديث الطقس</button><button class="secondary" id="weatherGPS">موقعي</button></div></div></div></section>
 <section id="contentArea" class="content-area"></section>
 </div>
 </main>
