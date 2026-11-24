@@ -426,6 +426,7 @@ if (!app.includes('.report-table th,.branch-table th,.bike-table th{font-size:16
 
 if (!app.includes('fields.memos=fields.written_reports.map(field=>field.slice());')) throw new Error('Memo fields must be an exact clone of the daily written-report fields');
 if (!app.includes('deeb-map-details') || !app.includes('deebRouteStatus') || !app.includes('router.project-osrm.org/route/v1/driving/')) throw new Error('Bike map report must include detailed route points, road routing, and route status');
+if (!app.includes('.bike-sheet-section{height:auto;min-height:281mm;max-height:none;padding:3mm;overflow:visible;break-inside:auto;page-break-inside:auto}') || !app.includes('.deeb-map-details{break-inside:auto;page-break-inside:auto}') || !app.includes('.deeb-map-details li{break-inside:avoid;page-break-inside:avoid}')) throw new Error('Bike map print and image exports must continue route details across pages without clipping or splitting a point');
 if (!app.includes('data-deeb-route-ready') || !app.includes('saveHtmlAsImages')) throw new Error('Bike map image export must preserve map and route readiness markers');
 const exporter = fs.readFileSync(path.join(root,'configure-android-share.js'),'utf8');
 if (!exporter.includes('var mapWait=new Promise') || !exporter.includes('data-deeb-map-tiles') || !exporter.includes('data-deeb-route-ready')) throw new Error('Android image export must wait for map tiles and route completion before capturing the report');
