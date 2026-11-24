@@ -51,6 +51,18 @@ if (!appSource.includes('fields.memos=fields.written_reports.map(field=>field.sl
     memoPrintSource.includes('<table') || memoPrintSource.includes('<tr>') || memoPrintSource.includes('<th>') || memoPrintSource.includes('<td>')) {
   throw new Error('Memo must reuse the daily report form and exact document layout, changing only its title without adding tables, columns, or rows.');
 }
+const memoTitleUses=(memoPrintSource.match(/documentTitle/g)||[]).length;
+const memoTemplateBranches=(memoPrintSource.match(/\?\s*["']مذكرة["']/g)||[]).length;
+if (memoTitleUses!==3 || memoTemplateBranches!==1 ||
+    !memoPrintSource.includes('dateLabel(p.report_date||dayOf(record))') ||
+    !memoPrintSource.includes('esc(p.shift||"—")') ||
+    !memoPrintSource.includes('esc(p.prepared_by||"—")') ||
+    !memoPrintSource.includes('esc(p.report_text||"")') ||
+    !memoPrintSource.includes('width:208mm') ||
+    !memoPrintSource.includes('min-height:279mm') ||
+    !memoPrintSource.includes('font-size:18px')) {
+  throw new Error('Memo and daily report must share one A4 template; only the document title may vary, with date, shift, preparer, body, dimensions, and typography preserved.');
+}
 const attachmentSaveStart=appSource.indexOf('const files=[...($("#documentFiles")?.files||[])];');
 const attachmentSaveEnd=appSource.indexOf('const persisted=await DebooDB.getRecord(saved.id);',attachmentSaveStart);
 const attachmentSaveSource=attachmentSaveStart>=0&&attachmentSaveEnd>attachmentSaveStart?appSource.slice(attachmentSaveStart,attachmentSaveEnd):'';
