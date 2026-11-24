@@ -93,6 +93,25 @@ async function main() {
   const incidentAttachment = await db.saveAttachment(incident.id, blob);
   assert.equal((await db.attachments(incident.id)).some(x => x.id === incidentAttachment.id), true);
 
+  // Full external backup round-trip must preserve records, audit, approved reports,
+  // handover versions, and attachment bytes—not only attachment metadata.
+  const fullBackup = await db.backup();
+  assert.ok(fullBackup.attachments.some(x => x.id === incidentAttachment.id && x.data_url.startsWith("data:text/plain;base64,")));
+  await db.restore(fullBackup);
+  assert.ok((await db.getRecord(incident.id))?.payload?.description === "اختبار مرفق بلاغ");
+  assert.ok((await db.attachments(incident.id)).some(x => x.id === incidentAttachment.id));
+  assert.ok((await db.getAttachment(incidentAttachment.id))?.blob?.size > 0);
+  assert.ok((await db.approvedReports()).some(x => x.id === approved.id));
+  assert.equal((await db.handoverHistory(handover.id)).length, 1);
+
+  // A malformed backup must be rejected before any current records are cleared.
+  const beforeInvalidRestore = (await db.all()).length;
+  await assert.rejects(
+    () => db.restore({ app: "DEEB", format: 2, records: [{ id: "broken", entity_type: "branches", payload: [] }], audit_logs: [] }),
+    /سجل غير صالح/
+  );
+  assert.equal((await db.all()).length, beforeInvalidRestore, "Invalid backup must not mutate current records");
+
   // Backup restore must also accept more than five distinct bikes on one day.
   const tenBikeBackup = {
     app: "DEEB", format: 2,
