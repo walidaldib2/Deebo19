@@ -783,9 +783,9 @@ async function reports(){
   const centralBytes=join(central),localBytes=join(local),end=new Uint8Array([0x50,0x4b,0x05,0x06,...u16(0),...u16(0),...u16(Object.keys(files).length),...u16(Object.keys(files).length),...u32(centralBytes.length),...u32(localBytes.length),...u16(0)]);
   return join([localBytes,centralBytes,end]);
  };
- // Paper-print-only location display: valid coordinates take priority over the shared map URL.
- // Keep shared report HTML unchanged for PDF, image export, Excel/CSV, and approved snapshots.
- const paperPrintCoordinatesOnly=(html,d)=>{
+ // Report location display: valid coordinates take priority over the shared map URL.
+ // Apply consistently to image export, print/PDF, and approved snapshots.
+ const reportCoordinatesOnly=(html,d)=>{
   if($("#reportType").value!=="bike_patrols")return html;
   const groups=bikeGroupsFor(d).filter(g=>selectedBikeReport==="all"||g.bike===selectedBikeReport);
   const visits=groups.flatMap(g=>g.visits);
@@ -912,15 +912,15 @@ async function reports(){
  }
  `+"</style>");
 
- $("#saveReportImage").onclick=async()=>{const d=get(),hasBikeReport=$("#reportType").value==="bike_patrols"&&cache.some(x=>x.entity_type==="bikes"&&!x.is_archived);if(!d.length&&!hasBikeReport){toast("لا توجد سجلات في الفترة المحددة");return;}const native=window.DEEBNativePlugins?.FileExport;if(!native||!native.saveHtmlAsImages){toast("حفظ التقرير في معرض الصور متاح من تطبيق DEEB على أندرويد");return;}const button=$("#saveReportImage");button.disabled=true;button.textContent="جارٍ تجهيز الصورة...";try{const result=await native.saveHtmlAsImages({html:readableReportHtml(printHtml(d)),name:"DEEB-report"});if(result?.saved!==true||!Number.isInteger(result.count)||result.count<1)throw new Error("لم يؤكد النظام حفظ صورة واحدة على الأقل.");toast("تم حفظ "+result.count+" صورة في معرض الصور داخل Pictures/DEEB");}catch(e){toast("تعذر حفظ صورة التقرير: "+(e.message||e));}finally{button.disabled=false;button.textContent="حفظ التقرير صورة";}};
- const sendReportToPrinter=async paperOnly=>{
+ $("#saveReportImage").onclick=async()=>{const d=get(),hasBikeReport=$("#reportType").value==="bike_patrols"&&cache.some(x=>x.entity_type==="bikes"&&!x.is_archived);if(!d.length&&!hasBikeReport){toast("لا توجد سجلات في الفترة المحددة");return;}const native=window.DEEBNativePlugins?.FileExport;if(!native||!native.saveHtmlAsImages){toast("حفظ التقرير في معرض الصور متاح من تطبيق DEEB على أندرويد");return;}const button=$("#saveReportImage");button.disabled=true;button.textContent="جارٍ تجهيز الصورة...";try{const result=await native.saveHtmlAsImages({html:reportCoordinatesOnly(readableReportHtml(printHtml(d)),d),name:"DEEB-report"});if(result?.saved!==true||!Number.isInteger(result.count)||result.count<1)throw new Error("لم يؤكد النظام حفظ صورة واحدة على الأقل.");toast("تم حفظ "+result.count+" صورة في معرض الصور داخل Pictures/DEEB");}catch(e){toast("تعذر حفظ صورة التقرير: "+(e.message||e));}finally{button.disabled=false;button.textContent="حفظ التقرير صورة";}};
+ const sendReportToPrinter=async()=>{
   const button=$("#printReport");if(button.disabled)return;
   const d=get(),hasBikeReport=$("#reportType").value==="bike_patrols"&&cache.some(x=>x.entity_type==="bikes"&&!x.is_archived);
   if(!d.length&&!hasBikeReport){toast("لا توجد سجلات في الفترة المحددة");return;}
   button.disabled=true;const oldText=button.textContent;button.textContent="جارٍ تجهيز الطباعة...";
   try{
    const html=readableReportHtml(printHtml(d));
-   const outputHtml=paperOnly?paperPrintCoordinatesOnly(html,d):html;
+   const outputHtml=reportCoordinatesOnly(html,d);
    const native=window.DEEBNativePlugins?.FileExport;
    if(native?.printHtml){const result=await native.printHtml({html:outputHtml});if(result?.started!==true)throw new Error("لم تبدأ خدمة الطباعة على الجهاز.");}
    else{const w=window.open("","_blank");if(!w)throw new Error("تعذر فتح نافذة الطباعة؛ اسمح بالنوافذ المنبثقة.");w.document.open();w.document.write(outputHtml);w.document.close();w.focus();setTimeout(()=>w.print(),700);}
@@ -928,11 +928,11 @@ async function reports(){
   }catch(e){toast("تعذرت طباعة التقرير: "+(e?.message||e));}
   finally{button.disabled=false;button.textContent=oldText;}
  };
- $("#pdfReport").onclick=()=>{toast("من شاشة الطباعة اختر حفظ كملف PDF لتصدير التقرير.");sendReportToPrinter(false);};
- $("#printReport").onclick=async()=>sendReportToPrinter(true);
+ $("#pdfReport").onclick=()=>{toast("من شاشة الطباعة اختر حفظ كملف PDF لتصدير التقرير.");sendReportToPrinter();};
+ $("#printReport").onclick=async()=>sendReportToPrinter();
  $("#excelReport").onclick=async()=>{const d=get();if(!d.length){toast("لا توجد سجلات للتصدير");return;}const button=$("#excelReport");button.disabled=true;const oldText=button.textContent;button.textContent="جارٍ إنشاء Excel...";try{const bytes=createXlsx(rowsForExport(d));await saveBinaryFile("DEEB-report.xlsx","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",bytes);}catch(e){toast("تعذر إنشاء ملف Excel: "+(e.message||e));}finally{button.disabled=false;button.textContent=oldText;}};
  $("#csvReport").onclick=()=>{const d=get();if(!d.length){toast("لا توجد سجلات للتصدير");return;}const q=v=>"\""+String(v??"").replace(/"/g,'""')+"\"";const csv=rowsForExport(d).map(row=>row.map(q).join(",")).join("\r\n");saveFile("DEEB-report.csv","text/csv;charset=utf-8","\ufeff"+csv);};
- $("#approveReport").onclick=async()=>{try{const d=get();if(!d.length){toast("لا توجد سجلات لاعتمادها");return;}await DebooDB.approve({title:"تقرير معتمد",created_at:new Date().toISOString(),report_type:$("#reportType").value,from_date:$("#fromDate").value,to_date:$("#toDate").value,html:readableReportHtml(printHtml(d)),data:d});toast("تم حفظ نسخة التقرير المعتمدة محليًا");}catch(e){toast("تعذر اعتماد التقرير: "+e.message);}};
+ $("#approveReport").onclick=async()=>{try{const d=get();if(!d.length){toast("لا توجد سجلات لاعتمادها");return;}await DebooDB.approve({title:"تقرير معتمد",created_at:new Date().toISOString(),report_type:$("#reportType").value,from_date:$("#fromDate").value,to_date:$("#toDate").value,html:reportCoordinatesOnly(readableReportHtml(printHtml(d)),d),data:d});toast("تم حفظ نسخة التقرير المعتمدة محليًا");}catch(e){toast("تعذر اعتماد التقرير: "+e.message);}};
  let archiveDateSelection="",archiveShiftSelection="",archiveTypeSelection="",archiveBranchSelection="",archiveBikeSelection="";
  const showArchive=async()=>{
   $("#archivePanel").classList.remove("hidden");$("#reportSummary").parentElement.classList.add("hidden");
