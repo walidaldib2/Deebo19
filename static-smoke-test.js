@@ -127,7 +127,7 @@ if (!app.includes("const timeMinutes=value=>") || !app.includes("const compareVi
 if (!app.includes('filter(([k])=>k!=="bikes")')) throw new Error('Bike patrol reports must remain selectable while generic bikes categories stay hidden');
 for(const rule of ['width:208mm!important','min-height:0!important','height:auto!important','padding:4mm!important','.bike-table th{font-size:14px!important','.bike-table td{font-size:12px!important','.bike-sheet-section:last-child{break-after:auto!important']) if(!app.includes(rule)) throw new Error('Motorcycle A4 print layout must use physical A4 width, preserve original text sizes, and fit the full report page: '+rule);
 for(const rule of ['html{display:block!important;width:100%!important','body{display:block!important;width:208mm!important','margin:0 auto!important']) if(!app.includes(rule)) throw new Error('Motorcycle report must center its fixed-width body inside the full A4 page: '+rule);
-if (!app.includes('locationUrl=String(p.location_url??"").trim()') || !app.includes('validCoordinatePair(lat,lng)?("خط العرض: "+lat+"\\nخط الطول: "+lng):(locationUrl||"—")') || !app.includes('replace(/\\n/g,"<br>")')) throw new Error('Bike report must prioritize valid numeric coordinates and use the saved location URL only as a fallback');
+if (!app.includes('locationUrl=String(p.location_url??"").trim()') || !app.includes('validCoordinatePair(lat,lng)?("خط العرض: "+lat+" | خط الطول: "+lng):(locationUrl||"—")') || !app.includes('replace(/\\n/g,"<br>")')) throw new Error('Bike report must prioritize valid numeric coordinates and use the saved location URL only as a fallback');
 if (!app.includes('const displayRows=visible.flatMap') || !app.includes('continuation:i>0,visits:g.visits.slice(i*5,(i+1)*5)') || !app.includes('g.branch+(g.continuation?" — استكمال":"")')) throw new Error('Branch patrol continuation rows beyond five visits are missing from the screen or reports');
 if (!app.includes('تقرير متابعة الفروع') || !app.includes('data:') && !app.includes('branchGroupsFor(d)')) throw new Error('Branch report matrix is missing');
 const branchPrintStart=app.indexOf('const groups=branchGroupsFor(d),slots=5,title=',app.indexOf('const printHtml='));
@@ -329,7 +329,7 @@ const androidAssets = fs.readFileSync(path.join(root,'prepare-android.js'),'utf8
 if (androidAssets.includes('"scanner.js"') || html.includes('src="scanner.js"') || sw.includes('./scanner.js')) throw new Error('Document scanner assets must not be staged or cached');
 
 // Bike patrol reports: valid numeric latitude/longitude always take priority over a saved WhatsApp map URL.
-if (!app.includes('const coordinates=validCoordinatePair(lat,lng)?("خط العرض: "+lat+"\\nخط الطول: "+lng):(locationUrl||"—");')) throw new Error('Bike patrol report must show numeric coordinates instead of the map URL when both coordinates are valid');
+if (!app.includes('const coordinates=validCoordinatePair(lat,lng)?("خط العرض: "+lat+" | خط الطول: "+lng):(locationUrl||"—");')) throw new Error('Bike patrol report must show numeric coordinates instead of the map URL when both coordinates are valid');
 if (!app.includes('const coordinates=validCoordinatePair(lat,lng)?("خط العرض: "+lat+" | خط الطول: "+lng):(locationUrl||"");')) throw new Error('Bike patrol spreadsheet export must prioritize valid numeric coordinates over the map URL');
 
 const readableRules = [
