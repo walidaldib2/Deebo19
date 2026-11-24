@@ -1,4 +1,4 @@
-const CACHE = "deebo-local-v10-26";
+const CACHE = "deebo-local-v10-27";
 
 const CORE = [
   "./",
