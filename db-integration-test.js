@@ -287,6 +287,7 @@ async function main() {
   const fullBackup = await db.backup();
   assert.ok(fullBackup.attachments.some(x => x.id === incidentAttachment.id && x.data_url.startsWith("data:text/plain;base64,")));
   await db.restore(fullBackup);
+  assert.ok((await db.reportArchives()).some(x => x.id === archivedReport.id), "Report archives must survive backup restore");
   assert.ok((await db.getRecord(incident.id))?.payload?.description === "اختبار مرفق بلاغ");
   assert.ok((await db.attachments(incident.id)).some(x => x.id === incidentAttachment.id));
   assert.ok((await db.getAttachment(incidentAttachment.id))?.blob?.size > 0);
