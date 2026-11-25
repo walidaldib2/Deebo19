@@ -14,6 +14,7 @@ on:
       - feature/deeb-premium-gold-ui-2026-11-24
       - fix/bike-map-print-details-2026-11-25
       - fix/archive-print-original-report-layout-2026-11-25
+      - fix/archive-filtered-native-print-all-reports-2026-11-25
 
 concurrency:
   group: deeb-android-apk-${{ github.event_name }}-${{ github.ref }}
