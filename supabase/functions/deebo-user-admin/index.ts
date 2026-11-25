@@ -70,7 +70,7 @@ Deno.serve(async (req: Request) => {
   }
 
   if (action === "change_role") {
-    if (!(newRole in rank) || newRole === "system_admin" || rank[newRole] >= rank[actor.role]) {
+    if (!Object.prototype.hasOwnProperty.call(rank, newRole) || newRole === "system_admin" || rank[newRole] >= rank[actor.role]) {
       return json(403, { error: "role_assignment_not_permitted" });
     }
     const { error } = await admin.from("deeb_profiles").update({
