@@ -69,36 +69,20 @@ Deno.serve(async (req: Request) => {
     return json(403, { error: "cannot_manage_equal_or_higher_role" });
   }
 
-  if (action === "change_role") {
-    if (!Object.prototype.hasOwnProperty.call(rank, newRole) || newRole === "system_admin" || rank[newRole] >= rank[actor.role]) {
-      return json(403, { error: "role_assignment_not_permitted" });
-    }
-    const { error } = await admin.from("deeb_profiles").update({
-      role: newRole,
-      updated_at: new Date().toISOString(),
-    }).eq("user_id", targetId).eq("org_id", actor.org_id);
-    if (error) return json(500, { error: "role_update_failed" });
-    if (!["supervisor", "security_officer"].includes(newRole)) {
-      await admin.from("deeb_branch_memberships").delete().eq("org_id", actor.org_id).eq("user_id", targetId);
-    }
-    return json(200, { ok: true, user_id: targetId, role: newRole });
+  if (action === "change_role" &&
+      (!Object.prototype.hasOwnProperty.call(rank, newRole) || newRole === "system_admin" || rank[newRole] >= rank[actor.role])) {
+    return json(403, { error: "role_assignment_not_permitted" });
   }
 
-  if (action === "deactivate") {
-    const { error } = await admin.from("deeb_profiles").update({
-      is_active: false,
-      updated_at: new Date().toISOString(),
-    }).eq("user_id", targetId).eq("org_id", actor.org_id);
-    if (error) return json(500, { error: "deactivation_failed" });
-    await admin.from("deeb_devices").update({ revoked_at: new Date().toISOString() })
-      .eq("org_id", actor.org_id).eq("user_id", targetId).is("revoked_at", null);
-    return json(200, { ok: true, user_id: targetId, active: false, devices_revoked: true });
+  const { data: result, error: applyError } = await admin.rpc("deeb_admin_apply_user_action", {
+    p_actor_user_id: authData.user.id,
+    p_target_user_id: targetId,
+    p_action: action,
+    p_new_role: action === "change_role" ? newRole : null,
+  });
+  if (applyError || !result?.ok) {
+    return json(400, { error: applyError?.message ?? "user_admin_action_failed" });
   }
+  return json(200, result);
 
-  const { error } = await admin.from("deeb_profiles").update({
-    is_active: true,
-    updated_at: new Date().toISOString(),
-  }).eq("user_id", targetId).eq("org_id", actor.org_id);
-  if (error) return json(500, { error: "reactivation_failed" });
-  return json(200, { ok: true, user_id: targetId, active: true, devices_require_reenrollment: true });
 });
