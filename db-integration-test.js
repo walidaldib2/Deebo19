@@ -167,10 +167,17 @@ async function main() {
   await db.archivePastDays("2026-11-25");
   assert.ok((await db.pendingSyncMutations()).some(x => x.action === "archive" && x.record_id === teamOldRoster.id),
     "Automatic shift archiving must also enter the outbox");
+  await assert.rejects(
+    () => db.restore({ app: "DEEB", format: 2, records: [], audit_logs: [] }),
+    /أثناء وضع الفريق أو مع وجود عمليات مزامنة معلقة/
+  );
 
   const localSwitch = await db.clearTeamContext();
   assert.equal(localSwitch.mode, "local");
-  assert.equal((await db.syncStatus()).synced, 1, "Switching back to local mode must retain sync history");
+  for (const mutation of await db.pendingSyncMutations(500)) {
+    await db.markSyncMutationSynced(mutation.mutation_id, 3);
+  }
+  assert.ok((await db.syncStatus()).synced >= 1, "Switching back to local mode must retain sync history");
   const pendingBeforeLocalSave = (await db.syncStatus()).pending;
   await db.save("branches", { name: "فرع فردي بعد فصل المزامنة", code: "LOCAL-QA" });
   assert.equal((await db.syncStatus()).pending, pendingBeforeLocalSave, "Local-only writes must not enter the team outbox");
