@@ -651,7 +651,7 @@ function bikeMapReportsPage(){
  area.innerHTML=pageHead("خرائط الدراجات",'<button class="secondary" id="backToBikeMaps">خرائط الدراجات</button><button class="primary" id="printBikeMapReport">طباعة التقرير</button><button class="secondary" id="saveBikeMapArchive">حفظ في الأرشيف</button><button class="secondary" id="saveBikeMapReportPdf">حفظ PDF</button><button class="secondary" id="saveBikeMapReportImage">حفظ التقرير صورة</button>')+
  '<div class="card"><p class="muted">خريطة مرور مستقلة لكل دراجة، بنفس بيانات وتصميم تقرير المرور الأصلي. تظهر الخريطة بدل جدول المرور، ولا يتم تعديل التقرير الأصلي.</p><div class="form"><div class="field"><label>الدراجة</label><select id="bikeMapReportBike"><option value="">اختر الدراجة</option>'+bikes.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("")+'</select></div><div class="field"><label>من تاريخ</label><input id="bikeMapReportFrom" type="date" value="'+monthStart+'"></div><div class="field"><label>إلى تاريخ</label><input id="bikeMapReportTo" type="date" value="'+today+'"></div></div><div id="bikeMapReportPreview"><div class="empty">اختر الدراجة لإعداد الخريطة.</div></div></div>';
  let reportHtml="",bikeMapArchiveKey="",bikeMapArchivePromise=null;
- const archiveBikeMapReport=async()=>{const bike=$("#bikeMapReportBike").value,from=$("#bikeMapReportFrom").value,to=$("#bikeMapReportTo").value;if(!reportHtml||!bike)throw new Error("اختر الدراجة أولًا لإعداد خريطتها.");const key=[bike,from,to].join("|");if(key===bikeMapArchiveKey&&bikeMapArchivePromise)return bikeMapArchivePromise;bikeMapArchiveKey=key;bikeMapArchivePromise=DebooDB.archiveReport({title:"خريطة مرور الدراجة "+bike,report_type:"bike_map",from_date:from,to_date:to,html:reportHtml,meta:{bike}});return bikeMapArchivePromise;};
+ const archiveBikeMapReport=async()=>{const bike=$("#bikeMapReportBike").value,from=$("#bikeMapReportFrom").value,to=$("#bikeMapReportTo").value;if(!reportHtml||!bike)throw new Error("اختر الدراجة أولًا لإعداد خريطتها.");const key=[bike,from,to,reportHtml].join("|");if(key===bikeMapArchiveKey&&bikeMapArchivePromise)return bikeMapArchivePromise;bikeMapArchiveKey=key;bikeMapArchivePromise=DebooDB.archiveReport({title:"خريطة مرور الدراجة "+bike,report_type:"bike_map",from_date:from,to_date:to,html:reportHtml,meta:{bike}}).catch(error=>{if(bikeMapArchiveKey===key){bikeMapArchiveKey="";bikeMapArchivePromise=null;}throw error;});return bikeMapArchivePromise;};
  const build=()=>{
   const bike=$("#bikeMapReportBike").value,from=$("#bikeMapReportFrom").value,to=$("#bikeMapReportTo").value,host=$("#bikeMapReportPreview");
   if(!bike){reportHtml="";host.innerHTML='<div class="empty">اختر الدراجة لإعداد الخريطة.</div>';return;}
@@ -974,10 +974,10 @@ async function reports(){
  const archiveCurrentReport=async()=>{
   const d=get(),type=$("#reportType").value||"all",from=$("#fromDate").value,to=$("#toDate").value;
   const html=reportCoordinatesOnly(readableReportHtml(printHtml(d)),d);
-  const key=[type,from,to,selectedBikeReport||"all",selectedArchivedRecordId||"",selectedArchiveIds.slice().sort().join(","),d.map(x=>x.id+":"+x.updated_at).join("|")].join("::");
+  const key=[type,from,to,selectedBikeReport||"all",selectedArchivedRecordId||"",selectedArchiveIds.slice().sort().join(","),d.map(x=>x.id+":"+x.updated_at).join("|"),html].join("::");
   if(key===archivedReportKey&&archivedReportPromise)return archivedReportPromise;
   archivedReportKey=key;
-  archivedReportPromise=DebooDB.archiveReport({title:(type==="all"?"التقرير الشامل":labels[type]||type),report_type:type,from_date:from,to_date:to,html,meta:{record_count:d.length}});
+  archivedReportPromise=DebooDB.archiveReport({title:(type==="all"?"التقرير الشامل":labels[type]||type),report_type:type,from_date:from,to_date:to,html,meta:{record_count:d.length}}).catch(error=>{if(archivedReportKey===key){archivedReportKey="";archivedReportPromise=null;}throw error;});
   return archivedReportPromise;
  };
  $("#saveReportArchive").onclick=async()=>{try{await archiveCurrentReport();toast("تم حفظ التقرير في الأرشيف بنجاح.");}catch(e){toast("تعذر حفظ التقرير في الأرشيف: "+e.message);}};
