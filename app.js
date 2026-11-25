@@ -654,7 +654,7 @@ function bikeMapReportsPage(){
  area.innerHTML=pageHead("خرائط الدراجات",'<button class="secondary" id="backToBikeMaps">خرائط الدراجات</button><button class="primary" id="printBikeMapReport">طباعة التقرير</button><button class="secondary" id="saveBikeMapArchive">حفظ في الأرشيف</button><button class="secondary" id="saveBikeMapReportPdf">حفظ PDF</button><button class="secondary" id="saveBikeMapReportImage">حفظ التقرير صورة</button>')+
  '<div class="card"><p class="muted">خريطة مرور مستقلة لكل دراجة، بنفس بيانات وتصميم تقرير المرور الأصلي. تظهر الخريطة بدل جدول المرور، ولا يتم تعديل التقرير الأصلي.</p><div class="form"><div class="field"><label>الدراجة</label><select id="bikeMapReportBike"><option value="">اختر الدراجة</option>'+bikes.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("")+'</select></div><div class="field"><label>من تاريخ</label><input id="bikeMapReportFrom" type="date" value="'+monthStart+'"></div><div class="field"><label>إلى تاريخ</label><input id="bikeMapReportTo" type="date" value="'+today+'"></div></div><div id="bikeMapReportPreview"><div class="empty">اختر الدراجة لإعداد الخريطة.</div></div></div>';
  let reportHtml="",bikeMapArchiveKey="",bikeMapArchivePromise=null;
- const archiveBikeMapReport=async()=>{const bike=$("#bikeMapReportBike").value,from=$("#bikeMapReportFrom").value,to=$("#bikeMapReportTo").value;if(!reportHtml||!bike)throw new Error("اختر الدراجة أولًا لإعداد خريطتها.");const key=[bike,from,to,reportHtml].join("|");if(key===bikeMapArchiveKey&&bikeMapArchivePromise)return bikeMapArchivePromise;bikeMapArchiveKey=key;bikeMapArchivePromise=DebooDB.archiveReport({title:"خريطة مرور الدراجة "+bike,report_type:"bike_map",from_date:from,to_date:to,html:reportHtml,meta:{bike}}).catch(error=>{if(bikeMapArchiveKey===key){bikeMapArchiveKey="";bikeMapArchivePromise=null;}throw error;});return bikeMapArchivePromise;};
+ const archiveBikeMapReport=async()=>{const bike=$("#bikeMapReportBike").value,from=$("#bikeMapReportFrom").value,to=$("#bikeMapReportTo").value;if(!reportHtml||!bike)throw new Error("اختر الدراجة أولًا لإعداد خريطتها.");const key=[bike,from,to,reportHtml].join("|");if(key===bikeMapArchiveKey&&bikeMapArchivePromise)return bikeMapArchivePromise;bikeMapArchiveKey=key;bikeMapArchivePromise=DebooDB.archiveReport({title:"خريطة مرور الدراجة "+bike,report_type:"bike_map",from_date:from,to_date:to,html:reportHtml,meta:{bike,data:visits.map(x=>({id:x.id,created_at:x.created_at,payload:x.payload||{}}))}}).catch(error=>{if(bikeMapArchiveKey===key){bikeMapArchiveKey="";bikeMapArchivePromise=null;}throw error;});return bikeMapArchivePromise;};
  const build=()=>{
   const bike=$("#bikeMapReportBike").value,from=$("#bikeMapReportFrom").value,to=$("#bikeMapReportTo").value,host=$("#bikeMapReportPreview");
   if(!bike){reportHtml="";host.innerHTML='<div class="empty">اختر الدراجة لإعداد الخريطة.</div>';return;}
@@ -989,7 +989,20 @@ async function reports(){
  const buildArchivedReportHtml=item=>{
   const snapshot=item?.snapshot||item||{},meta=snapshot.meta||{};
   const type=String(snapshot.report_type||item?.report_type||"all");
-  if(type==="bike_map")return snapshot.html||item?.html||"";
+  if(type==="bike_map"){
+   let html=String(snapshot.html||item?.html||"");
+   const bike=String(meta.bike||"");
+   const from=String(snapshot.from_date||item?.from_date||"");
+   const to=String(snapshot.to_date||item?.to_date||"");
+   const visits=Array.isArray(meta.data)?meta.data.filter(x=>{const p=x.payload||{},d=String(p.patrol_date||x.created_at||"").slice(0,10);return String(p.bike||"").trim()===bike&&(!from||d>=from)&&(!to||d<=to);}).sort((a,b)=>String(a.payload?.patrol_date||a.created_at||"").localeCompare(String(b.payload?.patrol_date||b.created_at||""))||comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time)):[];
+   if(!Array.isArray(meta.data))return html;
+   const points=visits.filter(x=>validCoordinatePair(x.payload?.lat,x.payload?.lng)).map(x=>({lat:Number(x.payload.lat),lng:Number(x.payload.lng),site:x.payload.site||x.payload.branch||x.payload.location||"موقع المرور",date:x.payload.patrol_date||String(x.created_at||"").slice(0,10),time:x.payload.patrol_time||""}));
+   const json=JSON.stringify(points).replace(/</g,"\\u003c");
+   if(html.includes("var pts="))html=html.replace(/var pts=\\[[\\s\\S]*?\\];function safe/, "var pts="+json+";function safe");
+   const detailList=points.map((p,i)=>'<li><b>'+(i+1)+'. '+esc(p.site)+'</b><span>'+esc(p.date)+' — '+esc(p.time||"وقت غير مسجل")+'</span><small>'+p.lat.toFixed(6)+", "+p.lng.toFixed(6)+'</small></li>').join("");
+   if(html.includes('<div class="deeb-map-details">'))html=html.replace(/<ol>[\\s\\S]*?<\\/ol>/,'<ol>'+detailList+'</ol>');
+   return html;
+  }
   let source=Array.isArray(snapshot.data)?snapshot.data:Array.isArray(meta.data)?meta.data:null;
   if(!source){
    const from=String(snapshot.from_date||item?.from_date||""),to=String(snapshot.to_date||item?.to_date||"");
