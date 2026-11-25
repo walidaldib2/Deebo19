@@ -580,6 +580,56 @@ window.DebooDB = (() => {
     });
     return {applied,skipped_local:skippedLocal};
   }
+  async function applyRemoteAuxData(input={}) {
+    const d=await openDB(),names=["audit_logs","approved_reports","handover_versions","attachments"];
+    let applied=0;
+    await new Promise((resolve,reject)=>{
+      const tx=d.transaction(names,"readwrite");
+      const specs=[
+        ["audit_logs",input.audit_logs||[],row=>({...row,actor:row.actor||row.actor_user_id||"عضو الإدارة"})],
+        ["approved_reports",input.approved_reports||[],row=>({...row,actor:row.actor||row.actor_user_id||"عضو الإدارة"})],
+        ["handover_versions",input.handover_versions||[],row=>row],
+        ["attachments",input.attachments||[],row=>({...row,name:row.name||row.file_name,type:row.type||row.mime_type,size:Number(row.size||row.size_bytes||0),upload_status:"uploaded"})]
+      ];
+      for(const [name,rows,map] of specs){
+        const store=tx.objectStore(name);
+        for(const source of rows){
+          if(!source?.id)continue;
+          if(name==="attachments"){
+            const req=store.get(source.id);
+            req.onsuccess=()=>{
+              const previous=req.result||{};
+              store.put({...map(source),...previous,
+                id:source.id,record_id:source.record_id,
+                name:source.file_name||previous.name||source.name,
+                type:source.mime_type||previous.type||source.type,
+                size:Number(source.size_bytes||previous.size||source.size||0),
+                storage_path:source.storage_path,
+                upload_status:"uploaded",
+                created_at:source.created_at||previous.created_at});
+            };
+          }else store.put(map(source));
+          applied++;
+        }
+      }
+      tx.oncomplete=resolve;
+      tx.onerror=()=>reject(tx.error||new Error("تعذر حفظ بيانات الإدارة الإضافية."));
+      tx.onabort=()=>reject(tx.error||new Error("تم إلغاء حفظ بيانات الإدارة الإضافية."));
+    });
+    return {applied};
+  }
+  async function saveRemoteAttachment(metadata,blob) {
+    if(!metadata?.id||!blob)throw new Error("بيانات المرفق المستلم غير مكتملة.");
+    const previous=await get("attachments",metadata.id);
+    const item={...previous,...metadata,id:metadata.id,record_id:metadata.record_id,
+      name:metadata.file_name||metadata.name||previous?.name||"مرفق",
+      type:metadata.mime_type||metadata.type||blob.type||"application/octet-stream",
+      size:Number(metadata.size_bytes||metadata.size||blob.size),
+      blob,storage_path:metadata.storage_path,upload_status:"uploaded",
+      created_at:metadata.created_at||previous?.created_at||now()};
+    await txStore("attachments","readwrite",store=>store.put(item));
+    return item;
+  }
   async function syncStatus() {
     const [context,outbox,conflicts]=await Promise.all([getTeamContext(),getAll("sync_outbox"),getAll("sync_conflicts")]);
     return {mode:context.mode||"local",pending:outbox.filter(x=>x.status==="pending").length,
@@ -588,5 +638,5 @@ window.DebooDB = (() => {
   }
   async function syncCursor() { return (await readSyncState("sync_cursor"))?.value||null; }
   async function setSyncCursor(value) { return writeSyncState("sync_cursor",value); }
-  return {init,configured,list,all,archivePastDays,purgeExpiredDeleted,getRecord:(id)=>get("records",id),save,archive,unarchive,softDelete,restoreDeleted,audit,approve,approvedReports,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,deviceIdentity,setTeamContext,clearTeamContext,getTeamContext,enqueueSyncMutation,pendingSyncMutations,markSyncMutationSynced,retrySyncMutation,addSyncConflict,resolveSyncConflict,setRecordServerRevision,applyRemoteSyncPage,syncStatus,syncCursor,setSyncCursor,local:true};
+  return {init,configured,list,all,archivePastDays,purgeExpiredDeleted,getRecord:(id)=>get("records",id),save,archive,unarchive,softDelete,restoreDeleted,audit,approve,approvedReports,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,deviceIdentity,setTeamContext,clearTeamContext,getTeamContext,enqueueSyncMutation,pendingSyncMutations,markSyncMutationSynced,retrySyncMutation,addSyncConflict,resolveSyncConflict,setRecordServerRevision,applyRemoteSyncPage,applyRemoteAuxData,saveRemoteAttachment,syncStatus,syncCursor,setSyncCursor,local:true};
 })();
