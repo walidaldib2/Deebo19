@@ -94,13 +94,17 @@ begin
   if not exists(select 1 from public.deeb_attachments a
     where a.id=p_attachment_id and a.org_id=v_org and a.record_id=p_record_id
       and a.uploaded_by=v_user and a.device_id=p_device_id and a.storage_path=v_path
-      and a.upload_status='pending') then
-    raise exception 'attachment_id_already_used' using errcode='23505';
+      and a.size_bytes=p_size_bytes and a.mime_type=v_mime
+      and coalesce(a.sha256,'')=coalesce(lower(p_sha256),'')
+      and a.upload_status in ('pending','uploaded')) then
+    raise exception 'attachment_id_already_used_or_details_changed' using errcode='23505';
   end if;
 
   return jsonb_build_object('ok',true,'bucket_id','deebo-private',
     'object_path',v_path,'attachment_id',p_attachment_id,
-    'max_size_bytes',20971520,'upload_status','pending');
+    'max_size_bytes',20971520,
+    'upload_status',(select a.upload_status from public.deeb_attachments a
+      where a.id=p_attachment_id and a.org_id=v_org));
 end;
 $$;
 
