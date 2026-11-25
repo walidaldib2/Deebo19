@@ -255,6 +255,77 @@
     }
     return result;
   }
+  async function pullAuxiliaryPages(session, device) {
+    let cursor = await window.DebooDB.auxSyncCursor();
+    const result = { pages: 0, audit: 0, approved_reports: 0, handover_versions: 0, attachments: 0 };
+    const cfg = config();
+    for (let page = 0; page < 20; page++) {
+      const data = await rpc("deeb_pull_auxiliary", {
+        p_device_id: device.device_id,
+        p_after_created_at: cursor?.created_at || null,
+        p_after_item_id: cursor?.item_id || null,
+        p_limit: 200
+      }, session.access_token);
+      const items = Array.isArray(data?.items) ? data.items : [];
+      if (!items.length) break;
+
+      const grouped = { audit_logs: [], approved_reports: [], handover_versions: [], attachments: [] };
+      for (const item of items) {
+        const row = item?.payload;
+        if (!row?.id) continue;
+        if (item.kind === "audit") grouped.audit_logs.push(row);
+        else if (item.kind === "approved_report") grouped.approved_reports.push(row);
+        else if (item.kind === "handover_version") grouped.handover_versions.push(row);
+        else if (item.kind === "attachment") {
+          const local = await window.DebooDB.getAttachment(row.id);
+          if (!local?.blob) {
+            const objectPath = String(row.storage_path || "");
+            if (!objectPath || objectPath.startsWith("/") || objectPath.split("/").some(part => !part || part === "." || part === "..")) {
+              throw new Error("مسار المرفق المستلم غير صالح؛ لم يتم تأكيد صفحة المزامنة.");
+            }
+            const downloadUrl = cfg.url + "/storage/v1/object/authenticated/deebo-private/" +
+              objectPath.split("/").map(encodeURIComponent).join("/");
+            const response = await fetch(downloadUrl, {
+              method: "GET",
+              headers: { apikey: cfg.anonKey, Authorization: "Bearer " + session.access_token }
+            });
+            if (!response.ok) throw new Error("تعذر تنزيل المرفق من التخزين الخاص (HTTP " + response.status + ").");
+            const blob = await response.blob();
+            if (blob.size !== Number(row.size_bytes) || blob.type.toLowerCase() !== String(row.mime_type || "").toLowerCase()) {
+              throw new Error("بيانات المرفق المستلم لا تطابق الملف؛ لم يتم تأكيد صفحة المزامنة.");
+            }
+            await window.DebooDB.saveRemoteAttachment(row, blob);
+          } else {
+            await window.DebooDB.applyRemoteAuxData({ attachments: [row] });
+          }
+          result.attachments++;
+        }
+      }
+
+      const other = await window.DebooDB.applyRemoteAuxData({
+        audit_logs: grouped.audit_logs,
+        approved_reports: grouped.approved_reports,
+        handover_versions: grouped.handover_versions
+      });
+      result.audit += grouped.audit_logs.length;
+      result.approved_reports += grouped.approved_reports.length;
+      result.handover_versions += grouped.handover_versions.length;
+      result.pages++;
+
+      const createdAt = data.next_created_at;
+      const itemId = data.next_item_id;
+      if (!createdAt || !itemId || !data.awaiting_ack) {
+        throw new Error("استجابة البيانات الإضافية لا تحتوي على نقطة تأكيد صالحة.");
+      }
+      await rpc("deeb_advance_aux_cursor", {
+        p_device_id: device.device_id, p_created_at: createdAt, p_item_id: itemId
+      }, session.access_token);
+      cursor = { created_at: createdAt, item_id: itemId };
+      await window.DebooDB.setAuxSyncCursor(cursor);
+      if (!data.has_more) break;
+    }
+    return result;
+  }
   async function bootstrapOrganization(organizationName, displayName) {
     const session = await activeSession();
     const result = await rpc("deeb_bootstrap_organization", {
@@ -285,7 +356,8 @@
       await rpc("deeb_touch_device", { p_device_id: device.device_id }, session.access_token);
       const pushed = await pushPending(session, user.id);
       const pulled = await pullPages(session, device);
-      return { ok: true, mode: team.mode, pushed, pulled, status: await window.DebooDB.syncStatus() };
+      const auxiliary = await pullAuxiliaryPages(session, device);
+      return { ok: true, mode: team.mode, pushed, pulled, auxiliary, status: await window.DebooDB.syncStatus() };
     })();
     try { return await syncLock; }
     finally { syncLock = null; }
