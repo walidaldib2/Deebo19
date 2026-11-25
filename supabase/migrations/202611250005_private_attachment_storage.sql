@@ -108,7 +108,7 @@ begin
 end;
 $$;
 
-create or replace function public.deeb_finalize_attachment(p_attachment_id text)
+create or replace function public.deeb_finalize_attachment(p_attachment_id text,p_audit jsonb default null)
 returns jsonb
 language plpgsql
 security definer
@@ -136,7 +136,19 @@ begin
     raise exception 'attachment_object_missing_or_metadata_mismatch' using errcode='P0002';
   end if;
 
-  update public.deeb_attachments set upload_status='uploaded',uploaded_at=now()
+  if jsonb_typeof(p_audit)='object' then
+    insert into public.deeb_audit_logs
+      (id,org_id,branch_id,record_id,action,old_data,new_data,reason,actor_user_id,device_id,created_at)
+    values(coalesce(nullif(p_audit->>'id',''),'attachment-'||p_attachment_id),
+      v_org,v_attachment.branch_id,v_attachment.record_id,'attachment',
+      p_audit->'old_data',p_audit->'new_data',
+      coalesce(p_audit->>'reason','إضافة مرفق'),
+      v_user,v_attachment.device_id,
+      coalesce(nullif(p_audit->>'created_at','')::timestamptz,now()))
+    on conflict(id) do nothing;
+  end if;
+
+  update public.deeb_attachments set upload_status='uploaded',uploaded_at=coalesce(uploaded_at,now())
    where id=p_attachment_id and org_id=v_org;
   return jsonb_build_object('ok',true,'attachment_id',p_attachment_id,
     'bucket_id','deebo-private','object_path',v_attachment.storage_path,
@@ -191,6 +203,6 @@ using (org_id=public.deeb_current_org_id()
   and public.deeb_can_access_branch(branch_id));
 
 revoke all on function public.deeb_prepare_attachment(text,text,text,text,text,bigint,text) from public,anon;
-revoke all on function public.deeb_finalize_attachment(text) from public,anon;
+revoke all on function public.deeb_finalize_attachment(text,jsonb) from public,anon;
 grant execute on function public.deeb_prepare_attachment(text,text,text,text,text,bigint,text) to authenticated;
-grant execute on function public.deeb_finalize_attachment(text) to authenticated;
+grant execute on function public.deeb_finalize_attachment(text,jsonb) to authenticated;
