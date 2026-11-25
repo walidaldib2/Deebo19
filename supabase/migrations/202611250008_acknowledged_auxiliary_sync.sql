@@ -13,6 +13,16 @@ create table if not exists public.deeb_sync_aux_cursors (
 );
 alter table public.deeb_sync_aux_cursors enable row level security;
 
+create index if not exists deeb_audit_aux_feed_idx
+  on public.deeb_audit_logs(org_id,created_at,id);
+create index if not exists deeb_approved_aux_feed_idx
+  on public.deeb_approved_reports(org_id,created_at,id);
+create index if not exists deeb_handover_aux_feed_idx
+  on public.deeb_handover_versions(org_id,created_at,id);
+create index if not exists deeb_attachment_aux_feed_idx
+  on public.deeb_attachments(org_id,created_at,id)
+  where upload_status='uploaded';
+
 create or replace function public.deeb_pull_auxiliary(
   p_device_id text,
   p_after_created_at timestamptz default null,
