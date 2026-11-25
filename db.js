@@ -140,6 +140,19 @@ window.DebooDB = (() => {
   function makeAudit(action,recordId,oldData,newData,reason) {
     return {id:uid(),action,record_id:recordId||null,old_data:oldData||null,new_data:newData||null,reason:reason||"",created_at:now(),actor:"مستخدم الجهاز"};
   }
+  async function prepareRecordMutation(row,action,snapshot,old=null) {
+    const context=await getTeamContext();
+    if(context.mode!=="team")return null;
+    const device=await deviceIdentity(),stamp=now();
+    return {mutation_id:uid(),record_id:row.id,entity_type:row.entity_type,action,branch_id:row.branch_id||null,
+      org_id:context.org_id,user_id:context.user_id,device_id:device.device_id,
+      base_revision:Number(old?.server_revision||old?.revision||0),
+      snapshot:JSON.parse(JSON.stringify(snapshot)),created_at:stamp,local_updated_at:row.updated_at||stamp,
+      status:"pending",attempts:0,next_attempt_at:stamp,last_error:null,server_revision:null};
+  }
+  function putRecordMutation(tx,mutation) {
+    if(mutation)tx.objectStore("sync_outbox").put(mutation);
+  }
   async function save(type,payload,id=null) {
     if(!type||!payload||typeof payload!=="object"||Array.isArray(payload)) throw new Error("بيانات السجل غير صالحة.");
     const old=id?await get("records",id):null;
@@ -155,15 +168,18 @@ window.DebooDB = (() => {
     const row={id:id||uid(),entity_type:type,payload:savedPayload,branch_id:payload.branch_id||null,status:payload.status||"active",is_archived:!!old?.is_archived,is_deleted:false,...(old?.archived_at?{archived_at:old.archived_at}:{}),created_at:old?.created_at||now(),updated_at:now(),created_by:old?.created_by||"local"};
     const auditItem=makeAudit(id?"update":"create",row.id,old,row,id?(payload.edit_reason||"تعديل سجل"):"إضافة سجل");
     const d=await openDB();
+    const syncAction=type==="handovers"?"handover_version":(id?"update":"create");
+    let syncMutation=await prepareRecordMutation(row,syncAction,row,old);
     if(type==="bike_patrols") {
       const bike=String(payload.bike||"").trim().toLocaleLowerCase("ar");
       if(!bike) throw new Error("يجب تحديد رقم الدراجة.");
       await new Promise((resolve,reject)=>{
-        const tx=d.transaction(["records","audit_logs"],"readwrite");
+        const tx=d.transaction(syncMutation?["records","audit_logs","sync_outbox"]:["records","audit_logs"],"readwrite");
         // Motorcycle visits are intentionally repeatable; no uniqueness scan is needed.
         // Persist the visit and its audit entry atomically without loading the full records store.
         tx.objectStore("records").put(row);
         tx.objectStore("audit_logs").put(auditItem);
+        putRecordMutation(tx,syncMutation);
         tx.oncomplete=resolve;
         tx.onerror=()=>reject(tx.error||new Error("فشل حفظ مرور الدراجة وسجل المراجعة."));
         tx.onabort=()=>reject(tx.error||new Error("تم إلغاء حفظ مرور الدراجة."));
@@ -173,20 +189,23 @@ window.DebooDB = (() => {
       row.payload._version=versionNumber;
       const version={id:uid(),record_id:row.id,version:versionNumber,snapshot:JSON.parse(JSON.stringify(row)),created_at:now(),reason:payload.edit_reason||(id?"تحديث تسليم الشفت":"إنشاء تسليم الشفت")};
       auditItem.new_data=row;
+      if(syncMutation)syncMutation.snapshot={record:row,handover_version:version};
       await new Promise((resolve,reject)=>{
-        const tx=d.transaction(["records","handover_versions","audit_logs"],"readwrite");
+        const tx=d.transaction(syncMutation?["records","handover_versions","audit_logs","sync_outbox"]:["records","handover_versions","audit_logs"],"readwrite");
         tx.objectStore("records").put(row);
         tx.objectStore("handover_versions").put(version);
         tx.objectStore("audit_logs").put(auditItem);
+        putRecordMutation(tx,syncMutation);
         tx.oncomplete=resolve;
         tx.onerror=()=>reject(tx.error||new Error("فشل حفظ تسليم الشفت وإصداره وسجل المراجعة."));
         tx.onabort=()=>reject(tx.error||new Error("تم إلغاء حفظ تسليم الشفت."));
       });
     } else {
       await new Promise((resolve,reject)=>{
-        const tx=d.transaction(["records","audit_logs"],"readwrite");
+        const tx=d.transaction(syncMutation?["records","audit_logs","sync_outbox"]:["records","audit_logs"],"readwrite");
         tx.objectStore("records").put(row);
         tx.objectStore("audit_logs").put(auditItem);
+        putRecordMutation(tx,syncMutation);
         tx.oncomplete=resolve;
         tx.onerror=()=>reject(tx.error||new Error("فشل حفظ السجل وسجل المراجعة."));
         tx.onabort=()=>reject(tx.error||new Error("تم إلغاء حفظ السجل."));
