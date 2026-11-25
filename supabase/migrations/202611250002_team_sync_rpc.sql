@@ -114,8 +114,11 @@ begin
   end if;
 
   if v_action='handover_version' and not coalesce((v_result->>'conflict')::boolean,false) then
-    if jsonb_typeof(p_mutation->'snapshot'->'handover_version')<>'object'
-       or coalesce(p_mutation->'snapshot'->'handover_version'->>'record_id','')<>v_rid then
+    if coalesce(jsonb_typeof(p_mutation->'snapshot'->'handover_version'),'')<>'object'
+       or coalesce(p_mutation->'snapshot'->'handover_version'->>'id','')=''
+       or coalesce(p_mutation->'snapshot'->'handover_version'->>'record_id','')<>v_rid
+       or coalesce((p_mutation->'snapshot'->'handover_version'->>'version')::integer,0)<1
+       or coalesce(jsonb_typeof(p_mutation->'snapshot'->'handover_version'->'snapshot'),'')<>'object' then
       raise exception 'invalid_handover_version' using errcode='22023';
     end if;
     insert into public.deeb_handover_versions
