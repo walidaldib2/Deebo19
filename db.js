@@ -488,6 +488,30 @@ window.DebooDB = (() => {
     const updated={...row,status:"synced",server_revision:serverRevision,synced_at:now(),last_error:null};
     await txStore("sync_outbox","readwrite",store=>store.put(updated));return updated;
   }
+  async function getSyncMutation(mutationId) { return get("sync_outbox",mutationId); }
+  async function rebasePendingRecordMutations(recordId,serverRevision) {
+    const d=await openDB();
+    let rebased=0;
+    await new Promise((resolve,reject)=>{
+      const tx=d.transaction("sync_outbox","readwrite"),store=tx.objectStore("sync_outbox");
+      const request=store.getAll();
+      request.onsuccess=()=>{
+        const rows=request.result.filter(row=>row.record_id===recordId&&row.status==="pending")
+          .sort((a,b)=>String(a.created_at||"").localeCompare(String(b.created_at||""))||
+            String(a.mutation_id||"").localeCompare(String(b.mutation_id||"")));
+        let revision=Math.max(0,Number(serverRevision)||0);
+        for(const row of rows){
+          store.put({...row,base_revision:revision});
+          revision++;
+          rebased++;
+        }
+      };
+      tx.oncomplete=resolve;
+      tx.onerror=()=>reject(tx.error||new Error("تعذر ترتيب إصدارات عمليات السجل المعلقة."));
+      tx.onabort=()=>reject(tx.error||new Error("تم إلغاء ترتيب إصدارات عمليات السجل."));
+    });
+    return {rebased};
+  }
   async function retrySyncMutation(mutationId,error) {
     const row=await get("sync_outbox",mutationId);if(!row||row.status==="synced"||row.status==="conflict"||row.status==="superseded")return row;
     const attempts=(row.attempts||0)+1,delay=Math.min(60*60*1000,1000*Math.pow(2,Math.min(attempts,12)));
@@ -640,5 +664,5 @@ window.DebooDB = (() => {
   async function setSyncCursor(value) { return writeSyncState("sync_cursor",value); }
   async function auxSyncCursor() { return (await readSyncState("aux_sync_cursor"))?.value||null; }
   async function setAuxSyncCursor(value) { return writeSyncState("aux_sync_cursor",value); }
-  return {init,configured,list,all,archivePastDays,purgeExpiredDeleted,getRecord:(id)=>get("records",id),save,archive,unarchive,softDelete,restoreDeleted,audit,approve,approvedReports,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,deviceIdentity,setTeamContext,clearTeamContext,getTeamContext,enqueueSyncMutation,pendingSyncMutations,markSyncMutationSynced,retrySyncMutation,addSyncConflict,resolveSyncConflict,setRecordServerRevision,applyRemoteSyncPage,applyRemoteAuxData,saveRemoteAttachment,syncStatus,syncCursor,setSyncCursor,auxSyncCursor,setAuxSyncCursor,local:true};
+  return {init,configured,list,all,archivePastDays,purgeExpiredDeleted,getRecord:(id)=>get("records",id),save,archive,unarchive,softDelete,restoreDeleted,audit,approve,approvedReports,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,deviceIdentity,setTeamContext,clearTeamContext,getTeamContext,enqueueSyncMutation,pendingSyncMutations,markSyncMutationSynced,getSyncMutation,rebasePendingRecordMutations,retrySyncMutation,addSyncConflict,resolveSyncConflict,setRecordServerRevision,applyRemoteSyncPage,applyRemoteAuxData,saveRemoteAttachment,syncStatus,syncCursor,setSyncCursor,auxSyncCursor,setAuxSyncCursor,local:true};
 })();
