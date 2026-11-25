@@ -135,11 +135,11 @@ const navigationHtml = navigationStart >= 0 && navigationEnd > navigationStart ?
 for (const page of ['home','operations','security','reportsGroup','system']) {
   if (!navigationHtml.includes('data-page="'+page+'"')) throw new Error('Main navigation tile is missing: '+page);
 }
-for (const label of ['لوحة التحكم','التشغيل الميداني','إدارة الأمن','التقارير والسجلات','البيانات والإعدادات']) {
+for (const label of ['لوحة التحكم','التشغيل الميداني','إدارة الأمن','التقارير والسجلات','الأرشيف العام','البيانات والإعدادات']) {
   if (!navigationHtml.includes(label)) throw new Error('Main navigation label was lost: '+label);
 }
 for (const required of ['class="tile-icon"','viewBox="0 0 24 24"']) if (!navigationHtml.includes(required)) throw new Error('Premium vector navigation icon system is missing: '+required);
-if ((navigationHtml.match(/data-page=/g)||[]).length !== 5) throw new Error('Home must contain exactly five primary navigation tiles.');
+if ((navigationHtml.match(/data-page=/g)||[]).length !== 6) throw new Error('Home must contain exactly six primary navigation tiles.');
 const menuStart=appSource.indexOf('const sectionMenus=');
 const menuEnd=appSource.indexOf(';',menuStart);
 const menuSource=menuStart>=0&&menuEnd>menuStart?appSource.slice(menuStart,menuEnd+1):'';
