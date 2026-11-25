@@ -74,6 +74,7 @@ create table if not exists public.deeb_records (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   foreign key (org_id, branch_id) references public.deeb_branches(org_id, id) on delete restrict,
+  unique (org_id, id),
   unique (org_id, last_mutation_id)
 );
 
@@ -125,7 +126,7 @@ create table if not exists public.deeb_handover_versions (
   device_id uuid references public.deeb_devices(id) on delete restrict,
   created_at timestamptz not null default now(),
   foreign key (org_id, branch_id) references public.deeb_branches(org_id, id) on delete restrict,
-  foreign key (record_id) references public.deeb_records(id) on delete restrict,
+  foreign key (org_id, record_id) references public.deeb_records(org_id, id) on delete restrict,
   unique (record_id, version)
 );
 
@@ -143,7 +144,7 @@ create table if not exists public.deeb_attachments (
   device_id uuid references public.deeb_devices(id) on delete restrict,
   created_at timestamptz not null default now(),
   foreign key (org_id, branch_id) references public.deeb_branches(org_id, id) on delete restrict,
-  foreign key (record_id) references public.deeb_records(id) on delete restrict,
+  foreign key (org_id, record_id) references public.deeb_records(org_id, id) on delete restrict,
   unique (org_id, storage_path)
 );
 
@@ -164,7 +165,7 @@ create table if not exists public.deeb_sync_conflicts (
   created_at timestamptz not null default now(),
   resolved_at timestamptz,
   foreign key (org_id, branch_id) references public.deeb_branches(org_id, id) on delete restrict,
-  foreign key (record_id) references public.deeb_records(id) on delete restrict
+  foreign key (org_id, record_id) references public.deeb_records(org_id, id) on delete restrict
 );
 
 -- These helpers are SECURITY DEFINER to avoid recursive RLS evaluation.
@@ -232,10 +233,9 @@ on public.deeb_profiles for select to authenticated
 using (org_id = public.deeb_current_org_id()
   and (user_id = auth.uid() or public.deeb_is_org_manager()));
 
-create policy "deeb managers update profiles"
-on public.deeb_profiles for update to authenticated
-using (org_id = public.deeb_current_org_id() and public.deeb_is_org_manager())
-with check (org_id = public.deeb_current_org_id() and public.deeb_is_org_manager());
+-- Profile role/status changes are intentionally not exposed through direct
+-- table updates. A later admin RPC will validate who may invite, deactivate,
+-- or change roles without allowing a manager to elevate their own account.
 
 create policy "deeb members read permitted branches"
 on public.deeb_branches for select to authenticated
