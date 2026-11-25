@@ -543,6 +543,43 @@ window.DebooDB = (() => {
     });
     return updated;
   }
+  async function setRecordServerRevision(recordId,revision) {
+    const row=await get("records",recordId);
+    if(!row)return null;
+    const updated={...row,server_revision:Number(revision)||0};
+    await txStore("records","readwrite",store=>store.put(updated));
+    return updated;
+  }
+  async function applyRemoteSyncPage(remoteRows=[]) {
+    if(!Array.isArray(remoteRows))throw new Error("بيانات صفحة المزامنة غير صالحة.");
+    const d=await openDB();
+    const pendingIds=new Set((await getAll("sync_outbox"))
+      .filter(x=>["pending","conflict"].includes(x.status)).map(x=>x.record_id));
+    let applied=0,skippedLocal=0;
+    await new Promise((resolve,reject)=>{
+      const tx=d.transaction(["records"],"readwrite"),store=tx.objectStore("records");
+      for(const remote of remoteRows){
+        if(!remote||!remote.id||!remote.entity_type)continue;
+        if(pendingIds.has(remote.id)){skippedLocal++;continue;}
+        const row={
+          id:String(remote.id),entity_type:String(remote.entity_type),
+          payload:remote.payload&&typeof remote.payload==="object"?remote.payload:{},
+          branch_id:remote.branch_id||null,status:remote.status||"active",
+          is_archived:!!remote.is_archived,is_deleted:!!remote.is_deleted,
+          ...(remote.deleted_at?{deleted_at:remote.deleted_at}:{}),
+          ...(remote.delete_reason?{delete_reason:remote.delete_reason}:{}),
+          created_at:remote.created_at||now(),updated_at:remote.updated_at||now(),
+          created_by:remote.created_by||"team",server_revision:Number(remote.revision)||1,
+          revision:Number(remote.revision)||1,remote_synced_at:now()
+        };
+        store.put(row);applied++;
+      }
+      tx.oncomplete=resolve;
+      tx.onerror=()=>reject(tx.error||new Error("تعذر تطبيق سجلات الإدارة المستلمة."));
+      tx.onabort=()=>reject(tx.error||new Error("تم إلغاء تطبيق صفحة المزامنة."));
+    });
+    return {applied,skipped_local:skippedLocal};
+  }
   async function syncStatus() {
     const [context,outbox,conflicts]=await Promise.all([getTeamContext(),getAll("sync_outbox"),getAll("sync_conflicts")]);
     return {mode:context.mode||"local",pending:outbox.filter(x=>x.status==="pending").length,
@@ -551,5 +588,5 @@ window.DebooDB = (() => {
   }
   async function syncCursor() { return (await readSyncState("sync_cursor"))?.value||null; }
   async function setSyncCursor(value) { return writeSyncState("sync_cursor",value); }
-  return {init,configured,list,all,archivePastDays,purgeExpiredDeleted,getRecord:(id)=>get("records",id),save,archive,unarchive,softDelete,restoreDeleted,audit,approve,approvedReports,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,deviceIdentity,setTeamContext,clearTeamContext,getTeamContext,enqueueSyncMutation,pendingSyncMutations,markSyncMutationSynced,retrySyncMutation,addSyncConflict,resolveSyncConflict,syncStatus,syncCursor,setSyncCursor,local:true};
+  return {init,configured,list,all,archivePastDays,purgeExpiredDeleted,getRecord:(id)=>get("records",id),save,archive,unarchive,softDelete,restoreDeleted,audit,approve,approvedReports,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,deviceIdentity,setTeamContext,clearTeamContext,getTeamContext,enqueueSyncMutation,pendingSyncMutations,markSyncMutationSynced,retrySyncMutation,addSyncConflict,resolveSyncConflict,setRecordServerRevision,applyRemoteSyncPage,syncStatus,syncCursor,setSyncCursor,local:true};
 })();
