@@ -46,6 +46,10 @@ global.fetch = async (url, options = {}) => {
     data = { records: [], count: 0, has_more: false, awaiting_ack: false };
   } else if (path.includes("/rest/v1/rpc/deeb_advance_sync_cursor")) {
     data = { ok: true };
+  } else if (path.includes("/rest/v1/rpc/deeb_pull_auxiliary")) {
+    data = { items: [], count: 0, has_more: false, awaiting_ack: false };
+  } else if (path.includes("/rest/v1/rpc/deeb_advance_aux_cursor")) {
+    data = { ok: true };
   } else if (path.includes("/auth/v1/logout")) {
     data = {};
   } else {
@@ -87,6 +91,7 @@ require("./team-sync.js");
   assert.equal((await db.syncStatus()).open_conflicts, 1);
   assert.ok(calls.some(x => x.path.includes("/rpc/deeb_enroll_device")));
   assert.ok(calls.some(x => x.path.includes("/rpc/deeb_apply_record_mutation")));
+  assert.ok(calls.some(x => x.path.includes("/rpc/deeb_pull_auxiliary")));
   await sync.signOut();
   assert.equal((await sync.status()).signedIn, false);
   console.log("DEEB19 team sync tests passed");
