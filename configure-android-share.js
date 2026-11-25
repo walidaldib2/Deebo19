@@ -433,8 +433,8 @@ public class FileExportPlugin extends Plugin {
               for(int i=0;i<pages;i++){
                 if(finished.get())return;
                 v.scrollTo(0,Math.min(i*height,Math.max(0,contentHeight-height)));
-                android.graphics.pdf.PdfDocument.Page page=document.startPage(new android.graphics.pdf.PdfDocument.PageInfo.Builder(width,height,i+1).create());
-                page.getCanvas().drawColor(Color.WHITE);v.draw(page.getCanvas());document.finishPage(page);
+                android.graphics.pdf.PdfDocument.Page page=document.startPage(new android.graphics.pdf.PdfDocument.PageInfo.Builder(595,842,i+1).create());
+                page.getCanvas().drawColor(Color.WHITE);page.getCanvas().scale(595f/width,842f/height);v.draw(page.getCanvas());document.finishPage(page);
               }
               try(FileOutputStream out=new FileOutputStream(temp,false)){document.writeTo(out);out.flush();}
               document.close();document=null;
