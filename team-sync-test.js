@@ -18,6 +18,7 @@ global.DEEBNativePlugins = { FileExport: { saveFile: async () => ({ saved: true 
 const user = { id: "11111111-1111-4111-8111-111111111111", email: "admin@example.test" };
 const org = "22222222-2222-4222-8222-222222222222";
 let recordApplyCount = 0;
+const appliedBaseRevisions = [];
 let auxiliaryPullCount = 0;
 let preparedAttachmentPath = null;
 const calls = [];
@@ -49,9 +50,11 @@ global.fetch = async (url, options = {}) => {
     data = true;
   } else if (path.includes("/rest/v1/rpc/deeb_apply_record_mutation")) {
     recordApplyCount++;
-    if (recordApplyCount === 1) data = { ok: true, conflict: false, server_revision: 1 };
-    else data = { ok: false, conflict: true, base_revision: 1, server_revision: 2,
-      server_snapshot: { id: "record-1", revision: 2, entity_type: "daily_rosters" } };
+    const mutation = JSON.parse(options.body).p_mutation;
+    appliedBaseRevisions.push(mutation.base_revision);
+    if (recordApplyCount <= 3) data = { ok: true, conflict: false, server_revision: recordApplyCount };
+    else data = { ok: false, conflict: true, base_revision: 3, server_revision: 4,
+      server_snapshot: { id: mutation.record_id, revision: 4, entity_type: "daily_rosters" } };
   } else if (path.includes("/rest/v1/rpc/deeb_pull_records")) {
     data = { records: [], count: 0, has_more: false, awaiting_ack: false };
   } else if (path.includes("/rest/v1/rpc/deeb_advance_sync_cursor")) {
@@ -115,9 +118,13 @@ require("./team-sync.js");
   assert.equal((await db.getTeamContext()).org_id, org);
 
   const created = await db.save("daily_rosters", { branch_id: "branch-1", work_date: "2026-11-25" });
+  await db.save("daily_rosters", { branch_id: "branch-1", work_date: "2026-11-25", note: "تعديل أول دون اتصال" }, created.id);
+  await db.save("daily_rosters", { branch_id: "branch-1", work_date: "2026-11-25", note: "تعديل ثان دون اتصال" }, created.id);
   const sent = await sync.syncNow();
-  assert.equal(sent.pushed.sent, 1, "A local queued record should be sent and acknowledged");
-  assert.equal((await db.getRecord(created.id)).server_revision, 1);
+  assert.equal(sent.pushed.sent, 3, "Create and two offline edits should sync in sequence");
+  assert.deepEqual(appliedBaseRevisions.slice(0, 3), [0, 1, 2],
+    "Each queued offline edit must use the revision returned by its predecessor");
+  assert.equal((await db.getRecord(created.id)).server_revision, 3);
   assert.equal((await db.syncStatus()).pending, 0);
   const remoteAttachment = await db.getAttachment("attachment-remote-1");
   assert.equal(remoteAttachment.blob.size, 11, "Remote private attachment bytes should be downloaded and persisted before cursor acknowledgement");
@@ -131,6 +138,7 @@ require("./team-sync.js");
   await db.save("daily_rosters", { branch_id: "branch-1", work_date: "2026-11-25", note: "تعديل" }, created.id);
   const conflicted = await sync.syncNow();
   assert.equal(conflicted.pushed.conflicts, 1, "Stale server revision should be retained as a conflict");
+  assert.equal(appliedBaseRevisions[3], 3, "The next edit should start from the last acknowledged revision");
   assert.equal((await db.syncStatus()).open_conflicts, 1);
   assert.ok(calls.some(x => x.path.includes("/rpc/deeb_enroll_device")));
   assert.ok(calls.some(x => x.path.includes("/rpc/deeb_apply_record_mutation")));
