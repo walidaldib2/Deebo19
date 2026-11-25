@@ -8,6 +8,7 @@ alter table public.deeb_attachments
   add column if not exists uploaded_at timestamptz;
 
 drop policy if exists "deeb members register attachments" on public.deeb_attachments;
+drop policy if exists "deeb members read attachments" on public.deeb_attachments;
 
 -- The bucket is private. Storage upload is allowed only after an authenticated
 -- RPC has reserved the exact org/record/attachment path in deeb_attachments.
