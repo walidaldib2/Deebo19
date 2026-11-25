@@ -27,8 +27,11 @@ declare
   v_exists boolean;
 begin
   if v_user is null then raise exception 'authentication_required' using errcode='28000'; end if;
-  if coalesce(v_mid,'')='' or coalesce(v_rid,'')='' or jsonb_typeof(v_record)<>'object'
-     or v_record->>'id'<>v_rid then
+  if coalesce(v_mid,'')='' or coalesce(v_rid,'')=''
+     or coalesce(jsonb_typeof(v_record),'')<>'object'
+     or coalesce(v_record->>'id','')<>v_rid
+     or coalesce(v_record->>'entity_type','')=''
+     or coalesce(nullif(v_record->>'branch_id',''),'')<>coalesce(v_branch,'') then
     raise exception 'invalid_mutation_envelope' using errcode='22023';
   end if;
   if coalesce(v_action,'') not in ('create','update','archive','unarchive','soft_delete','restore_deleted') then
