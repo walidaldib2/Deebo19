@@ -17,6 +17,7 @@ Status: design baseline for the isolated development branch. This document does 
 5. No silent last-write-wins for approved reports, audit events, handover versions, or critical operational records. Conflicts must be retained and surfaced for authorized review.
 6. Local mode must not require Supabase credentials, login, or internet access.
 7. No Supabase service-role key or other privileged secret may be shipped in the web app or APK.
+8. First-organization bootstrap requires a trusted `app_metadata.deebo_bootstrap_admin=true` claim set by the Supabase project owner; an ordinary authenticated signup cannot claim the singleton organization.
 
 ## One-administration tenancy model
 
