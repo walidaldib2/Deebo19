@@ -34,7 +34,7 @@ begin
      or coalesce(nullif(v_record->>'branch_id',''),'')<>coalesce(v_branch,'') then
     raise exception 'invalid_mutation_envelope' using errcode='22023';
   end if;
-  if coalesce(v_action,'') not in ('create','update','archive','unarchive','soft_delete','restore_deleted') then
+  if coalesce(v_action,'') not in ('create','update','archive','unarchive','soft_delete','restore_deleted','handover_version') then
     raise exception 'unsupported_mutation_action' using errcode='22023';
   end if;
 
@@ -111,6 +111,22 @@ begin
       v_result:=jsonb_build_object('ok',true,'conflict',false,'mutation_id',v_mid,
         'record_id',v_rid,'server_revision',v_revision);
     end if;
+  end if;
+
+  if v_action='handover_version' and not coalesce((v_result->>'conflict')::boolean,false) then
+    if jsonb_typeof(p_mutation->'snapshot'->'handover_version')<>'object'
+       or coalesce(p_mutation->'snapshot'->'handover_version'->>'record_id','')<>v_rid then
+      raise exception 'invalid_handover_version' using errcode='22023';
+    end if;
+    insert into public.deeb_handover_versions
+      (id,org_id,branch_id,record_id,version,snapshot,reason,actor_user_id,device_id,created_at)
+    values
+      (p_mutation->'snapshot'->'handover_version'->>'id',v_org,v_branch,v_rid,
+       (p_mutation->'snapshot'->'handover_version'->>'version')::integer,
+       p_mutation->'snapshot'->'handover_version'->'snapshot',
+       coalesce(p_mutation->'snapshot'->'handover_version'->>'reason',''),
+       v_user,v_device,
+       coalesce(nullif(p_mutation->'snapshot'->'handover_version'->>'created_at','')::timestamptz,now()));
   end if;
 
   if coalesce((v_result->>'conflict')::boolean,false) then
