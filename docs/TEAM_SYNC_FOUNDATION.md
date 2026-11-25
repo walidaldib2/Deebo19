@@ -79,7 +79,7 @@ The SQL migration is a **schema/RLS foundation only**. The current DEEBO app is 
 - A persistent per-installation device ID is created locally.
 - Explicit team-context configuration is separate from the default local-only mode.
 - Outbox primitives support stable mutation IDs, ordered pending reads, exponential retry backoff, server acknowledgements, and conflict records.
-- In team mode, regular record create/update, manual and automatic archive, unarchive, motorcycle soft-delete/restore, handover versions, approved report snapshots, and attachment metadata are queued in the same IndexedDB transaction as their local data and audit event. Attachment bytes remain in IndexedDB for a later resumable upload.
+- In team mode, regular record create/update, manual and automatic archive, unarchive, motorcycle soft-delete/restore, handover versions, approved report snapshots, and attachment metadata are queued in the same IndexedDB transaction as their local data and audit event. Attachment bytes remain in IndexedDB for a later resumable upload. Local backup restore is blocked while team mode is active or unsynced/conflicted mutations remain, preventing a restore from silently orphaning queued work.
 - Cursor storage is available for later incremental downloads.
 - Integration tests seed a version-3 database and verify its existing record survives the additive upgrade; they also cover local-mode default, stable device identity, duplicate mutation IDs, retry timing, acknowledgements, conflict resolution, cursor persistence, queued record/handover/attachment/approval/archive/tombstone changes, and switching back to local mode.
 
@@ -88,7 +88,7 @@ The SQL migration is a **schema/RLS foundation only**. The current DEEBO app is 
 ## Delivery phases
 
 1. **Foundation (this branch):** isolated branch, data inventory, tenancy/role model, SQL schema with RLS, and migration/sync design.
-2. **Local outbox integration (in progress):** complete and test every local mutation path, including archive cleanup, permanent retention, audit append-only semantics, and attachment upload lifecycle.
+2. **Local outbox integration (in progress):** complete and test every local mutation path, including permanent-retention audit semantics, and attachment upload lifecycle.
 3. **Server mutation API:** authenticated RPCs for idempotent writes, revision checks, audit append, and scoped downloads.
 4. **Team enrollment and administration:** create the one organization, invite users, assign roles and branch memberships.
 5. **Attachments and recovery:** private object storage, resumable uploads, encrypted exports, tested restore and rollback.
