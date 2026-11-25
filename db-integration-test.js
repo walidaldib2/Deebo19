@@ -75,6 +75,8 @@ async function main() {
   const deviceB = await db.deviceIdentity();
   assert.equal(deviceA.device_id, deviceB.device_id, "Device identity must persist across calls");
   assert.ok(deviceA.device_id, "Every installation must have a stable device identifier");
+  const [deviceC, deviceD] = await Promise.all([db.deviceIdentity(), db.deviceIdentity()]);
+  assert.equal(deviceC.device_id, deviceD.device_id, "Concurrent startup must not create multiple device identities");
   await assert.rejects(
     () => db.enqueueSyncMutation({ record_id: "local-only", entity_type: "branches", action: "create" }),
     /الوضع الفردي المحلي/
