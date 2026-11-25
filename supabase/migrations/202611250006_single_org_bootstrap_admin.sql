@@ -21,6 +21,9 @@ declare
   v_display text:=left(trim(coalesce(p_display_name,'')),120);
 begin
   if v_user is null then raise exception 'authentication_required' using errcode='28000'; end if;
+  if coalesce(auth.jwt()->'app_metadata'->>'deebo_bootstrap_admin','false')<>'true' then
+    raise exception 'bootstrap_owner_claim_required' using errcode='42501';
+  end if;
   if v_name='' or v_display='' then raise exception 'invalid_bootstrap_details' using errcode='22023'; end if;
 
   perform pg_advisory_xact_lock(hashtext('deebo-singleton-organization-bootstrap'));
