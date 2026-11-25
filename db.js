@@ -417,7 +417,13 @@ window.DebooDB = (() => {
     };
     const existing=await get("sync_outbox",row.mutation_id);
     if(existing)return existing;
-    await txStore("sync_outbox","readwrite",store=>store.add(row));
+    try { await txStore("sync_outbox","readwrite",store=>store.add(row)); }
+    catch(error) {
+      // A concurrent retry with the same idempotency key may win the insert.
+      const raced=await get("sync_outbox",row.mutation_id);
+      if(raced)return raced;
+      throw error;
+    }
     return row;
   }
   async function pendingSyncMutations(limit=100,at=new Date()) {
