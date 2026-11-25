@@ -612,11 +612,56 @@ function renderBikeLeafletMap(targetId, points){
  if(!document.getElementById("deebLeafletCss")){const css=document.createElement("link");css.id="deebLeafletCss";css.rel="stylesheet";css.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";document.head.appendChild(css);}
  let js=document.getElementById("deebLeafletJs");if(!js){js=document.createElement("script");js.id="deebLeafletJs";js.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";js.onload=draw;js.onerror=()=>{target.innerHTML='<div class="notice">تعذر تحميل الخريطة. تحقق من اتصال الإنترنت وحاول مرة أخرى.</div>';};document.head.appendChild(js);}else if(window.L)draw();
 }
+function normalizeCoordinateText(value){
+ return String(value||"").replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(/[۰-۹]/g,d=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٫]/g,".").replace(/[−–—]/g,"-").replace(/\u00a0/g," ");
+}
+function extractReportCoordinatePairs(value){
+ const text=normalizeCoordinateText(value),out=[],seen=new Set();
+ const patterns=[
+  /([-+]?\d{1,2}\.\d{4,})\s*(?:,|;|،|\s)\s*([-+]?\d{1,3}\.\d{4,})/g,
+  /(?:lat(?:itude)?|خط\s*العرض)\s*[:=]?\s*([-+]?\d{1,2}\.\d+)[\s\S]{0,100}?(?:lon(?:gitude)?|lng|خط\s*الطول)\s*[:=]?\s*([-+]?\d{1,3}\.\d+)/gi
+ ];
+ for(const re of patterns){let m;while((m=re.exec(text))){let lat=Number(m[1]),lng=Number(m[2]);if(lat>90&&lat<=180&&lng>=-90&&lng<=90){const swap=lat;lat=lng;lng=swap;}if(lat>=-90&&lat<=90&&lng>=-180&&lng<=180){const key=lat.toFixed(6)+","+lng.toFixed(6);if(!seen.has(key)){seen.add(key);out.push({lat,lng});}}}}
+ return out;
+}
+function loadExternalScript(id,src){
+ return new Promise((resolve,reject)=>{if(window[id])return resolve(window[id]);let script=document.querySelector('script[data-deeb-lib="'+id+'"]');if(script){script.addEventListener("load",()=>resolve(window[id]),{once:true});script.addEventListener("error",()=>reject(new Error("تعذر تحميل مكتبة قراءة الملف.")),{once:true});return;}script=document.createElement("script");script.src=src;script.async=true;script.dataset.deebLib=id;script.onload=()=>window[id]?resolve(window[id]):reject(new Error("لم تكتمل تهيئة مكتبة قراءة الملف."));script.onerror=()=>reject(new Error("تعذر تحميل مكتبة قراءة الملف. تحقق من اتصال الإنترنت."));document.head.appendChild(script);});
+}
+async function readCoordinatesFromReport(file,onProgress=()=>{}){
+ const isPdf=file.type==="application/pdf"||/\.pdf$/i.test(file.name||"");
+ let pdfjs=null,ocr=null,worker=null,all=[];
+ const add=(coords,page)=>coords.forEach(p=>{const key=p.lat.toFixed(6)+","+p.lng.toFixed(6);if(!all.some(x=>x.key===key))all.push({...p,key,page});});
+ try{
+  if(isPdf){
+   pdfjs=await loadExternalScript("pdfjsLib","https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
+   pdfjs.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+   const data=new Uint8Array(await file.arrayBuffer()),pdf=await pdfjs.getDocument({data}).promise;
+   for(let n=1;n<=pdf.numPages;n++){
+    onProgress("قراءة صفحة "+n+" من "+pdf.numPages+"...");
+    const page=await pdf.getPage(n),content=await page.getTextContent(),text=content.items.map(x=>x.str).join(" ");
+    let coords=extractReportCoordinatePairs(text);
+    if(!coords.length){
+     if(!ocr){ocr=await loadExternalScript("Tesseract","https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js");worker=await ocr.createWorker("eng");}
+     const viewport=page.getViewport({scale:2}),canvas=document.createElement("canvas");canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
+     await page.render({canvasContext:canvas.getContext("2d"),viewport}).promise;
+     const result=await worker.recognize(canvas);coords=extractReportCoordinatePairs(result.data.text);
+    }
+    add(coords,n);
+   }
+  }else if(file.type.startsWith("image/")){
+   ocr=await loadExternalScript("Tesseract","https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js");
+   worker=await ocr.createWorker("eng");onProgress("قراءة الصورة واستخراج الأرقام...");
+   const result=await worker.recognize(file);add(extractReportCoordinatePairs(result.data.text),1);
+  }else throw new Error("اختر ملف PDF أو صورة JPG أو PNG.");
+ }finally{if(worker)await worker.terminate();}
+ return all.map(({key,...p})=>p);
+}
 function bikeMapsPage(){
  const bikes=[...new Set(cache.filter(x=>x.entity_type==="bike_patrols").map(x=>String(x.payload?.bike||"").trim()).filter(Boolean).concat(cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived).map(x=>String(x.payload?.number||"").trim()).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,"ar",{numeric:true}));
  const dateValue=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
  const todayDate=new Date(),today=dateValue(todayDate),yesterdayDate=new Date(todayDate);yesterdayDate.setDate(yesterdayDate.getDate()-1);const yesterday=dateValue(yesterdayDate);
  area.innerHTML=pageHead("خرائط الدراجات",'<button class="secondary" id="openBikeMapReports">تقارير خرائط الدراجات</button><button class="primary" id="openBikePatrolRecords">تسجيل مرور جديد</button>')+
+ '<div class="card"><h3>استيراد إحداثيات من تقرير</h3><p class="muted">اختر تقرير الدرجات PDF أو صورة واضحة له. سيقرأ التطبيق الإحداثيات ويعرضها للمراجعة على الخريطة دون تعديل سجلات المرور الأصلية.</p><div class="actions"><input id="bikeCoordinateReportFile" type="file" accept="application/pdf,image/*" style="max-width:100%"><button class="primary" id="readBikeCoordinateReport">قراءة التقرير</button></div><p id="bikeCoordinateImportStatus" class="muted" aria-live="polite"></p><div id="bikeCoordinateImportPreview"></div></div>'+
  '<div class="card"><p class="muted">اعرض تحركات كل الدراجات في يوم واحد أو اختر دراجة محددة. اختر نفس التاريخ في خانتي البداية والنهاية لعرض يوم بعينه. تظهر النقاط المحفوظة بإحداثياتها فقط. لا يوجد تتبع مباشر؛ المسار يعتمد على سجلات المرور التي تم حفظها.</p><div class="form"><div class="field"><label>الدراجة</label><select id="individualBikeMap"><option value="">كل الدراجات</option>'+bikes.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("")+'</select></div><div class="field"><label>من تاريخ</label><input id="bikeMapFrom" type="date" value="'+today+'"></div><div class="field"><label>إلى تاريخ</label><input id="bikeMapTo" type="date" value="'+today+'"></div></div><div class="actions"><button class="secondary" id="bikeMapYesterday">خريطة أمس</button><button class="secondary" id="bikeMapToday">خريطة اليوم</button></div><div id="individualBikeMapContent"><div class="empty">جارٍ تجهيز خريطة اليوم.</div></div></div>';
  const normalizePatrolDate=value=>{
   let raw=String(value??"").trim().replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
@@ -643,6 +688,19 @@ function bikeMapsPage(){
  $("#bikeMapToday").onclick=()=>{$("#bikeMapFrom").value=today;$("#bikeMapTo").value=today;paint();};
  $("#openBikePatrolRecords").onclick=()=>render("bikepatrol");
  $("#openBikeMapReports").onclick=()=>render("bikeMapReports");
+ $("#readBikeCoordinateReport").onclick=async()=>{
+  const input=$("#bikeCoordinateReportFile"),file=input?.files?.[0],status=$("#bikeCoordinateImportStatus"),preview=$("#bikeCoordinateImportPreview"),button=$("#readBikeCoordinateReport");
+  if(!file){toast("اختر ملف PDF أو صورة التقرير أولًا.");return;}
+  button.disabled=true;status.textContent="جارٍ تجهيز قارئ التقرير...";preview.innerHTML="";
+  try{
+   const points=await readCoordinatesFromReport(file,message=>{status.textContent=message;});
+   if(!points.length){status.textContent="لم يتم العثور على إحداثيات مؤكدة. تأكد أن الأرقام واضحة وبصيغة عشرية مثل 30.044400, 31.235700.";return;}
+   status.textContent="تم استخراج "+points.length+" نقطة. راجعها على الخريطة قبل الاعتماد.";
+   preview.innerHTML='<div class="stats"><div class="stat"><strong>'+points.length+'</strong><span>نقاط مستخرجة</span></div><div class="stat"><strong>'+new Set(points.map(p=>p.page)).size+'</strong><span>صفحات بها إحداثيات</span></div></div><div id="bikeImportedCoordinatesMap" class="deeb-live-map" style="height:420px"></div><div class="table-wrap"><table><thead><tr><th>م</th><th>الصفحة</th><th>خط العرض</th><th>خط الطول</th><th>فتح الموقع</th></tr></thead><tbody>'+points.map((p,i)=>'<tr><td>'+(i+1)+'</td><td>'+p.page+'</td><td>'+p.lat.toFixed(6)+'</td><td>'+p.lng.toFixed(6)+'</td><td><a target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat='+p.lat+'&mlon='+p.lng+'#map=16/'+p.lat+'/'+p.lng+'">عرض</a></td></tr>').join("")+'</tbody></table></div>';
+   renderBikeLeafletMap("bikeImportedCoordinatesMap",points.map((p,i)=>({lat:p.lat,lng:p.lng,bike:"نقطة التقرير "+(i+1),site:"صفحة "+p.page})));
+  }catch(error){status.textContent=error?.message||"تعذر قراءة التقرير.";}
+  finally{button.disabled=false;}
+ };
  paint();
 }
 function bikeMapReportsPage(){
