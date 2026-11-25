@@ -69,6 +69,10 @@ Each installation gets a random persistent `device_id`. Team-mode mutations carr
 - Archive and delete: tombstones with actor, timestamp, reason, and audit event.
 - No global "last write wins" rule.
 
+## Current implementation boundary
+
+The SQL migration is a **schema/RLS foundation only**. The current DEEBO app is not connected to Supabase, and no cloud sync is active. The migration does not yet provide the trusted mutation RPCs, revision-checked write path, invitation/bootstrap workflow, Storage bucket policies, or production RLS test suite. Do not connect real user data or deploy team mode until those pieces are implemented and tested. Direct table writes are not the final sync contract.
+
 ## Delivery phases
 
 1. **Foundation (this branch):** isolated branch, data inventory, tenancy/role model, SQL schema with RLS, and migration/sync design.
