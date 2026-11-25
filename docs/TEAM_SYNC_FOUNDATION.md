@@ -88,6 +88,7 @@ The SQL schema/RLS foundation is followed by a second migration containing authe
 - A dedicated append-only RPC stores approved report snapshots and their audit event. Direct client insert policies for audit history, approved reports, handover versions, and sync conflicts are removed.
 - Private attachment flow now reserves an opaque org/record/attachment path, allows upload only to the private `deebo-private` bucket, and finalizes only after the stored object size and MIME type match the reservation. Allowed files are limited to 20 MiB and a short allowlist of image/document formats.
 - A one-time, lock-protected first-admin bootstrap creates the singleton organization. Checked RPCs manage branches and branch assignments. The `deebo-invite` Edge Function validates the caller's role, sends an Auth invitation, creates the profile, and rolls back the invited account if profile or branch assignment fails.
+- Incremental pulls now create a pending page boundary. The client must persist the returned page locally and acknowledge that exact boundary before the server cursor advances; retries replay from the committed boundary rather than skipping ahead.
 - These server functions have not been applied to a Supabase project or exercised against PostgreSQL.
 - Integration tests seed a version-3 database and verify its existing record survives the additive upgrade; they also cover local-mode default, stable device identity, duplicate mutation IDs, retry timing, acknowledgements, conflict resolution, cursor persistence, queued record/handover/attachment/approval/archive/tombstone changes, and switching back to local mode.
 
@@ -97,7 +98,7 @@ The SQL schema/RLS foundation is followed by a second migration containing authe
 
 1. **Foundation (this branch):** isolated branch, data inventory, tenancy/role model, SQL schema with RLS, and migration/sync design.
 2. **Local outbox integration (in progress):** complete and test every local mutation path, including permanent-retention audit semantics, and attachment upload lifecycle.
-3. **Server mutation API:** authenticated record, handover, approved-report, device-enrollment, cursor, attachment, bootstrap, and branch-administration flows are authored. Next add account role/deactivation controls, the app network worker, and database-level regression tests.
+3. **Server mutation API:** authenticated record, handover, approved-report, device-enrollment, acknowledged cursor, attachment, bootstrap, branch-administration, and staff-invitation flows are authored. Next add account role/deactivation controls, the app network worker, and database-level regression tests.
 4. **Team enrollment and administration:** create the one organization, invite users, assign roles and branch memberships.
 5. **Attachments and recovery:** private object storage, resumable uploads, encrypted exports, tested restore and rollback.
 6. **UI and Android verification:** mode selection, connection/sync status, permission screens, offline/online scenarios, and physical-device regression tests.
