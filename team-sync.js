@@ -186,7 +186,7 @@
           throw new Error("فشل رفع المرفق: " + body.slice(0, 300));
         }
       }
-      await rpc("deeb_finalize_attachment", { p_attachment_id: item.id }, token);
+      await rpc("deeb_finalize_attachment", { p_attachment_id: item.id, p_audit: mutation.snapshot?.audit || null }, token);
     }
     await window.DebooDB.markSyncMutationSynced(mutation.mutation_id, null);
     return { synced: true, attachment: true };
