@@ -16,7 +16,7 @@ for (const f of ['qrcode.js','db.js','team-sync.js','biometric.bundle.js','app.j
 // Reuse the database source loaded at the top of this smoke test.
 // Reuse the app source loaded at the top of this smoke test.
 if (!db.includes('DB_VERSION = 5') || !db.includes('"report_archives"') || !db.includes('async function archiveReport') || !db.includes('async function reportArchives')) throw new Error('Persistent report archive storage and API are required');
-for (const marker of ['archiveCurrentReport','archiveBikeMapReport','أرشيف خرائط الدراجات','archiveReportFilter','saveBikeMapArchive']) if (!app.includes(marker)) throw new Error('Report archive UI is missing '+marker);
+for (const marker of ['archiveCurrentReport','archiveBikeMapReport','أرشيف خرائط الدراجات','archiveReportFilter','saveBikeMapArchive','data-pdf-report-archive','data-image-report-archive','data-pdf-approved','data-image-approved','saveArchivedPdf','saveArchivedImage']) if (!app.includes(marker)) throw new Error('Report archive UI is missing '+marker);
 const sw = fs.readFileSync(path.join(root,'sw.js'),'utf8');
 for (const f of ['index.html','style.css','app.js','db.js','team-sync.js','qrcode.js','manifest.json','icon.svg']) if (!sw.includes(`./${f}`)) throw new Error('Service worker core cache missing '+f);
 const pkg = JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
