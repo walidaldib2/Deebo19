@@ -269,8 +269,10 @@ window.DebooDB = (() => {
     if(!recordId||!file) throw new Error("بيانات المرفق غير مكتملة.");
     if(file.size>15*1024*1024) throw new Error("حجم المرفق يتجاوز 15 ميجابايت.");
     const item={id:uid(),record_id:recordId,name:file.name,type:file.type||"application/octet-stream",size:file.size,blob:file,created_at:now()};
-    const d=await openDB();
-    await new Promise((resolve,reject)=>{const tx=d.transaction(["attachments","audit_logs"],"readwrite");tx.objectStore("attachments").put(item);tx.objectStore("audit_logs").put(makeAudit("attachment",recordId,null,{name:item.name,size:item.size},"إضافة مرفق"));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("فشل حفظ المرفق وسجل المراجعة."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء حفظ المرفق."));});
+    const parent=await get("records",recordId),d=await openDB(),auditItem=makeAudit("attachment",recordId,null,{name:item.name,size:item.size},"إضافة مرفق");
+    const syncRow={id:item.id,entity_type:"attachments",branch_id:parent?.branch_id||null,updated_at:item.created_at};
+    const mutation=await prepareRecordMutation(syncRow,"attachment",{attachment:{id:item.id,record_id:recordId,name:item.name,type:item.type,size:item.size,created_at:item.created_at},audit:auditItem},null);
+    await new Promise((resolve,reject)=>{const tx=d.transaction(mutation?["attachments","audit_logs","sync_outbox"]:["attachments","audit_logs"],"readwrite");tx.objectStore("attachments").put(item);tx.objectStore("audit_logs").put(auditItem);putRecordMutation(tx,mutation);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("فشل حفظ المرفق وسجل المراجعة."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء حفظ المرفق."));});
     try{await createAutoBackup();}catch(error){console.warn("DEEB automatic backup:",error);}
     return item;
   }
@@ -279,8 +281,11 @@ window.DebooDB = (() => {
   async function approvedReports() { return (await getAll("approved_reports")).sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))); }
   async function approve(snapshot) {
     const item={id:uid(),title:"تقرير DEEB",snapshot,created_at:now(),actor:"مستخدم الجهاز"};
+    const auditItem=makeAudit("approve",item.id,null,item,"اعتماد نسخة تقرير");
+    const syncRow={id:item.id,entity_type:"approved_reports",branch_id:snapshot?.branch_id||null,updated_at:item.created_at};
+    const mutation=await prepareRecordMutation(syncRow,"approve",{approved_report:item,audit:auditItem},null);
     const d=await openDB();
-    await new Promise((resolve,reject)=>{const tx=d.transaction(["approved_reports","audit_logs"],"readwrite");tx.objectStore("approved_reports").put(item);tx.objectStore("audit_logs").put(makeAudit("approve",item.id,null,item,"اعتماد نسخة تقرير"));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("فشل اعتماد التقرير وسجل المراجعة."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء اعتماد التقرير."));});
+    await new Promise((resolve,reject)=>{const tx=d.transaction(mutation?["approved_reports","audit_logs","sync_outbox"]:["approved_reports","audit_logs"],"readwrite");tx.objectStore("approved_reports").put(item);tx.objectStore("audit_logs").put(auditItem);putRecordMutation(tx,mutation);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("فشل اعتماد التقرير وسجل المراجعة."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء اعتماد التقرير."));});
     try{await createAutoBackup();}catch(error){console.warn("DEEB automatic backup:",error);}
     return item;
   }
