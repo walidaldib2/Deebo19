@@ -1,5 +1,6 @@
 name: Build DEEB Android APK
 # Rebuild restored previous bike-map layout and route-opening behavior.
+# Archive printing uses the standard report layout for the selected date and type.
 
 on:
   workflow_dispatch:
