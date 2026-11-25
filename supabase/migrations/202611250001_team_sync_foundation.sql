@@ -8,7 +8,8 @@ create table if not exists public.deeb_organizations (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   created_at timestamptz not null default now(),
-  is_active boolean not null default true
+  is_active boolean not null default true,
+  is_singleton boolean not null default true unique check (is_singleton)
 );
 
 create table if not exists public.deeb_profiles (
