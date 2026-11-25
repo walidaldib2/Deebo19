@@ -18,6 +18,7 @@ global.DEEBNativePlugins = { FileExport: { saveFile: async () => ({ saved: true 
 const user = { id: "11111111-1111-4111-8111-111111111111", email: "admin@example.test" };
 const org = "22222222-2222-4222-8222-222222222222";
 let recordApplyCount = 0;
+let auxiliaryPullCount = 0;
 const calls = [];
 global.fetch = async (url, options = {}) => {
   const path = String(url);
@@ -47,7 +48,14 @@ global.fetch = async (url, options = {}) => {
   } else if (path.includes("/rest/v1/rpc/deeb_advance_sync_cursor")) {
     data = { ok: true };
   } else if (path.includes("/rest/v1/rpc/deeb_pull_auxiliary")) {
-    data = { items: [], count: 0, has_more: false, awaiting_ack: false };
+    auxiliaryPullCount++;
+    data = auxiliaryPullCount === 1 ? {
+      items: [{ kind: "audit", id: "audit-remote-1", created_at: "2026-11-25T10:00:00.000Z",
+        payload: { id: "audit-remote-1", org_id: org, record_id: "remote-record",
+          action: "create", reason: "اختبار مزامنة", created_at: "2026-11-25T10:00:00.000Z" } }],
+      count: 1, next_created_at: "2026-11-25T10:00:00.000Z",
+      next_item_id: "audit:audit-remote-1", has_more: false, awaiting_ack: true
+    } : { items: [], count: 0, has_more: false, awaiting_ack: false };
   } else if (path.includes("/rest/v1/rpc/deeb_advance_aux_cursor")) {
     data = { ok: true };
   } else if (path.includes("/auth/v1/logout")) {
@@ -92,6 +100,7 @@ require("./team-sync.js");
   assert.ok(calls.some(x => x.path.includes("/rpc/deeb_enroll_device")));
   assert.ok(calls.some(x => x.path.includes("/rpc/deeb_apply_record_mutation")));
   assert.ok(calls.some(x => x.path.includes("/rpc/deeb_pull_auxiliary")));
+  assert.equal((await db.audit()).some(x => x.id === "audit-remote-1"), true, "Remote audit rows should be persisted locally before cursor acknowledgement");
   await sync.signOut();
   assert.equal((await sync.status()).signedIn, false);
   console.log("DEEB19 team sync tests passed");
