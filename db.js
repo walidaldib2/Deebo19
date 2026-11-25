@@ -409,7 +409,24 @@ window.DebooDB = (() => {
     await txStore("sync_state","readwrite",store=>store.put(item));
     return item;
   }
-  async function deviceIdentity() {\n    const d=await openDB();\n    return new Promise((resolve,reject)=>{\n      const tx=d.transaction("sync_state","readwrite"),store=tx.objectStore("sync_state");\n      let value=null;\n      const request=store.get("device_identity");\n      request.onsuccess=()=>{\n        const existing=request.result?.value;\n        if(existing?.device_id){value=existing;return;}\n        value={device_id:uid(),created_at:now(),platform:typeof navigator!=="undefined"?(navigator.userAgent||"web").slice(0,160):"test"};\n        store.put({key:"device_identity",value,updated_at:now()});\n      };\n      tx.oncomplete=()=>resolve(value);\n      tx.onerror=()=>reject(tx.error||new Error("تعذر تثبيت هوية هذا الجهاز."));\n      tx.onabort=()=>reject(tx.error||new Error("تم إلغاء إنشاء هوية الجهاز."));\n    });\n  }\n  async function setTeamContext(context) {
+  async function deviceIdentity() {
+    const d=await openDB();
+    return new Promise((resolve,reject)=>{
+      const tx=d.transaction("sync_state","readwrite"),store=tx.objectStore("sync_state");
+      let value=null;
+      const request=store.get("device_identity");
+      request.onsuccess=()=>{
+        const existing=request.result?.value;
+        if(existing?.device_id){value=existing;return;}
+        value={device_id:uid(),created_at:now(),platform:typeof navigator!=="undefined"?(navigator.userAgent||"web").slice(0,160):"test"};
+        store.put({key:"device_identity",value,updated_at:now()});
+      };
+      tx.oncomplete=()=>resolve(value);
+      tx.onerror=()=>reject(tx.error||new Error("تعذر تثبيت هوية هذا الجهاز."));
+      tx.onabort=()=>reject(tx.error||new Error("تم إلغاء إنشاء هوية الجهاز."));
+    });
+  }
+  async function setTeamContext(context) {
     if(!context||typeof context!=="object"||!context.org_id||!context.user_id) throw new Error("بيانات ربط الإدارة والمستخدم غير مكتملة.");
     const current=await readSyncState("team_context");
     const value={mode:"team",org_id:String(context.org_id),user_id:String(context.user_id),display_name:String(context.display_name||""),configured_at:current?.value?.configured_at||now()};
