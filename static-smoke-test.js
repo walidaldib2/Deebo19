@@ -283,8 +283,8 @@ if (!dbSource.includes('const DB_VERSION = 4') || !dbSource.includes('createAuto
 
 if (!app.includes('patrol_date') || !app.includes('location_url') || !app.includes('extractSharedCoordinates')) throw new Error('WhatsApp fixed-location patrol flow is incomplete');
 const manifest = JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
-if (manifest.name !== 'DEEB' || manifest.short_name !== 'DEEB') throw new Error('PWA display name must be DEEB');
-if (!html.includes('<title>DEEB |') || !html.includes('class="wordmark">DEEB</div>') || html.includes('wolf-mark') || html.includes('شعار الذئب')) throw new Error('Visible DEEB wordmark-only branding is missing or a wolf icon remains');
+if (manifest.name !== 'DEEB19' || manifest.short_name !== 'DEEB19') throw new Error('PWA display name must be DEEB19');
+if (!html.includes('<title>DEEB19 |') || !html.includes('class="wordmark">DEEB19</div>') || html.includes('wolf-mark') || html.includes('شعار الذئب')) throw new Error('Visible DEEB19 wordmark-only branding is missing or a wolf icon remains');
 if (!manifest.share_target || manifest.share_target.action !== './?share=location') throw new Error('PWA WhatsApp share target is missing');
 if (!fs.existsSync(path.join(root,"native-plugins.bundle.js")) || !html.includes('<script src="native-plugins.bundle.js"></script>')) throw new Error("Browser fallback for optional native plugins is missing");
 const swSource = fs.readFileSync(path.join(root,"sw.js"),"utf8");
