@@ -56,7 +56,7 @@ begin
       raise exception 'approval_permission_denied' using errcode='42501';
     end if;
     v_item:=v_snapshot->'approved_report';
-    if coalesce(v_item->>'id','')='' or jsonb_typeof(v_item->'snapshot') is null then
+    if coalesce(v_item->>'id','')='' or coalesce(jsonb_typeof(v_item->'snapshot'),'')<>'object' then
       raise exception 'invalid_approved_report' using errcode='22023';
     end if;
     if coalesce(nullif(v_item->'snapshot'->>'branch_id',''),'')<>coalesce(v_branch,'') then
