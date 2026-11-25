@@ -85,13 +85,13 @@ begin
   )
   select coalesce(jsonb_agg(jsonb_build_object(
       'kind',kind,'id',id,'created_at',created_at,'payload',payload)
-      order by created_at,id),'[]'::jsonb),
+      order by created_at,kind,id),'[]'::jsonb),
     count(*),max(created_at),
-    (array_agg(cursor_id order by created_at desc,cursor_id desc))[1]
-  into v_items,v_count,v_last_created,v_last_id from selected;
+    (array_agg(cursor_id order by created_at desc,cursor_id desc))[1],
+    exists(select 1 from page where rn>v_limit)
+  into v_items,v_count,v_last_created,v_last_id,v_has_more from selected;
 
   if v_count>0 then
-    select exists(select 1 from page where rn>v_limit) into v_has_more;
     update public.deeb_sync_aux_cursors set
       pending_created_at=v_last_created,pending_item_id=v_last_id,updated_at=now()
     where org_id=v_org and device_id=p_device_id;
