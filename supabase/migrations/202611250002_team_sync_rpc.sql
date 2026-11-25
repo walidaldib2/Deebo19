@@ -152,6 +152,7 @@ declare
   v_count integer;
   v_last_updated timestamptz;
   v_last_id text;
+  v_has_more boolean;
   v_limit integer:=greatest(1,least(coalesce(p_limit,200),500));
 begin
   if v_user is null then raise exception 'authentication_required' using errcode='28000'; end if;
@@ -164,18 +165,30 @@ begin
   end if;
 
   with page as (
-    select r.* from public.deeb_records r
+    select r.*,row_number() over(order by r.updated_at,r.id) as sync_row_number
+    from public.deeb_records r
     where r.org_id=v_org and public.deeb_can_access_branch(r.branch_id)
       and (p_after_updated_at is null or
         (r.updated_at,r.id)>(p_after_updated_at,coalesce(p_after_record_id,'')))
-    order by r.updated_at,r.id limit v_limit
+    order by r.updated_at,r.id limit v_limit+1
+  ), selected as (
+    select * from page where sync_row_number<=v_limit
   )
-  select coalesce(jsonb_agg(to_jsonb(page) order by page.updated_at,page.id),'[]'::jsonb),
-    count(*),max(updated_at),(array_agg(id order by updated_at desc,id desc))[1]
-  into v_rows,v_count,v_last_updated,v_last_id from page;
+  select coalesce(jsonb_agg(to_jsonb(selected)-'sync_row_number'
+      order by selected.updated_at,selected.id),'[]'::jsonb),
+    count(*),max(updated_at),
+    (array_agg(id order by updated_at desc,id desc))[1]
+  into v_rows,v_count,v_last_updated,v_last_id from selected;
+
+  select exists(select 1 from public.deeb_records r
+    where r.org_id=v_org and public.deeb_can_access_branch(r.branch_id)
+      and (p_after_updated_at is null or
+        (r.updated_at,r.id)>(p_after_updated_at,coalesce(p_after_record_id,'')))
+    order by r.updated_at,r.id offset v_limit limit 1)
+  into v_has_more;
 
   return jsonb_build_object('records',v_rows,'count',v_count,
-    'next_updated_at',v_last_updated,'next_record_id',v_last_id,'has_more',v_count=v_limit);
+    'next_updated_at',v_last_updated,'next_record_id',v_last_id,'has_more',v_has_more);
 end;
 $$;
 
