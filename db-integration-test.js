@@ -84,6 +84,7 @@ async function main() {
 
   // Team mode queue is durable, ordered, retryable, idempotent, and separate from local-only behavior.
   await db.setTeamContext({ org_id: "org-qa", user_id: "user-qa", display_name: "اختبار" });
+  await assert.rejects(() => db.setTeamContext({ org_id: "another-org", user_id: "user-qa" }), /إدارة واحدة/);
   const queued = await db.enqueueSyncMutation({
     mutation_id: "mutation-qa-001", record_id: "record-qa-001", entity_type: "branches",
     action: "create", branch_id: "branch-qa", base_revision: 0,
