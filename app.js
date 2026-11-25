@@ -494,11 +494,11 @@ function renderEntity(type){
    payload.followup_slot=currentEdit.payload.followup_slot||payload.followup_slot||"";
   }
   if(type==="manager_rounds"){const c=patrolShiftContext();payload.branch_context=payload.branch_context||c.branch||"";payload.supervisor_context=payload.supervisor_context||c.supervisor||"";payload.shift_context=payload.shift_context||c.shift||"";if(!payload.branches)payload.branches=c.branch||"";}
-  if(type==="bike_shift_assignments"){payload.assignments=[...form.querySelectorAll("[data-bike-assignment]")].map(el=>({bike_id:el.dataset.bikeAssignment,person_id:el.value})).filter(a=>a.person_id);Object.keys(payload).filter(key=>key.startsWith("assignment_")).forEach(key=>delete payload[key]);}
+  if(type==="bike_shift_assignments"){payload.assignments=[...form.querySelectorAll("[data-bike-assignment]")].map(el=>({bike_id:el.dataset.bikeAssignment,person_id:el.value}));Object.keys(payload).filter(key=>key.startsWith("assignment_")).forEach(key=>delete payload[key]);}
   if(type==="daily_rosters"){payload.patrol_people_ids=[...form.querySelectorAll('input[name="patrol_people_ids"]:checked')].map(o=>o.value);payload.bike_ids=[...form.querySelectorAll('input[name="bike_ids"]:checked')].map(o=>o.value);}
   Object.keys(payload).forEach(key=>{if(typeof payload[key]==="string")payload[key]=payload[key].trim();});
   if(["daily_rosters","bike_shift_assignments"].includes(type)&&(!payload.work_date||!payload.shift)){toast("حدد تاريخ الشفت ونوعه.");return;}
-  if(type==="bike_shift_assignments"&&!payload.assignments.length){toast("حدد الفرد الراكب لكل دراجة قبل الحفظ.");return;}
+  if(type==="bike_shift_assignments"&&(!payload.assignments.length||payload.assignments.some(a=>!a.person_id))){toast("اختَر الفرد الراكب لكل دراجة مسجلة قبل الحفظ.");return;}
   if(type==="bike_patrols"&&!payload.patrol_date){const oldDate=currentEdit?.payload?.patrol_date||String(currentEdit?.payload?.patrol_time||"").slice(0,10);const now=new Date();payload.patrol_date=oldDate||[now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0")].join("-");}
   if(type==="branches"&&!payload.name){if(status)status.textContent="اكتب اسم الفرع أولًا.";toast("اسم الفرع مطلوب.");form.elements.namedItem("name")?.focus();return;}
   const files=[...($("#documentFiles")?.files||[])];
