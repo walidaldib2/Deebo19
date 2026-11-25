@@ -613,7 +613,7 @@ function renderBikeLeafletMap(targetId, points){
  };
  if(window.L){draw();return;}
  if(!document.getElementById("deebLeafletCss")){const css=document.createElement("link");css.id="deebLeafletCss";css.rel="stylesheet";css.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";document.head.appendChild(css);}
- let js=document.getElementById("deebLeafletJs");if(!js){js=document.createElement("script");js.id="deebLeafletJs";js.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";js.onload=draw;js.onerror=()=>{target.innerHTML='<div class="notice">تعذر تحميل الخريطة. تحقق من اتصال الإنترنت وحاول مرة أخرى.</div>';};document.head.appendChild(js);}else if(window.L)draw();
+ let js=document.getElementById("deebLeafletJs");if(!js){js=document.createElement("script");js.id="deebLeafletJs";js.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";document.head.appendChild(js);}js.addEventListener("load",draw,{once:true});js.addEventListener("error",()=>{const current=document.getElementById(targetId);if(current)current.innerHTML='<div class="notice">تعذر تحميل مكتبة الخرائط. تحقق من اتصال الإنترنت ثم أعد فتح القسم.</div>';},{once:true});
 }
 function bikeMapsPage(){
  const bikes=[...new Set(cache.filter(x=>x.entity_type==="bike_patrols").map(x=>String(x.payload?.bike||"").trim()).filter(Boolean).concat(cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived).map(x=>String(x.payload?.number||"").trim()).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,"ar",{numeric:true}));
@@ -624,9 +624,9 @@ function bikeMapsPage(){
  const normalizePatrolDate=value=>{
   let raw=String(value??"").trim().replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
   if(!raw)return "";
-  const iso=raw.match(/^(\\d{4})[-/.](\\d{1,2})[-/.](\\d{1,2})/);
+  const iso=raw.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
   if(iso)return iso[1]+"-"+String(iso[2]).padStart(2,"0")+"-"+String(iso[3]).padStart(2,"0");
-  const dmy=raw.match(/^(\\d{1,2})[-/.](\\d{1,2})[-/.](\\d{4})/);
+  const dmy=raw.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
   if(dmy)return dmy[3]+"-"+String(dmy[2]).padStart(2,"0")+"-"+String(dmy[1]).padStart(2,"0");
   const parsed=new Date(raw);
   return Number.isNaN(parsed.getTime())?"":dateValue(parsed);
