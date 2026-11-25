@@ -24,7 +24,7 @@ declare
 begin
   if v_user is null then raise exception 'authentication_required' using errcode='28000'; end if;
   if coalesce(v_mid,'')='' then raise exception 'invalid_mutation_envelope' using errcode='22023'; end if;
-  if coalesce(v_action,'') not in ('approve','handover_version') then
+  if coalesce(v_action,'') <> 'approve' then
     raise exception 'unsupported_append_action' using errcode='22023';
   end if;
   select org_id,role into v_org,v_role from public.deeb_profiles
