@@ -34,7 +34,7 @@ Role names alone are not enough: branch membership and server-side row-level sec
 
 ## Existing local data inventory
 
-Current IndexedDB database: `DEBOO16_LOCAL_DB`, version 3.
+Approved baseline `فريدة` uses IndexedDB `DEBOO16_LOCAL_DB`, version 3. The isolated development branch upgrades this database additively to version 4.
 
 Stores: `records`, `audit_logs`, `approved_reports`, `handover_versions`, `attachments`, `automatic_backups`.
 
@@ -79,15 +79,16 @@ The SQL migration is a **schema/RLS foundation only**. The current DEEBO app is 
 - A persistent per-installation device ID is created locally.
 - Explicit team-context configuration is separate from the default local-only mode.
 - Outbox primitives support stable mutation IDs, ordered pending reads, exponential retry backoff, server acknowledgements, and conflict records.
+- In team mode, regular record create/update, manual and automatic archive, unarchive, motorcycle soft-delete/restore, handover versions, approved report snapshots, and attachment metadata are queued in the same IndexedDB transaction as their local data and audit event. Attachment bytes remain in IndexedDB for a later resumable upload.
 - Cursor storage is available for later incremental downloads.
-- Integration tests cover local-mode default, stable device identity, duplicate mutation IDs, retry timing, acknowledgements, conflict resolution, cursor persistence, and switching back to local mode.
+- Integration tests seed a version-3 database and verify its existing record survives the additive upgrade; they also cover local-mode default, stable device identity, duplicate mutation IDs, retry timing, acknowledgements, conflict resolution, cursor persistence, queued record/handover/attachment/approval/archive/tombstone changes, and switching back to local mode.
 
-**Important current limit:** the app's existing `save/archive/delete/approve/attachment` operations are not yet automatically coupled to the outbox, and there is no network worker or Supabase endpoint connected. The queue API is a tested foundation, not an active sync feature. Do not enroll real team data yet.
+**Important current limit:** the local write paths now queue supported mutations, but there is still no network worker or Supabase endpoint connected. No cloud synchronization is active, and the local integration suite has been updated but not executed in this environment. Do not enroll real team data yet.
 
 ## Delivery phases
 
 1. **Foundation (this branch):** isolated branch, data inventory, tenancy/role model, SQL schema with RLS, and migration/sync design.
-2. **Local outbox integration:** atomically write every eligible local change and its outbox item in the same IndexedDB transaction; add safe handling for append-only approvals, audit events, handover versions, and attachments.
+2. **Local outbox integration (in progress):** complete and test every local mutation path, including archive cleanup, permanent retention, audit append-only semantics, and attachment upload lifecycle.
 3. **Server mutation API:** authenticated RPCs for idempotent writes, revision checks, audit append, and scoped downloads.
 4. **Team enrollment and administration:** create the one organization, invite users, assign roles and branch memberships.
 5. **Attachments and recovery:** private object storage, resumable uploads, encrypted exports, tested restore and rollback.
