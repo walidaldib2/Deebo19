@@ -489,6 +489,13 @@ window.DebooDB = (() => {
       .sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at)))
       .slice(0,Math.max(0,Math.min(500,Number(limit)||100)));
   }
+  async function syncQueueForPush(limit=500) {
+    return (await getAll("sync_outbox"))
+      .filter(x=>x.status==="pending"||x.status==="conflict")
+      .sort((a,b)=>String(a.created_at||"").localeCompare(String(b.created_at||""))||
+        String(a.mutation_id||"").localeCompare(String(b.mutation_id||"")))
+      .slice(0,Math.max(0,Math.min(1000,Number(limit)||500)));
+  }
   async function markSyncMutationSynced(mutationId,serverRevision=null) {
     const row=await get("sync_outbox",mutationId);if(!row)return null;
     const updated={...row,status:"synced",server_revision:serverRevision,synced_at:now(),last_error:null};
@@ -670,5 +677,5 @@ window.DebooDB = (() => {
   async function setSyncCursor(value) { return writeSyncState("sync_cursor",value); }
   async function auxSyncCursor() { return (await readSyncState("aux_sync_cursor"))?.value||null; }
   async function setAuxSyncCursor(value) { return writeSyncState("aux_sync_cursor",value); }
-  return {init,configured,list,all,archivePastDays,purgeExpiredDeleted,getRecord:(id)=>get("records",id),save,archive,unarchive,softDelete,restoreDeleted,audit,approve,approvedReports,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,deviceIdentity,setTeamContext,clearTeamContext,getTeamContext,enqueueSyncMutation,pendingSyncMutations,markSyncMutationSynced,getSyncMutation,rebasePendingRecordMutations,retrySyncMutation,addSyncConflict,resolveSyncConflict,setRecordServerRevision,applyRemoteSyncPage,applyRemoteAuxData,saveRemoteAttachment,syncStatus,syncCursor,setSyncCursor,auxSyncCursor,setAuxSyncCursor,local:true};
+  return {init,configured,list,all,archivePastDays,purgeExpiredDeleted,getRecord:(id)=>get("records",id),save,archive,unarchive,softDelete,restoreDeleted,audit,approve,approvedReports,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,deviceIdentity,setTeamContext,clearTeamContext,getTeamContext,enqueueSyncMutation,pendingSyncMutations,syncQueueForPush,markSyncMutationSynced,getSyncMutation,rebasePendingRecordMutations,retrySyncMutation,addSyncConflict,resolveSyncConflict,setRecordServerRevision,applyRemoteSyncPage,applyRemoteAuxData,saveRemoteAttachment,syncStatus,syncCursor,setSyncCursor,auxSyncCursor,setAuxSyncCursor,local:true};
 })();
