@@ -214,7 +214,7 @@ const buttonBindingChecks = [
   ['$("#employeeListBack")?.addEventListener("click"', 'Employee-list back button is not wired'],
   ['installBtn.onclick=async()=>', 'Install-app button is not wired'],
   ['$("#printReport").onclick=async()=>', 'Print-report button is not wired'],
-  ['$("#pdfReport").onclick=()=>', 'PDF-report button is not wired'],
+  ['$("#pdfReport").onclick=async()=>', 'PDF-report button is not wired'],
   ['$("#excelReport").onclick=async()=>', 'Excel-report button is not wired'],
   ['$("#csvReport").onclick=async()=>', 'CSV-report button is not wired'],
   ['$("#saveReportImage").onclick=async()=>', 'Save-report-image button is not wired']
