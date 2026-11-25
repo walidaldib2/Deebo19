@@ -20,7 +20,7 @@ Status: design baseline for the isolated development branch. This document does 
 
 ## One-administration tenancy model
 
-The first deployment has one organization row representing the company/security administration. Every team record carries `org_id`; branch-scoped records also carry `branch_id`. A future multi-company product would need a deliberate schema/RLS redesign and is not implied by this first release. The SQL schema enforces a single organization row and uses text keys for locally generated branch, record, device, attachment, and mutation IDs so older DEEBO-generated identifiers can be preserved during migration; authentication user IDs and organization IDs remain UUIDs.
+The first deployment has one organization row representing the company/security administration. Every team record carries `org_id`; branch-scoped records also carry `branch_id`. A future multi-company product would need a deliberate schema/RLS redesign and is not implied by this first release. The SQL schema enforces a single organization row and uses text keys for locally generated branch, record, device, attachment, and mutation IDs so older DEEBO-generated identifiers can be preserved during migration; authentication user IDs and organization IDs remain UUIDs. It also includes server-side mutation receipt keys for idempotency and per-device download cursors; those tables are intentionally inaccessible to direct client table access until trusted RPCs are added.
 
 ### Roles
 
