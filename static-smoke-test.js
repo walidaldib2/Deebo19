@@ -132,14 +132,15 @@ if (!attachmentSaveSource.includes('file.size>15*1024*1024') ||
 const navigationStart = html.indexOf('<section class="tiles" id="mainTiles">');
 const navigationEnd = html.indexOf('</section>', navigationStart);
 const navigationHtml = navigationStart >= 0 && navigationEnd > navigationStart ? html.slice(navigationStart, navigationEnd) : '';
-for (const page of ['home','operations','security','reportsGroup','system']) {
+for (const page of ['home','operations','security','reportsGroup','archive','data','backup','settings']) {
   if (!navigationHtml.includes('data-page="'+page+'"')) throw new Error('Main navigation tile is missing: '+page);
 }
-for (const label of ['لوحة التحكم','التشغيل الميداني','إدارة الأمن','التقارير والسجلات','الأرشيف العام','البيانات والإعدادات']) {
+for (const label of ['لوحة التحكم','التشغيل الميداني','إدارة الأمن','التقارير والإحصائيات','الأرشيف العام','البيانات الأساسية','النسخ الاحتياطي والاستعادة','الإعدادات']) {
   if (!navigationHtml.includes(label)) throw new Error('Main navigation label was lost: '+label);
 }
 for (const required of ['class="tile-icon"','viewBox="0 0 24 24"']) if (!navigationHtml.includes(required)) throw new Error('Premium vector navigation icon system is missing: '+required);
-if ((navigationHtml.match(/data-page=/g)||[]).length !== 6) throw new Error('Home must contain exactly six primary navigation tiles.');
+if ((navigationHtml.match(/data-page=/g)||[]).length !== 8) throw new Error('Home must contain exactly eight independent primary navigation tiles.');
+if (navigationHtml.includes('data-page="system"')) throw new Error('Legacy combined data/settings section must not remain in main navigation.');
 const menuStart=appSource.indexOf('const sectionMenus=');
 const menuEnd=appSource.indexOf(';',menuStart);
 const menuSource=menuStart>=0&&menuEnd>menuStart?appSource.slice(menuStart,menuEnd+1):'';
@@ -578,3 +579,12 @@ if (!html.includes('data-page="archive"') || !app.includes('p==="archive"') || !
 if (!app.includes('id="archiveSearchInput"') || !app.includes('matchesArchiveSearch(x)') || !app.includes('data-print-report-archive')) {
   throw new Error('General Archive must support searching saved reports and retain report print actions.');
 }
+
+
+const settingsStart=appSource.indexOf('function settings(){');
+const backupStart=appSource.indexOf('async function openBackupPage(){');
+const settingsSource=settingsStart>=0&&backupStart>settingsStart?appSource.slice(settingsStart,backupStart):'';
+if (!settingsSource.includes('settingsHome') || /backupBtn|restoreFile|createAutoBackup|automaticBackups|النسخ الاحتياطي والاستعادة/.test(settingsSource)) throw new Error('Settings must not duplicate backup or restore functions.');
+if (!appSource.includes('async function openBackupPage()') || !appSource.includes('else if(p==="backup")openBackupPage();')) throw new Error('Backup and restore must have their own page and route.');
+if (!appSource.includes('else if(p==="data")dataManagementPage();')) throw new Error('Basic data must have its own independent route.');
+if (appSource.includes('<button class="secondary" id="showArchive">الأرشيف العام</button>')) throw new Error('General Archive must be opened from its independent main navigation tile.');
