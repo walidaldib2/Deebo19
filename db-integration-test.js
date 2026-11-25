@@ -56,18 +56,18 @@ async function main() {
   const db = global.DebooDB;
   assert.ok(db, "Database API should initialize");
   const legacyRecord = await db.getRecord("legacy-before-sync-upgrade");
-  assert.equal(legacyRecord?.payload?.name, "سجل قديم يجب ألا يضيع", "Version-3 records must survive the additive version-4 upgrade");
+  assert.equal(legacyRecord?.payload?.name, "سجل قديم يجب ألا يضيع", "Version-3 records must survive additive upgrades through version 5");
   const upgraded = await new Promise((resolve, reject) => {
     const request = indexedDB.open("DEBOO16_LOCAL_DB");
     request.onsuccess = () => { const d = request.result; const info = { version: d.version, stores: [...d.objectStoreNames] }; d.close(); resolve(info); };
     request.onerror = () => reject(request.error);
   });
-  assert.equal(upgraded.version, 4, "Sync foundation must use IndexedDB schema version 4");
-  for (const store of ["records", "audit_logs", "approved_reports", "handover_versions", "attachments", "automatic_backups", "sync_state", "sync_outbox", "sync_conflicts"]) {
+  assert.equal(upgraded.version, 5, "Report archive must be added through IndexedDB schema version 5");
+  for (const store of ["records", "audit_logs", "approved_reports", "report_archives", "handover_versions", "attachments", "automatic_backups", "sync_state", "sync_outbox", "sync_conflicts"]) {
     assert.ok(upgraded.stores.includes(store), "Database upgrade must preserve/create store " + store);
   }
 
-  // Version 4 is additive: legacy operational stores remain present and local mode stays the default.
+  // Version 5 is additive: legacy operational stores remain present and local mode stays the default.
   const localStatus = await db.syncStatus();
   assert.equal(localStatus.mode, "local", "Fresh installs must remain in local-only mode");
   assert.equal(localStatus.pending, 0);
@@ -81,6 +81,12 @@ async function main() {
     () => db.enqueueSyncMutation({ record_id: "local-only", entity_type: "branches", action: "create" }),
     /الوضع الفردي المحلي/
   );
+
+  const archivedReport = await db.archiveReport({ title: "تقرير اختبار", report_type: "general", from_date: "2026-11-25", to_date: "2026-11-25", html: "<!doctype html><html><body>تقرير محفوظ</body></html>" });
+  assert.ok(archivedReport.id, "Generated reports must receive a persistent archive ID");
+  assert.equal((await db.reportArchives()).length, 1, "Report archive entries must be retrievable");
+  const exportedBackup = await db.backup();
+  assert.equal(exportedBackup.report_archives.length, 1, "External backup must include report archives");
 
   // Team mode queue is durable, ordered, retryable, idempotent, and separate from local-only behavior.
   await db.setTeamContext({ org_id: "org-qa", user_id: "user-qa", display_name: "اختبار" });
