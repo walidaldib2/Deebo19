@@ -5,6 +5,7 @@
 drop policy if exists "deeb members append audit history" on public.deeb_audit_logs;
 drop policy if exists "deeb members create approved reports" on public.deeb_approved_reports;
 drop policy if exists "deeb members append handover versions" on public.deeb_handover_versions;
+drop policy if exists "deeb members create sync conflicts" on public.deeb_sync_conflicts;
 
 create or replace function public.deeb_apply_append_mutation(p_mutation jsonb)
 returns jsonb
