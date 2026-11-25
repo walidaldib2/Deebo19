@@ -5,6 +5,8 @@ const required = ['index.html','app.js','db.js','team-sync.js','style.css','sw.j
 const missing = required.filter(f => !fs.existsSync(path.join(root,f)));
 if (missing.length) throw new Error('Missing required files: '+missing.join(', '));
 const html = fs.readFileSync(path.join(root,'index.html'),'utf8');
+const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
+const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
 for (const f of ['qrcode.js','db.js','team-sync.js','biometric.bundle.js','app.js']) if (!html.includes(`src="${f}"`)) throw new Error('index.html does not load '+f);
 // Reuse the database source loaded at the top of this smoke test.
 // Reuse the app source loaded at the top of this smoke test.
@@ -157,14 +159,12 @@ if (!iconBuilder.includes('ic_launcher_foreground.png') || !iconBuilder.includes
 if (cap.appName !== 'DEEB19') throw new Error('Android display name must be DEEB19');
 if (pkg.name !== 'deeb-field-operations') throw new Error('Project package name must be deebo-field-operations');
 if (cap.webDir !== 'www') throw new Error('Capacitor webDir must be the staged www directory');
-const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
 if (!app.includes('const rowHeight=(row,ri)=>') || !app.includes('Math.min(409.5') || !app.includes('rowHeight(row,ri)')) throw new Error('Excel rows must expand to fit wrapped multi-line report content instead of clipping at a fixed height');
 if (!app.includes('$(\"#enableBiometric\").onclick=async()=>') || !app.includes('$(\"#disableBiometric\").onclick=()=>')) throw new Error('Biometric settings handlers are missing');
 if (!app.includes('localStorage.removeItem(BIOMETRIC_KEY)') || !app.includes('سيفتح التطبيق مباشرة دون PIN أو بصمة')) throw new Error('Direct unlock / biometric reset flow is missing');
 if (!app.includes('يمكنك الدخول باستخدام PIN')) throw new Error('Biometric PIN fallback message is missing');
 if (!app.includes('function lockApplication()') || !app.includes('document.visibilityState==="hidden"') || !app.includes('window.addEventListener("pagehide",lockApplication)')) throw new Error('Automatic PIN lock hooks are missing');
 if (!sw.includes('deebo-local-v10-26')) throw new Error('Service worker cache version was not bumped');
-const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 if (!db.includes('function localDateISO(date=new Date())') || !db.includes('function recordWorkDate(row)') || !db.includes('function shiftIdentity(payload={})') || !db.includes('is_archived:!!old?.is_archived') || !db.includes('shift_key')) throw new Error('Date/shift identity and archived-record edit preservation are required');
 if (!db.includes(String.raw`/^\d{4}-\d{2}-\d{2}$/`) || db.includes(String.raw`/^\\d{4}-\\d{2}-\\d{2}$/`)) throw new Error('Work-date validation must match real ISO calendar dates, not literal backslash characters');
 if (!db.includes('if(operationalTypes.has(type))') || !db.includes('"written_reports","absences","handovers","emergencies","tasks"')) throw new Error('Shift/date metadata must be limited to operational records, leaving master registries unchanged');
