@@ -125,8 +125,10 @@ begin
   if not found then raise exception 'attachment_not_found' using errcode='42501'; end if;
 
   if not exists(select 1 from storage.objects o
-    where o.bucket_id='deebo-private' and o.name=v_attachment.storage_path) then
-    raise exception 'attachment_object_not_uploaded' using errcode='P0002';
+    where o.bucket_id='deebo-private' and o.name=v_attachment.storage_path
+      and coalesce((o.metadata->>'size')::bigint,-1)=v_attachment.size_bytes
+      and lower(coalesce(o.metadata->>'mimetype',''))=lower(v_attachment.mime_type)) then
+    raise exception 'attachment_object_missing_or_metadata_mismatch' using errcode='P0002';
   end if;
 
   update public.deeb_attachments set upload_status='uploaded',uploaded_at=now()
