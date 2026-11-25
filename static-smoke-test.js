@@ -7,6 +7,11 @@ if (missing.length) throw new Error('Missing required files: '+missing.join(', '
 const html = fs.readFileSync(path.join(root,'index.html'),'utf8');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
+const vm = require('node:vm');
+for (const file of ['app.js','db.js','team-sync.js','preferences.js','sw.js','qrcode.js','biometric.bundle.js','native-plugins.bundle.js']) {
+  const source = fs.readFileSync(path.join(root,file),'utf8');
+  new vm.Script(source,{filename:file});
+}
 for (const f of ['qrcode.js','db.js','team-sync.js','biometric.bundle.js','app.js']) if (!html.includes(`src="${f}"`)) throw new Error('index.html does not load '+f);
 // Reuse the database source loaded at the top of this smoke test.
 // Reuse the app source loaded at the top of this smoke test.
