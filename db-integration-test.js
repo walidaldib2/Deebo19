@@ -39,7 +39,7 @@ const legacyDbReady = new Promise((resolve, reject) => {
       store.createIndex("record_id", "record_id", { unique: false });
     }
     if (!d.objectStoreNames.contains("automatic_backups")) d.createObjectStore("automatic_backups", { keyPath: "id" });
-    d.transaction.objectStore("records").put({
+    request.transaction.objectStore("records").put({
       id: "legacy-before-sync-upgrade", entity_type: "branches",
       payload: { name: "سجل قديم يجب ألا يضيع" }, branch_id: null, status: "active",
       is_archived: false, is_deleted: false, created_at: "2026-11-01T00:00:00.000Z",
