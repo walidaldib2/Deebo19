@@ -24,6 +24,14 @@ const calls = [];
 global.fetch = async (url, options = {}) => {
   const path = String(url);
   calls.push({ path, method: options.method || "GET" });
+  if (path.includes("/storage/v1/object/authenticated/deebo-private/")) {
+    return new Response(new Blob(["remote file"], { type: "text/plain" }), { status: 200 });
+  }
+  if (path.includes("/storage/v1/object/deebo-private/") && options.method === "POST") {
+    return new Response(JSON.stringify({ Key: preparedAttachmentPath }), {
+      status: 200, headers: { "Content-Type": "application/json" }
+    });
+  }
   let data = {};
   if (path.includes("/auth/v1/token?grant_type=password")) {
     data = { access_token: "access-test", refresh_token: "refresh-test",
@@ -81,14 +89,6 @@ global.fetch = async (url, options = {}) => {
     data = {};
   } else {
     throw new Error("Unexpected test request: " + path);
-  }
-  if (path.includes("/storage/v1/object/authenticated/deebo-private/")) {
-    return new Response(new Blob(["remote file"], { type: "text/plain" }), { status: 200 });
-  }
-  if (path.includes("/storage/v1/object/deebo-private/") && options.method === "POST") {
-    return new Response(JSON.stringify({ Key: preparedAttachmentPath }), {
-      status: 200, headers: { "Content-Type": "application/json" }
-    });
   }
   return new Response(JSON.stringify(data), {
     status: 200, headers: { "Content-Type": "application/json" }
