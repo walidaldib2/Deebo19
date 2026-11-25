@@ -1,6 +1,10 @@
 -- DEEB19 first-admin bootstrap and controlled branch administration.
 -- The first authenticated account can claim the empty singleton workspace once.
 
+-- Admin mutations are exposed only through the checked functions below.
+drop policy if exists "deeb managers manage branches" on public.deeb_branches;
+drop policy if exists "deeb managers manage branch assignments" on public.deeb_branch_memberships;
+
 create or replace function public.deeb_bootstrap_organization(
   p_organization_name text,
   p_display_name text
