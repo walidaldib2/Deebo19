@@ -264,7 +264,7 @@ if (!app.includes("bindGlobalSearchSuggestions()") || !app.includes('input.setAt
 
 console.log('PASS: required files, navigation hierarchy, reports archive/restore, script references, refreshed service-worker cache, package.json, Capacitor config, automatic-lock wiring, and chronological three-column motorcycle print reports (site, patrol time, coordinates) with report date in the header and continuation pages, with existing screen preview and spreadsheet export preserved.');
 
-if (!app.includes('id="pdfReport"') || !app.includes('$("#pdfReport").onclick=()=>') || !app.includes('اختر حفظ كملف PDF')) throw new Error('PDF export action is missing');
+if (!app.includes('id="pdfReport"') || !app.includes('$("#pdfReport").onclick=async()=>') || !app.includes('native.saveHtmlAsPdf({html,name:"DEEB-report"})')) throw new Error('Direct PDF export action is missing');
 
 if (!app.includes('data-report-type="written_reports">التقرير اليومي</button>') || app.includes('id="createWrittenReport"') || !app.includes('type==="written_reports"?"+ إضافة تقرير يومي":type==="memos"?"+ إضافة مذكرة":"+ إضافة سجل"') || !app.includes("documentTitle+'</h1>")) throw new Error('Daily report creation must stay in Follow-up while Reports only filters and prints saved reports');
 
