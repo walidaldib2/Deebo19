@@ -196,14 +196,26 @@
     return { synced: true, attachment: true };
   }
   async function pushPending(session, userId) {
-    const pending = await window.DebooDB.pendingSyncMutations(100);
-    const result = { sent: 0, conflicts: 0, failed: 0, blocked_other_user: 0, blocked_dependency: 0 };
+    const pending = await window.DebooDB.syncQueueForPush(500);
+    const result = { sent: 0, conflicts: 0, failed: 0, blocked_other_user: 0, blocked_dependency: 0, waiting_retry: 0 };
     const blockedRecords = new Set();
+    const now = new Date().toISOString();
     for (const queued of pending) {
       const row = await window.DebooDB.getSyncMutation(queued.mutation_id);
-      if (!row || row.status !== "pending") continue;
-      if (row.user_id !== userId) { result.blocked_other_user++; continue; }
+      if (!row) continue;
+      if (row.status === "conflict") { blockedRecords.add(row.record_id); continue; }
+      if (row.status !== "pending") continue;
+      if (row.user_id !== userId) {
+        result.blocked_other_user++;
+        blockedRecords.add(row.record_id);
+        continue;
+      }
       if (blockedRecords.has(row.record_id)) { result.blocked_dependency++; continue; }
+      if (row.next_attempt_at && row.next_attempt_at > now) {
+        result.waiting_retry++;
+        blockedRecords.add(row.record_id);
+        continue;
+      }
       const envelope = {
         mutation_id: row.mutation_id, record_id: row.record_id,
         action: row.action, branch_id: row.branch_id || null,
