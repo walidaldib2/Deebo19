@@ -551,8 +551,8 @@ for (const page of menuEntries) {
 const dataPageStart = appSource.indexOf('function dataManagementPage()');
 const dataPageEnd = appSource.indexOf('\nfunction emergencyPage()', dataPageStart);
 const dataPageSource = dataPageStart >= 0 && dataPageEnd > dataPageStart ? appSource.slice(dataPageStart, dataPageEnd) : '';
-if (!dataPageSource.includes('pageHead("البيانات الأساسية"') || !/id=\\?"backSystem\\?"/.test(dataPageSource) || !dataPageSource.includes('رجوع للبيانات والإعدادات')) {
-  throw new Error('Master-data page title or return-to-settings navigation is missing.');
+if (!dataPageSource.includes('pageHead("البيانات الأساسية"') || !/id=\\?"backSystem\\?"/.test(dataPageSource) || !dataPageSource.includes('رجوع للقائمة الرئيسية') || !dataPageSource.includes('render("landing")')) {
+  throw new Error('Master-data page title or return-to-main-menu navigation is missing.');
 }
 if (new Set([...pageGroupsDataTypes()]).size !== pageGroupsDataTypes().length) {
   throw new Error('A master-data record type is duplicated in the data navigation.');
