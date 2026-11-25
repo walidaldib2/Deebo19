@@ -1205,9 +1205,9 @@ function statisticsPage(){
 }
 async function openArchivePage(){await reports();$("#showArchive")?.click();}
 async function openBackupPage(){
- area.innerHTML=pageHead("النسخ الاحتياطي والاستعادة", '<button class="secondary" id="backupHome">القائمة الرئيسية</button>')+\`
+ area.innerHTML=pageHead("النسخ الاحتياطي والاستعادة", '<button class="secondary" id="backupHome">القائمة الرئيسية</button>')+`
  <div class="card"><h3>نسخة احتياطية خارجية</h3><p class="muted">نزّل ملف JSON يحتوي على بيانات التطبيق ومرفقاته، واحتفظ به خارج الهاتف في مكان آمن.</p><div class="actions"><button class="primary" id="backupBtn">إنشاء وتنزيل نسخة احتياطية</button><label class="secondary">استعادة نسخة JSON من ملف <input id="restoreFile" type="file" accept="application/json" hidden></label></div><p class="muted">الاستعادة تستبدل البيانات الحالية بمحتويات النسخة المختارة. أنشئ نسخة حديثة أولًا.</p></div>
- <div class="card"><h3>النسخ التلقائية على هذا الجهاز</h3><p class="muted">يحاول التطبيق إنشاء نسخة تلقائية يوميًا ويحتفظ بآخر 3 نسخ. النسخ المحلية لا تحمي عند فقد الهاتف أو حذف بيانات التطبيق.</p><div id="autoBackupArea" class="muted">جارٍ تحميل النسخ التلقائية...</div></div>\`;
+ <div class="card"><h3>النسخ التلقائية على هذا الجهاز</h3><p class="muted">يحاول التطبيق إنشاء نسخة تلقائية يوميًا ويحتفظ بآخر 3 نسخ. النسخ المحلية لا تحمي عند فقد الهاتف أو حذف بيانات التطبيق.</p><div id="autoBackupArea" class="muted">جارٍ تحميل النسخ التلقائية...</div></div>`;
  $("#backupHome").onclick=()=>render("landing");
  $("#backupBtn").onclick=async()=>{const button=$("#backupBtn");button.disabled=true;try{const b=await DebooDB.backup();await DebooDB.downloadBlob(new Blob([JSON.stringify(b,null,2)],{type:"application/json"}),"DEEB-backup-"+new Date().toISOString().slice(0,10)+".json");toast("تم إنشاء النسخة الاحتياطية وحفظها في التنزيلات");}catch(e){toast("تعذر إنشاء النسخة الاحتياطية: "+(e.message||e));}finally{button.disabled=false;}};
  $("#restoreFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const obj=JSON.parse(await f.text());if(!confirm("سيتم استبدال السجلات الحالية بالنسخة المختارة. هل تريد المتابعة؟"))return;await DebooDB.restore(obj);await refresh();toast("اكتملت الاستعادة");openBackupPage();}catch(err){toast("فشلت الاستعادة: "+err.message)}};
