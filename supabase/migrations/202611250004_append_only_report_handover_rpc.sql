@@ -1,6 +1,11 @@
 -- DEEB19 immutable approved-report and handover-version append RPC.
 -- Attachment metadata is intentionally excluded until private Storage upload verification exists.
 
+-- Keep append-only history writes behind trusted RPC validation.
+drop policy if exists "deeb members append audit history" on public.deeb_audit_logs;
+drop policy if exists "deeb members create approved reports" on public.deeb_approved_reports;
+drop policy if exists "deeb members append handover versions" on public.deeb_handover_versions;
+
 create or replace function public.deeb_apply_append_mutation(p_mutation jsonb)
 returns jsonb
 language plpgsql
