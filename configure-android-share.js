@@ -392,6 +392,74 @@ public class FileExportPlugin extends Plugin {
       handler.postDelayed(()->{if(!finished.get())fail.reject("انتهت مهلة تجهيز صور التقرير بعد 120 ثانية. حاول مرة أخرى.");},120000);
     });
   }
+  @PluginMethod public void saveHtmlAsPdf(PluginCall call) {
+    final String html=call.getString("html","");
+    final String requestedName=call.getString("name","DEEB-report");
+    String clean=(requestedName==null||requestedName.trim().isEmpty()?"DEEB-report":requestedName.trim()).replace("/","_").replace(String.valueOf((char)92),"_");
+    final String fileName=clean.toLowerCase(java.util.Locale.ROOT).endsWith(".pdf")?clean:clean+".pdf";
+    if(html.trim().isEmpty()){call.reject("لا توجد بيانات لتحويلها إلى PDF");return;}
+    getActivity().runOnUiThread(()->{
+      final Handler handler=new Handler(Looper.getMainLooper());
+      final float density=getContext().getResources().getDisplayMetrics().density;
+      final int width=(int)Math.ceil(794.0*density),height=(int)Math.ceil(1123.0*density);
+      final FrameLayout root=(FrameLayout)getActivity().getWindow().getDecorView().findViewById(android.R.id.content);
+      if(root==null){call.reject("تعذر تجهيز صفحة التقرير");return;}
+      final WebView view=new WebView(getContext());
+      final java.util.concurrent.atomic.AtomicBoolean finished=new java.util.concurrent.atomic.AtomicBoolean(false);
+      final File temp;
+      try{temp=File.createTempFile("deeb-pdf-",".pdf",getContext().getCacheDir());}
+      catch(Exception e){view.destroy();call.reject("تعذر إنشاء ملف PDF مؤقت: "+e.getMessage());return;}
+      final Runnable cleanup=()->handler.post(()->{try{if(view.getParent() instanceof ViewGroup)((ViewGroup)view.getParent()).removeView(view);}catch(Exception ignored){}try{view.stopLoading();view.destroy();}catch(Exception ignored){}try{if(temp.exists())temp.delete();}catch(Exception ignored){}});
+      final java.util.function.Consumer<String> fail=message->{if(finished.compareAndSet(false,true)){cleanup.run();call.reject(message);}};
+      view.setBackgroundColor(Color.WHITE);view.setLayerType(View.LAYER_TYPE_SOFTWARE,null);view.setVerticalScrollBarEnabled(false);view.setHorizontalScrollBarEnabled(false);
+      view.getSettings().setJavaScriptEnabled(true);view.getSettings().setDomStorageEnabled(true);view.getSettings().setUseWideViewPort(true);view.getSettings().setLoadWithOverviewMode(false);view.setInitialScale(100);
+      root.addView(view,new FrameLayout.LayoutParams(width,height));
+      view.setWebViewClient(new WebViewClient(){
+        @Override public void onPageFinished(WebView v,String url){
+          waitForReportResources(v,handler,30000,state->{
+            if(finished.get())return;
+            if(state.startsWith("image-error:")){fail.accept("تعذر تحميل "+state.replaceAll("[^0-9]","")+" صورة؛ لم يتم حفظ PDF ناقص.");return;}
+            if(!"ready".equals(state)){fail.accept("لم تكتمل تهيئة التقرير قبل إنشاء PDF ("+state+").");return;}
+            android.graphics.pdf.PdfDocument document=null;
+            try{
+              v.setLayoutParams(new FrameLayout.LayoutParams(width,height));
+              v.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));
+              v.layout(0,0,width,height);
+              int contentHeight=(int)Math.ceil(v.getContentHeight()*v.getScale());
+              if(contentHeight<1)throw new Exception("تعذر تحديد ارتفاع التقرير.");
+              int pages=Math.max(1,(int)Math.ceil(contentHeight/(double)height));
+              if(pages>100)throw new Exception("عدد صفحات التقرير يتجاوز الحد الآمن.");
+              document=new android.graphics.pdf.PdfDocument();
+              for(int i=0;i<pages;i++){
+                if(finished.get())return;
+                v.scrollTo(0,Math.min(i*height,Math.max(0,contentHeight-height)));
+                android.graphics.pdf.PdfDocument.Page page=document.startPage(new android.graphics.pdf.PdfDocument.PageInfo.Builder(width,height,i+1).create());
+                page.getCanvas().drawColor(Color.WHITE);v.draw(page.getCanvas());document.finishPage(page);
+              }
+              try(FileOutputStream out=new FileOutputStream(temp,false)){document.writeTo(out);out.flush();}
+              document.close();document=null;
+              ContentValues values=new ContentValues();values.put(MediaStore.Downloads.DISPLAY_NAME,fileName);values.put(MediaStore.Downloads.MIME_TYPE,"application/pdf");
+              Uri uri=null;File legacy=null;
+              if(Build.VERSION.SDK_INT>=29){
+                values.put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/DEEB");values.put(MediaStore.Downloads.IS_PENDING,1);
+                uri=getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
+                if(uri==null)throw new Exception("تعذر إنشاء ملف PDF في مجلد التنزيلات.");
+                try(java.io.InputStream in=new java.io.FileInputStream(temp);OutputStream out=getContext().getContentResolver().openOutputStream(uri)){if(out==null)throw new Exception("تعذر فتح ملف PDF للحفظ.");byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);out.flush();}
+                ContentValues ready=new ContentValues();ready.put(MediaStore.Downloads.IS_PENDING,0);getContext().getContentResolver().update(uri,ready,null,null);
+              }else{
+                File dir=new File(getContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),"DEEB");if(!dir.exists()&&!dir.mkdirs())throw new Exception("تعذر إنشاء مجلد التنزيلات.");
+                legacy=new File(dir,fileName);try(java.io.InputStream in=new java.io.FileInputStream(temp);OutputStream out=new FileOutputStream(legacy)){byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);out.flush();}
+              }
+              if(finished.compareAndSet(false,true)){cleanup.run();JSObject result=new JSObject();result.put("saved",true);result.put("format","PDF");result.put("fileName",fileName);result.put("location",Build.VERSION.SDK_INT>=29?"Downloads/DEEB":legacy.getAbsolutePath());if(uri!=null)result.put("uri",uri.toString());call.resolve(result);}
+            }catch(Exception error){if(document!=null){try{document.close();}catch(Exception ignored){}}fail.accept("تعذر حفظ ملف PDF: "+error.getMessage());}
+          });
+        }
+      });
+      String pdfHtml=html.replace("width=device-width,initial-scale=1","width=794,initial-scale=1,maximum-scale=1,user-scalable=no").replace("width=device-width, initial-scale=1","width=794, initial-scale=1, maximum-scale=1, user-scalable=no").replace("@media print","@media all");
+      view.loadDataWithBaseURL("https://localhost/",pdfHtml,"text/html","UTF-8",null);
+      handler.postDelayed(()->{if(!finished.get())fail.accept("انتهت مهلة تجهيز ملف PDF بعد 120 ثانية.");},120000);
+    });
+  }
   @PluginMethod public void printHtml(PluginCall call) {
     final String html=call.getString("html","");
     if(html.trim().isEmpty()){call.reject("لا توجد بيانات للطباعة");return;}
