@@ -456,7 +456,7 @@ window.DebooDB = (() => {
     const row={
       mutation_id:input.mutation_id||uid(),record_id:String(input.record_id),entity_type:String(input.entity_type),
       action:input.action,branch_id:input.branch_id||null,org_id:context.org_id,user_id:context.user_id,
-      device_id:device.device_id,base_revision:Number.isInteger(input.base_revision)?input.base_revision:0,
+      device_id:device.device_id,schema_version:4,base_revision:Number.isInteger(input.base_revision)?input.base_revision:0,
       snapshot:input.snapshot==null?null:JSON.parse(JSON.stringify(input.snapshot)),
       created_at:stamp,local_updated_at:input.local_updated_at||stamp,status:"pending",
       attempts:0,next_attempt_at:stamp,last_error:null,server_revision:null
