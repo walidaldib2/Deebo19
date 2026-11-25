@@ -72,7 +72,7 @@ async function main() {
   let queuedRecord = (await db.pendingSyncMutations()).find(x => x.record_id === teamBranch.id);
   assert.ok(queuedRecord, "Saving a record in team mode must enqueue it automatically");
   assert.equal(queuedRecord.action, "create");
-  assert.equal(queuedRecord.snapshot.payload.name, "فرع حفظ جماعي");
+  assert.equal(queuedRecord.snapshot.record.payload.name, "فرع حفظ جماعي");
   await db.archive(teamBranch.id);
   queuedRecord = (await db.pendingSyncMutations()).find(x => x.record_id === teamBranch.id && x.action === "archive");
   assert.ok(queuedRecord, "Archiving a record must also enqueue automatically");
