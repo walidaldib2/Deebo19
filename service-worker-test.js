@@ -17,7 +17,7 @@ const cache = {
 };
 const cachesApi = {
   open: async () => cache,
-  keys: async () => ["old-cache", "deebo-local-v10-25"],
+  keys: async () => ["old-cache", "deebo-local-v10-26"],
   delete: async (key) => { deleted.push(key); return true; },
   match: async (request) => {
     const key = typeof request === "string" ? request : request.url;
@@ -48,6 +48,7 @@ async function main() {
   await installPromise;
   assert.ok(cacheWrites.includes("./index.html"), "Install must cache the application shell");
   assert.ok(cacheWrites.includes("./native-plugins.bundle.js"), "Install must cache the native-plugin fallback");
+  assert.ok(cacheWrites.includes("./team-sync.js"), "Install must cache the DEEB19 team sync engine");
   assert.equal(skipWaitingCalls, 1, "Successful install should activate the new worker");
 
   let activatePromise;
