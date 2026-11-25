@@ -1,0 +1,4 @@
+project_id = "deebo19"
+
+[functions.deebo-invite]
+verify_jwt = true
