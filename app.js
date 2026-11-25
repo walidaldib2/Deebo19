@@ -7,7 +7,7 @@ const fields={
 branches:[["name","اسم الفرع","text",1],["code","كود الفرع","text"],["address","العنوان","text"],["manager","المسؤول","text"],["phone","رقم التواصل","tel"],["lat","خط العرض","number"],["lng","خط الطول","number"],["status","الحالة","select","نشط|متوقف"]],
 patrol_people:[["name","اسم فرد الدورية","text",1],["employee_no","الرقم الوظيفي","text"],["phone","رقم الهاتف","tel"],["branch","الفرع","text"],["job","الوظيفة","text"],["status","الحالة","select","متاح|إجازة|موقوف"]],
 emergency_people:[["name","اسم فرد الطوارئ","text",1],["specialty","التخصص","text"],["phone","رقم الهاتف","tel"],["branch","الفرع","text"],["availability","التوفر","select","متاح|مشغول|إجازة"]],
-bikes:[["number","رقم الدراجة","text",1],["code","كود الدراجة","text"],["type","نوع الدراجة","text"],["description","الوصف","text"],["person","الفرد المسؤول","text"],["status","الحالة","select","جاهزة|بالمرور|صيانة|متوقفة"]],
+bikes:[["number","رقم الدراجة","text",1],["code","كود الدراجة","text"],["type","نوع الدراجة","text"],["description","الوصف","text"],["status","الحالة","select","جاهزة|بالمرور|صيانة|متوقفة"]],
 patrol_sites:[["name","اسم المكان","text",1],["site_type","نوع المكان","select","مخزن|معرض|مركز خدمة",1],["address","العنوان / الوصف","text"],["lat","خط العرض","number"],["lng","خط الطول","number"],["notes","ملاحظات","textarea"]],
 managers:[["name","اسم المدير","text",1],["department","القسم","text"],["phone","رقم التواصل","tel"],["branches","الفروع التابعة","text"]],
 branch_patrols:[["branch","الفرع","text",1],["supervisor","المشرف","text",1],["responsible","المسؤول","text"],["patrol_date","تاريخ المرور","date",1],["patrol_time","ساعة المرور","time",1],["condition","حالة الفرع","select","جيد|ملاحظات|مخالفة|مغلق"],["notes","الملاحظات","textarea"]],
@@ -735,7 +735,7 @@ async function reports(){
     const lat=String(p.lat??"").trim(),lng=String(p.lng??"").trim(),locationUrl=String(p.location_url??"").trim();const coordinates=validCoordinatePair(lat,lng)?("خط العرض: "+lat+" | خط الطول: "+lng):(locationUrl||"—");
     return {site,entries:[{date:dayOf(v),time:String(p.patrol_time||"—"),coordinates,notes:String(p.notes||"").trim()}],times:[String(p.patrol_time||"—")]};
    });
-   return {date:g.date,bike:g.bike,person:String(bp.person||"").trim()||"—",code:bp.code||"—",type:bp.type||bp.description||"—",visits:g.visits,sites};
+   return {date:g.date,bike:g.bike,person:"—",code:bp.code||"—",type:bp.type||bp.description||"—",visits:g.visits,sites};
   });
   return result;
  };
@@ -789,7 +789,7 @@ async function reports(){
     const p=v.payload||{};
     const site=String(p.site||p.branch||p.location||"غير محدد");
     const coordinates=validCoordinatePair(p.lat,p.lng)?("خط العرض: "+String(p.lat).trim()+" | خط الطول: "+String(p.lng).trim()):String(p.location_url||"").trim();
-    out.push([dayOf(v),String(p.person||p.responsible||g.person),g.bike,g.code,g.type,site,String(p.patrol_time||""),coordinates]);
+    out.push([dayOf(v),String(p.person||p.responsible||"—"),g.bike,g.code,g.type,site,String(p.patrol_time||""),coordinates]);
    }));
    return out;
   }
