@@ -431,11 +431,14 @@ window.DebooDB = (() => {
   }
   async function setTeamContext(context) {
     if(!context||typeof context!=="object"||!context.org_id||!context.user_id) throw new Error("بيانات ربط الإدارة والمستخدم غير مكتملة.");
-    const current=await readSyncState("team_context");
-    const value={mode:"team",org_id:String(context.org_id),user_id:String(context.user_id),display_name:String(context.display_name||""),configured_at:current?.value?.configured_at||now()};
+    const orgId=String(context.org_id),current=await readSyncState("team_context"),lock=await readSyncState("organization_lock");
+    if(lock?.value?.org_id&&lock.value.org_id!==orgId) throw new Error("هذا الإصدار مخصص لإدارة واحدة ولا يمكن ربطه بإدارة أخرى.");
+    const pending=(await getAll("sync_outbox")).filter(x=>["pending","conflict"].includes(x.status));
+    if(current?.value?.mode==="team"&&current.value.org_id!==orgId&&pending.length) throw new Error("لا يمكن تغيير الإدارة مع وجود عمليات مزامنة معلقة.");
+    const value={mode:"team",org_id:orgId,user_id:String(context.user_id),display_name:String(context.display_name||""),configured_at:current?.value?.configured_at||now()};
     await deviceIdentity();
-    await writeSyncState("team_context",value);
-    return value;
+    if(!lock?.value?.org_id)await writeSyncState("organization_lock",{org_id:orgId,locked_at:now()});
+    await writeSyncState("team_context",value);    return value;
   }
   async function clearTeamContext() {
     const pending=await getAll("sync_outbox");
