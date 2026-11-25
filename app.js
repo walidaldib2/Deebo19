@@ -1022,7 +1022,7 @@ async async function settings(){area.innerHTML=`${pageHead("الإعدادات")
 <div class="field"><label for="teamEmail">البريد الإلكتروني لحساب الإدارة</label><input id="teamEmail" type="email" autocomplete="username"></div>
 <div class="field"><label for="teamPassword">كلمة المرور</label><input id="teamPassword" type="password" autocomplete="current-password"></div>
 <div class="actions"><button class="primary" id="teamSignIn">تسجيل الدخول</button><button class="secondary" id="teamSignOut">تسجيل الخروج</button></div>
-<div class="field"><label for="teamOrganizationName">اسم الإدارة (لإنشاء الإدارة لأول مرة فقط)</label><input id="teamOrganizationName" placeholder="اسم إدارة الأمن"></div>
+<p class="muted">إنشاء الإدارة لأول مرة متاح فقط لحساب المالك المعتمد مسبقًا من إعدادات Supabase، لمنع أي مستخدم عادي من الاستحواذ على الإدارة.</p><div class="field"><label for="teamOrganizationName">اسم الإدارة (لإنشاء الإدارة لأول مرة فقط)</label><input id="teamOrganizationName" placeholder="اسم إدارة الأمن"></div>
 <div class="field"><label for="teamDisplayName">اسم مدير النظام</label><input id="teamDisplayName" placeholder="الاسم الظاهر"></div>
 <div class="actions"><button class="secondary" id="teamBootstrap">إنشاء الإدارة لأول مرة</button><button class="primary" id="teamSyncNow">مزامنة الآن</button><button class="secondary" id="teamLocalMode">العودة للوضع الفردي</button></div>
 <div id="teamSyncStatus" class="notice" aria-live="polite">الوضع الفردي هو الوضع الافتراضي. لم يتم تشغيل المزامنة.</div>
