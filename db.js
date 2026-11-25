@@ -8,7 +8,7 @@ window.DebooDB = (() => {
     lastSyncMutationMs = stamp;
     return new Date(stamp).toISOString();
   }
-  const DB_VERSION = 4;
+  const DB_VERSION = 5;
   let dbPromise;
   const now = () => new Date().toISOString();
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : "d16-" + Date.now() + "-" + Math.random().toString(16).slice(2));
@@ -25,6 +25,7 @@ window.DebooDB = (() => {
         }
         if (!d.objectStoreNames.contains("audit_logs")) d.createObjectStore("audit_logs",{keyPath:"id"});
         if (!d.objectStoreNames.contains("approved_reports")) d.createObjectStore("approved_reports",{keyPath:"id"});
+        if (!d.objectStoreNames.contains("report_archives")) { const r=d.createObjectStore("report_archives",{keyPath:"id"}); r.createIndex("created_at","created_at",{unique:false}); r.createIndex("report_type","report_type",{unique:false}); }
         if (!d.objectStoreNames.contains("handover_versions")) {
           const v=d.createObjectStore("handover_versions",{keyPath:"id"});
           v.createIndex("record_id","record_id",{unique:false});
@@ -293,6 +294,13 @@ window.DebooDB = (() => {
   async function attachments(recordId) {return (await getAll("attachments")).filter(a=>a.record_id===recordId);}
   async function getAttachment(id) {return get("attachments",id);}
   async function approvedReports() { return (await getAll("approved_reports")).sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))); }
+  async function reportArchives() { return (await getAll("report_archives")).sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))); }
+  async function archiveReport(snapshot) {
+    if(!snapshot||typeof snapshot!=="object"||typeof snapshot.html!=="string"||!snapshot.html.trim()) throw new Error("لا يمكن أرشفة تقرير بدون محتوى صالح.");
+    const item={id:uid(),title:String(snapshot.title||"تقرير DEEB"),report_type:String(snapshot.report_type||"general"),created_at:now(),from_date:snapshot.from_date||"",to_date:snapshot.to_date||"",html:snapshot.html,meta:snapshot.meta||{},actor:"مستخدم الجهاز"};
+    const d=await openDB(); await new Promise((resolve,reject)=>{const tx=d.transaction("report_archives","readwrite");tx.objectStore("report_archives").put(item);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("تعذر حفظ التقرير في الأرشيف."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء أرشفة التقرير."));});
+    try{await createAutoBackup();}catch(error){console.warn("DEEB report archive backup:",error);} return item;
+  }
   async function approve(snapshot) {
     const item={id:uid(),title:"تقرير DEEB",snapshot,created_at:now(),actor:"مستخدم الجهاز"};
     const auditItem=makeAudit("approve",item.id,null,item,"اعتماد نسخة تقرير");
@@ -317,10 +325,10 @@ window.DebooDB = (() => {
     const existing=await getAll("automatic_backups");
     const today=now().slice(0,10);
     const sameDay=existing.find(x=>x.date===today);
-    const [records,audit_logs,approved_reports,handover_versions,attachments]=await Promise.all([getAll("records"),getAll("audit_logs"),getAll("approved_reports"),getAll("handover_versions"),getAll("attachments")]);
+    const [records,audit_logs,approved_reports,report_archives,handover_versions,attachments]=await Promise.all([getAll("records"),getAll("audit_logs"),getAll("approved_reports"),getAll("report_archives"),getAll("handover_versions"),getAll("attachments")]);
     const attachmentBytes=attachments.reduce((sum,x)=>sum+Number(x.size||0),0);
     if(attachmentBytes>30*1024*1024)return {created:false,date:today,reason:"attachments-over-limit"};
-    const snapshot={app:"DEEB",format:2,mode:"local",created_at:now(),records,audit_logs,approved_reports,handover_versions,attachments};
+    const snapshot={app:"DEEB",format:2,mode:"local",created_at:now(),records,audit_logs,approved_reports,report_archives,handover_versions,attachments};
     const item={id:sameDay?.id||uid(),date:today,created_at:now(),record_count:records.length,attachment_count:attachments.length,snapshot};
     const d=await openDB();
     await new Promise((resolve,reject)=>{
@@ -343,20 +351,20 @@ window.DebooDB = (() => {
     return {date:item.date,record_count:item.record_count};
   }
   async function backup() {
-    const [records,audit_logs,approved_reports,handover_versions,rawAttachments]=await Promise.all([
-      getAll("records"),getAll("audit_logs"),getAll("approved_reports"),getAll("handover_versions"),getAll("attachments")]);
+    const [records,audit_logs,approved_reports,report_archives,handover_versions,rawAttachments]=await Promise.all([
+      getAll("records"),getAll("audit_logs"),getAll("approved_reports"),getAll("report_archives"),getAll("handover_versions"),getAll("attachments")]);
     const attachments=await Promise.all(rawAttachments.map(async a=>({...a,blob:undefined,data_url:await blobToDataURL(a.blob)})));
-    return {app:"DEEB",format:2,mode:"local",created_at:now(),records,audit_logs,approved_reports,handover_versions,attachments};
+    return {app:"DEEB",format:2,mode:"local",created_at:now(),records,audit_logs,approved_reports,report_archives,handover_versions,attachments};
   }
   async function restore(obj) {
     if(!obj||!["DEEB","DEEBO","DEBOO16"].includes(obj.app)||![1,2].includes(obj.format)||!Array.isArray(obj.records)||!Array.isArray(obj.audit_logs)) throw new Error("ملف النسخة غير صالح أو غير متوافق.");
-    const optionalArrays=["approved_reports","handover_versions","attachments"];
+    const optionalArrays=["approved_reports","report_archives","handover_versions","attachments"];
     for(const key of optionalArrays) if(obj[key]!==undefined&&!Array.isArray(obj[key])) throw new Error("قسم "+key+" في النسخة غير صالح.");
     const validRows=(rows,key)=>rows.every(x=>x&&typeof x==="object"&&typeof x.id==="string"&&x.id.length>0);
     if(!validRows(obj.records,"records")||obj.records.some(x=>typeof x.entity_type!=="string"||!x.payload||typeof x.payload!=="object"||Array.isArray(x.payload))) throw new Error("تحتوي النسخة على سجل غير صالح؛ لم يتم تغيير بياناتك.");
-    if(!validRows(obj.audit_logs,"audit_logs")||!validRows(obj.approved_reports||[],"approved_reports")||!validRows(obj.handover_versions||[],"handover_versions")||!validRows(obj.attachments||[],"attachments")) throw new Error("تحتوي النسخة على عنصر ناقص المعرّف؛ لم يتم تغيير بياناتك.");
+    if(!validRows(obj.audit_logs,"audit_logs")||!validRows(obj.approved_reports||[],"approved_reports")||!validRows(obj.report_archives||[],"report_archives")||!validRows(obj.handover_versions||[],"handover_versions")||!validRows(obj.attachments||[],"attachments")) throw new Error("تحتوي النسخة على عنصر ناقص المعرّف؛ لم يتم تغيير بياناتك.");
     const checkUnique=(rows,label)=>{const ids=rows.map(x=>x.id);if(new Set(ids).size!==ids.length)throw new Error("تحتوي النسخة على معرّفات مكررة في "+label+"؛ لم يتم تغيير بياناتك.");};
-    checkUnique(obj.records,"السجلات");checkUnique(obj.audit_logs,"سجل المراجعة");checkUnique(obj.approved_reports||[],"التقارير");checkUnique(obj.handover_versions||[],"إصدارات التسليم");checkUnique(obj.attachments||[],"المرفقات");
+    checkUnique(obj.records,"السجلات");checkUnique(obj.audit_logs,"سجل المراجعة");checkUnique(obj.approved_reports||[],"التقارير المعتمدة");checkUnique(obj.report_archives||[],"أرشيف التقارير");checkUnique(obj.handover_versions||[],"إصدارات التسليم");checkUnique(obj.attachments||[],"المرفقات");
     const recordIds=new Set(obj.records.map(x=>x.id));
     // Validate active bike visits while allowing any number of registered bikes per day.
     const patrols=obj.records.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived&&!x.is_deleted);
@@ -384,12 +392,13 @@ window.DebooDB = (() => {
     if(current.records.length||current.attachments.length) await downloadBlob(new Blob([JSON.stringify(current,null,2)],{type:"application/json"}),"DEEB-before-restore.json");
     const d=await openDB();
     await new Promise((resolve,reject)=>{
-      const names=["records","audit_logs","approved_reports","handover_versions","attachments"];
+      const names=["records","audit_logs","approved_reports","report_archives","handover_versions","attachments"];
       const tx=d.transaction(names,"readwrite");
       for(const name of names) tx.objectStore(name).clear();
       obj.records.forEach(x=>tx.objectStore("records").put(x));
       obj.audit_logs.forEach(x=>tx.objectStore("audit_logs").put(x));
       (obj.approved_reports||[]).forEach(x=>tx.objectStore("approved_reports").put(x));
+      (obj.report_archives||[]).forEach(x=>tx.objectStore("report_archives").put(x));
       (obj.handover_versions||[]).forEach(x=>tx.objectStore("handover_versions").put(x));
       preparedAttachments.forEach(x=>tx.objectStore("attachments").put(x));
       tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error("تعذرت الاستعادة."));
@@ -677,5 +686,5 @@ window.DebooDB = (() => {
   async function setSyncCursor(value) { return writeSyncState("sync_cursor",value); }
   async function auxSyncCursor() { return (await readSyncState("aux_sync_cursor"))?.value||null; }
   async function setAuxSyncCursor(value) { return writeSyncState("aux_sync_cursor",value); }
-  return {init,configured,list,all,archivePastDays,purgeExpiredDeleted,getRecord:(id)=>get("records",id),save,archive,unarchive,softDelete,restoreDeleted,audit,approve,approvedReports,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,deviceIdentity,setTeamContext,clearTeamContext,getTeamContext,enqueueSyncMutation,pendingSyncMutations,syncQueueForPush,markSyncMutationSynced,getSyncMutation,rebasePendingRecordMutations,retrySyncMutation,addSyncConflict,resolveSyncConflict,setRecordServerRevision,applyRemoteSyncPage,applyRemoteAuxData,saveRemoteAttachment,syncStatus,syncCursor,setSyncCursor,auxSyncCursor,setAuxSyncCursor,local:true};
+  return {init,configured,list,all,archivePastDays,purgeExpiredDeleted,getRecord:(id)=>get("records",id),save,archive,unarchive,softDelete,restoreDeleted,audit,approve,approvedReports,archiveReport,reportArchives,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,deviceIdentity,setTeamContext,clearTeamContext,getTeamContext,enqueueSyncMutation,pendingSyncMutations,syncQueueForPush,markSyncMutationSynced,getSyncMutation,rebasePendingRecordMutations,retrySyncMutation,addSyncConflict,resolveSyncConflict,setRecordServerRevision,applyRemoteSyncPage,applyRemoteAuxData,saveRemoteAttachment,syncStatus,syncCursor,setSyncCursor,auxSyncCursor,setAuxSyncCursor,local:true};
 })();
