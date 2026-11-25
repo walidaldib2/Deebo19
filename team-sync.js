@@ -251,6 +251,15 @@
     }
     return result;
   }
+  async function bootstrapOrganization(organizationName, displayName) {
+    const session = await activeSession();
+    const result = await rpc("deeb_bootstrap_organization", {
+      p_organization_name: String(organizationName || "").trim(),
+      p_display_name: String(displayName || "").trim()
+    }, session.access_token);
+    if (!result?.ok || !result.org_id) throw new Error("تعذر إنشاء إدارة DEEB19 الأولى.");
+    return result;
+  }
   async function syncNow() {
     if (syncLock) return syncLock;
     syncLock = (async () => {
@@ -281,7 +290,7 @@
     return { configured: !!config(), signedIn: !!readSession, url: config()?.url || null };
   }
   window.DEEBTeamSync = {
-    configure: saveConfig, signIn, signOut, currentUser, syncNow,
+    configure: saveConfig, signIn, signOut, currentUser, bootstrapOrganization, syncNow,
     status: async () => ({ configured: !!config(), signedIn: !!(await readSession()), url: config()?.url || null })
   };
   window.addEventListener("online", () => {
