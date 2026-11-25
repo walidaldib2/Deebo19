@@ -140,18 +140,31 @@ begin
 end;
 $$;
 
-create policy "deeb upload reserved private attachments"
-on storage.objects for insert to authenticated
-with check (
-  bucket_id='deebo-private'
-  and exists(
+create or replace function public.deeb_can_upload_attachment(p_storage_path text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $
+  select exists(
     select 1 from public.deeb_attachments a
-    where a.storage_path=name
+    where a.storage_path=p_storage_path
       and a.org_id=public.deeb_current_org_id()
       and a.uploaded_by=auth.uid()
       and a.upload_status='pending'
       and public.deeb_can_access_branch(a.branch_id)
   )
+$;
+
+revoke all on function public.deeb_can_upload_attachment(text) from public,anon;
+grant execute on function public.deeb_can_upload_attachment(text) to authenticated;
+
+create policy "deeb upload reserved private attachments"
+on storage.objects for insert to authenticated
+with check (
+  bucket_id='deebo-private'
+  and public.deeb_can_upload_attachment(name)
 );
 
 create policy "deeb read uploaded private attachments"
