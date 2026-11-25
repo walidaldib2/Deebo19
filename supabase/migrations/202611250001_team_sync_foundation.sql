@@ -169,6 +169,30 @@ create table if not exists public.deeb_sync_conflicts (
   foreign key (org_id, record_id) references public.deeb_records(org_id, id) on delete restrict
 );
 
+create table if not exists public.deeb_sync_mutations (
+  org_id uuid not null references public.deeb_organizations(id) on delete restrict,
+  mutation_id text not null,
+  device_id text not null references public.deeb_devices(id) on delete restrict,
+  actor_user_id uuid not null references auth.users(id) on delete restrict,
+  action text not null,
+  record_id text not null,
+  result jsonb,
+  created_at timestamptz not null default now(),
+  primary key (org_id, mutation_id)
+);
+create index if not exists deeb_sync_mutations_record_idx
+  on public.deeb_sync_mutations (org_id, record_id, created_at desc);
+
+create table if not exists public.deeb_sync_cursors (
+  org_id uuid not null references public.deeb_organizations(id) on delete restrict,
+  device_id text not null references public.deeb_devices(id) on delete restrict,
+  user_id uuid not null references auth.users(id) on delete restrict,
+  last_updated_at timestamptz,
+  last_record_id text,
+  updated_at timestamptz not null default now(),
+  primary key (org_id, device_id)
+);
+
 -- These helpers are SECURITY DEFINER to avoid recursive RLS evaluation.
 create or replace function public.deeb_current_org_id()
 returns uuid
@@ -224,6 +248,8 @@ alter table public.deeb_approved_reports enable row level security;
 alter table public.deeb_handover_versions enable row level security;
 alter table public.deeb_attachments enable row level security;
 alter table public.deeb_sync_conflicts enable row level security;
+alter table public.deeb_sync_mutations enable row level security;
+alter table public.deeb_sync_cursors enable row level security;
 
 create policy "deeb organization members read own organization"
 on public.deeb_organizations for select to authenticated
