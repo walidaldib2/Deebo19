@@ -101,13 +101,24 @@ async function main() {
   const acknowledged = await db.markSyncMutationSynced(queued.mutation_id, 2);
   assert.equal(acknowledged.status, "synced");
   assert.equal(acknowledged.server_revision, 2);
+  const conflictedMutation = await db.enqueueSyncMutation({
+    mutation_id: "mutation-qa-002", record_id: "record-qa-002", entity_type: "incidents",
+    action: "create", snapshot: { description: "تعديل محلي متعارض" }
+  });
   const conflict = await db.addSyncConflict({
-    record_id: "record-qa-001", mutation_id: queued.mutation_id, base_revision: 1,
-    server_revision: 2, local_snapshot: { name: "محلي" }, server_snapshot: { name: "سحابي" }
+    record_id: "record-qa-002", mutation_id: conflictedMutation.mutation_id, base_revision: 1,
+    server_revision: 2, local_snapshot: { description: "محلي" }, server_snapshot: { description: "سحابي" }
   });
   assert.equal(conflict.status, "open");
-  const resolved = await db.resolveSyncConflict(conflict.id, { choice: "keep_server" });
+  assert.equal((await db.pendingSyncMutations()).some(x => x.mutation_id === conflictedMutation.mutation_id), false,
+    "Conflicted mutations must pause instead of retrying forever");
+  const resolved = await db.resolveSyncConflict(conflict.id, {
+    choice: "keep_local", snapshot: { description: "نسخة محلية بعد المراجعة" }
+  });
   assert.equal(resolved.status, "resolved");
+  const requeued = (await db.pendingSyncMutations()).find(x => x.mutation_id === conflictedMutation.mutation_id);
+  assert.equal(requeued.base_revision, 2, "Manual keep-local resolution must rebase on the latest server revision");
+  assert.equal(requeued.snapshot.description, "نسخة محلية بعد المراجعة");
   await db.setSyncCursor({ updated_at: "2026-11-25T00:00:00.000Z", id: "cursor-qa" });
   assert.equal((await db.syncCursor()).id, "cursor-qa");
 
