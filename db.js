@@ -115,7 +115,7 @@ window.DebooDB = (() => {
     const candidates=rows.filter(row=>{
       if(row.is_archived||row.is_deleted||!shiftTypes.has(row.entity_type))return false;
       const date=recordWorkDate(row);
-      return /^\\d{4}-\\d{2}-\\d{2}$/.test(date)&&date<today;
+      return /^\d{4}-\d{2}-\d{2}$/.test(date)&&date<today;
     });
     if(!candidates.length)return {archived:0,today};
     const d=await openDB(),stamp=now(),prepared=[];
