@@ -143,6 +143,7 @@
     if (!result?.ok) throw new Error("لم يؤكد السيرفر حفظ السجل.");
     await window.DebooDB.markSyncMutationSynced(mutation.mutation_id, result.server_revision || null);
     await window.DebooDB.setRecordServerRevision(mutation.record_id, result.server_revision || 1);
+    await window.DebooDB.rebasePendingRecordMutations(mutation.record_id, result.server_revision || 1);
     return { synced: true };
   }
   async function pushApprovedReport(mutation, token) {
@@ -197,7 +198,9 @@
   async function pushPending(session, userId) {
     const pending = await window.DebooDB.pendingSyncMutations(100);
     const result = { sent: 0, conflicts: 0, failed: 0, blocked_other_user: 0 };
-    for (const row of pending) {
+    for (const queued of pending) {
+      const row = await window.DebooDB.getSyncMutation(queued.mutation_id);
+      if (!row || row.status !== "pending") continue;
       if (row.user_id !== userId) { result.blocked_other_user++; continue; }
       const envelope = {
         mutation_id: row.mutation_id, record_id: row.record_id,
