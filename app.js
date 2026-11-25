@@ -743,7 +743,7 @@ async function reports(){
     const lat=String(p.lat??"").trim(),lng=String(p.lng??"").trim(),locationUrl=String(p.location_url??"").trim();const coordinates=validCoordinatePair(lat,lng)?("خط العرض: "+lat+" | خط الطول: "+lng):(locationUrl||"—");
     return {site,entries:[{date:dayOf(v),time:String(p.patrol_time||"—"),coordinates,notes:String(p.notes||"").trim()}],times:[String(p.patrol_time||"—")]};
    });
-   return {date:g.date,bike:g.bike,reportNumber:registrationOrder.get(normalize(g.bike))||index+1,person:"—",code:bp.code||"—",type:bp.type||bp.description||"—",visits:g.visits,sites};
+   const persons=[...new Set(g.visits.map(v=>String(v.payload?.person||v.payload?.responsible||"").trim()).filter(Boolean))];\n   return {date:g.date,bike:g.bike,reportNumber:registrationOrder.get(normalize(g.bike))||index+1,person:persons.join("، ")||"—",code:bp.code||"—",type:bp.type||bp.description||"—",visits:g.visits,sites};
   });
   return result;
  };
