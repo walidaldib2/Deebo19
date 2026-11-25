@@ -991,7 +991,7 @@ async function reports(){
  $("#csvReport").onclick=()=>{const d=get();if(!d.length){toast("لا توجد سجلات للتصدير");return;}const q=v=>"\""+String(v??"").replace(/"/g,'""')+"\"";const csv=rowsForExport(d).map(row=>row.map(q).join(",")).join("\r\n");saveFile("DEEB-report.csv","text/csv;charset=utf-8","\ufeff"+csv);};
  $("#approveReport").onclick=async()=>{try{const d=get();if(!d.length){toast("لا توجد سجلات لاعتمادها");return;}await DebooDB.approve({title:"تقرير معتمد",created_at:new Date().toISOString(),report_type:$("#reportType").value,from_date:$("#fromDate").value,to_date:$("#toDate").value,html:reportCoordinatesOnly(readableReportHtml(printHtml(d)),d),data:d});toast("تم حفظ نسخة التقرير المعتمدة محليًا");}catch(e){toast("تعذر اعتماد التقرير: "+e.message);}};
  let archiveDateSelection="",archiveShiftSelection="",archiveTypeSelection="",archiveBranchSelection="",archiveBikeSelection="";
- const archiveDayOf=x=>x.entity_type==="bike_patrols"?(x.payload?.patrol_date||x.payload?.work_date||String(x.created_at||"").slice(0,10)):archiveDayOf(x);
+ const archiveDayOf=x=>x.entity_type==="bike_patrols"?(x.payload?.patrol_date||x.payload?.work_date||String(x.created_at||"").slice(0,10)):dayOf(x);
  const showArchive=async()=>{
   $("#archivePanel").classList.remove("hidden");$("#reportSummary").parentElement.classList.add("hidden");
   const [archived,approved]=await Promise.all([DebooDB.all({archived:true}),DebooDB.approvedReports()]),host=$("#archiveContent");
