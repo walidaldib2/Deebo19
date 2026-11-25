@@ -31,7 +31,7 @@ begin
      or v_record->>'id'<>v_rid then
     raise exception 'invalid_mutation_envelope' using errcode='22023';
   end if;
-  if v_action not in ('create','update','archive','unarchive','soft_delete','restore_deleted') then
+  if coalesce(v_action,'') not in ('create','update','archive','unarchive','soft_delete','restore_deleted') then
     raise exception 'unsupported_mutation_action' using errcode='22023';
   end if;
 
@@ -52,6 +52,9 @@ begin
      'written_reports','absences','handovers','emergencies','tasks','memos') then
     raise exception 'role_action_denied' using errcode='42501';
   end if;
+
+  -- Serialize retries of the same idempotency key before checking the receipt.
+  perform pg_advisory_xact_lock(hashtextextended(v_org::text || ':' || v_mid,0));
 
   select result into v_result from public.deeb_sync_mutations
   where org_id=v_org and mutation_id=v_mid;
