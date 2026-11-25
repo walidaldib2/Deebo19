@@ -84,6 +84,24 @@ async function main() {
   assert.ok(queuedHandover, "Handover record and immutable version must be represented by a queued sync mutation");
   assert.ok(queuedHandover.snapshot.handover_version?.snapshot?.payload?.sender === "تسليم جماعي");
 
+  const teamAttachmentBlob = new Blob(["team attachment"], { type: "text/plain" });
+  Object.defineProperty(teamAttachmentBlob, "name", { value: "team.txt" });
+  const teamAttachment = await db.saveAttachment(teamBranch.id, teamAttachmentBlob);
+  assert.ok((await db.pendingSyncMutations()).some(x => x.action === "attachment" && x.snapshot.attachment.id === teamAttachment.id),
+    "Attachment metadata must be queued while the binary remains safely in IndexedDB");
+
+  const teamApproved = await db.approve({ title: "اعتماد جماعي", branch_id: "branch-qa", data: [] });
+  assert.ok((await db.pendingSyncMutations()).some(x => x.action === "approve" && x.snapshot.approved_report.id === teamApproved.id),
+    "Approved report snapshots must be queued as append-only mutations");
+
+  const teamOldRoster = await db.save("daily_rosters", {
+    work_date: "2026-11-20", shift: "اختبار جماعي", start_time: "07:00", end_time: "15:00",
+    patrol_people_ids: [], bike_ids: []
+  });
+  await db.archivePastDays("2026-11-25");
+  assert.ok((await db.pendingSyncMutations()).some(x => x.action === "archive" && x.record_id === teamOldRoster.id),
+    "Automatic shift archiving must also enter the outbox");
+
   const localSwitch = await db.clearTeamContext();
   assert.equal(localSwitch.mode, "local");
   assert.equal((await db.syncStatus()).synced, 1, "Switching back to local mode must retain sync history");
