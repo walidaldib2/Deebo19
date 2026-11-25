@@ -980,7 +980,8 @@ async function reports(){
   archivedReportPromise=DebooDB.archiveReport({title:(type==="all"?"التقرير الشامل":labels[type]||type),report_type:type,from_date:from,to_date:to,html,meta:{record_count:d.length}});
   return archivedReportPromise;
  };
- $("#saveReportArchive").onclick=async()=>{try{await archiveCurrentReport();toast("تم حفظ التقرير في الأرشيف بنجاح.");}catch(e){toast("تعذر حفظ التقرير في الأرشيف: "+e.message);}};\n const sendReportToPrinter=async()=>{
+ $("#saveReportArchive").onclick=async()=>{try{await archiveCurrentReport();toast("تم حفظ التقرير في الأرشيف بنجاح.");}catch(e){toast("تعذر حفظ التقرير في الأرشيف: "+e.message);}};
+ const sendReportToPrinter=async()=>{
   const button=$("#printReport");if(button.disabled)return;
   const d=get(),hasBikeReport=$("#reportType").value==="bike_patrols"&&cache.some(x=>x.entity_type==="bikes"&&!x.is_archived);
   if(!d.length&&!hasBikeReport){toast("لا توجد سجلات في الفترة المحددة");return;}
