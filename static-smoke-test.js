@@ -39,7 +39,7 @@ if (!activityTemplate.includes('import android.webkit.WebView;') || earlyDrawIni
 const pdfExportStart=androidSetup.indexOf('@PluginMethod public void saveHtmlAsPdf');
 const pdfExportEnd=androidSetup.indexOf('@PluginMethod public void printHtml',pdfExportStart);
 const pdfExport=pdfExportStart>=0&&pdfExportEnd>pdfExportStart?androidSetup.slice(pdfExportStart,pdfExportEnd):'';
-for(const required of ['application/pdf','MediaStore.Downloads.EXTERNAL_CONTENT_URI','Environment.DIRECTORY_DOWNLOADS+"/DEEB"','document.writeTo(output)','waitForReportResources(v,handler,30000']) if(!pdfExport.includes(required)) throw new Error('Direct PDF export must save a complete validated PDF in Downloads/DEEB: '+required);
+for(const required of ['application/pdf','MediaStore.Downloads.EXTERNAL_CONTENT_URI','Environment.DIRECTORY_DOWNLOADS+"/DEEB"','document.writeTo(output)','PageInfo.Builder(595,842,i+1)','page.getCanvas().scale(595f/width,842f/height)','waitForReportResources(v,handler,30000']) if(!pdfExport.includes(required)) throw new Error('Direct PDF export must save a complete validated PDF in Downloads/DEEB: '+required);
 if(!app.includes('native.saveHtmlAsPdf({html,name:"DEEB-report"})') || !app.includes('native.saveHtmlAsPdf({html:item.html,name:"DEEB-archive-"+item.id})') || !app.includes('native.saveHtmlAsPdf({html:reportHtml,name:"DEEB-bike-map-"')) throw new Error('Current, archived and bike map reports must offer direct PDF file export');
 const printHandlerStart=androidSetup.indexOf('@PluginMethod public void printHtml');
 const printHandlerEnd=androidSetup.indexOf('\n  }\n}',printHandlerStart);
