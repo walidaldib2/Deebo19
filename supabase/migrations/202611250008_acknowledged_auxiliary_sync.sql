@@ -74,11 +74,11 @@ begin
       where a.org_id=v_org and a.upload_status='uploaded'
         and public.deeb_can_access_branch(a.branch_id)
   ), page as (
-    select f.*,row_number() over(order by f.created_at,f.id) as rn
+    select f.*,f.kind||':'||f.id as cursor_id,row_number() over(order by f.created_at,f.kind,f.id) as rn
     from feed f
     where v_cursor.last_created_at is null
-       or (f.created_at,f.id)>(v_cursor.last_created_at,coalesce(v_cursor.last_item_id,''))
-    order by f.created_at,f.id
+       or (f.created_at,f.cursor_id)>(v_cursor.last_created_at,coalesce(v_cursor.last_item_id,''))
+    order by f.created_at,f.kind,f.id
     limit v_limit+1
   ), selected as (
     select * from page where rn<=v_limit
@@ -87,7 +87,7 @@ begin
       'kind',kind,'id',id,'created_at',created_at,'payload',payload)
       order by created_at,id),'[]'::jsonb),
     count(*),max(created_at),
-    (array_agg(id order by created_at desc,id desc))[1]
+    (array_agg(cursor_id order by created_at desc,cursor_id desc))[1]
   into v_items,v_count,v_last_created,v_last_id from selected;
 
   if v_count>0 then
