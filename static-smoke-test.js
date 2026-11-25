@@ -142,7 +142,7 @@ if (html.includes('src="scanner.js"') || html.includes('data-page="scanner"') ||
 if (!androidSetup.includes('["android:allowBackup", "false"]') || !androidSetup.includes('["android:usesCleartextTraffic", "false"]')) throw new Error('Android backup/network hardening is missing');
 const iconBuilder = fs.readFileSync(path.join(root,'prepare-android-icons.js'),'utf8');
 if (!iconBuilder.includes('ic_launcher_foreground.png') || !iconBuilder.includes('icon-512.png')) throw new Error('DEEB Play Store and adaptive launcher icon generation is missing');
-if (cap.appName !== 'DEEB') throw new Error('Android display name must be DEEB');
+if (cap.appName !== 'DEEB19') throw new Error('Android display name must be DEEB19');
 if (pkg.name !== 'deeb-field-operations') throw new Error('Project package name must be deebo-field-operations');
 if (cap.webDir !== 'www') throw new Error('Capacitor webDir must be the staged www directory');
 const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
