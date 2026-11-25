@@ -96,6 +96,7 @@ async function main() {
   assert.equal(duplicateQueue.snapshot.name, "فرع مزامنة اختبار", "Replayed mutation IDs must not overwrite the original queued mutation");
   assert.equal(queued.device_id, deviceA.device_id);
   assert.equal(queued.org_id, "org-qa");
+  assert.equal(queued.schema_version, 4, "Queued mutations must identify their local data schema version");
   assert.equal((await db.pendingSyncMutations()).filter(x => x.mutation_id === queued.mutation_id).length, 1);
   const retried = await db.retrySyncMutation(queued.mutation_id, "انقطاع اتصال تجريبي");
   assert.equal(retried.attempts, 1);
