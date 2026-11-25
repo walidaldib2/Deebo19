@@ -7,6 +7,7 @@ const assets = [
   "index.html",
   "app.js",
   "db.js",
+  "team-sync.js",
   "qrcode.js",
   "biometric.bundle.js",
   "native-plugins.bundle.js",
