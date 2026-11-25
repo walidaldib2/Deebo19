@@ -991,12 +991,12 @@ async function reports(){
  $("#csvReport").onclick=()=>{const d=get();if(!d.length){toast("لا توجد سجلات للتصدير");return;}const q=v=>"\""+String(v??"").replace(/"/g,'""')+"\"";const csv=rowsForExport(d).map(row=>row.map(q).join(",")).join("\r\n");saveFile("DEEB-report.csv","text/csv;charset=utf-8","\ufeff"+csv);};
  $("#approveReport").onclick=async()=>{try{const d=get();if(!d.length){toast("لا توجد سجلات لاعتمادها");return;}await DebooDB.approve({title:"تقرير معتمد",created_at:new Date().toISOString(),report_type:$("#reportType").value,from_date:$("#fromDate").value,to_date:$("#toDate").value,html:reportCoordinatesOnly(readableReportHtml(printHtml(d)),d),data:d});toast("تم حفظ نسخة التقرير المعتمدة محليًا");}catch(e){toast("تعذر اعتماد التقرير: "+e.message);}};
  let archiveDateSelection="",archiveShiftSelection="",archiveTypeSelection="",archiveBranchSelection="",archiveBikeSelection="";
- const archiveDayOf=x=>x.entity_type==="bike_patrols"?(x.payload?.patrol_date||x.payload?.work_date||String(x.created_at||"").slice(0,10)):dayOf(x);
+ const archiveDayOf=x=>dayOf(x);
  const showArchive=async()=>{
   $("#archivePanel").classList.remove("hidden");$("#reportSummary").parentElement.classList.add("hidden");
   const [archived,approved]=await Promise.all([DebooDB.all({archived:true}),DebooDB.approvedReports()]),host=$("#archiveContent");
   const mapData=data.filter(x=>x.entity_type==="bike_patrols"&&!x.is_deleted);
-  const dates=[...new Set([...archived,...mapData].map(dayOf).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+  const dates=[...new Set([...archived,...mapData].map(archiveDayOf).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
   const shifts=[...new Set([...archived,...mapData].map(x=>String(x.payload?.shift||x.payload?.shift_name||"غير محدد")))].sort();
 const branches=[...new Set([...archived,...mapData].map(x=>String(x.payload?.branch||x.branch_id||"غير محدد"))) ].sort();
   const bikes=[...new Set([...data.filter(x=>x.entity_type==="bikes").map(x=>String(x.payload?.number||"").trim()),...mapData.map(x=>String(x.payload?.bike||"").trim())].filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ar",{numeric:true}));
