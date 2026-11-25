@@ -988,6 +988,7 @@ async function reports(){
   if(!source){
    const from=String(snapshot.from_date||item?.from_date||""),to=String(snapshot.to_date||item?.to_date||"");
    source=data.filter(x=>(!type||type==="all"||x.entity_type===type)&&(!from||dayOf(x)>=from)&&(!to||dayOf(x)<=to));
+   if(Number.isFinite(Number(meta.record_count))&&source.length!==Number(meta.record_count))return snapshot.html||item?.html||"";
   }
   const oldType=$("#reportType").value,oldFrom=$("#fromDate").value,oldTo=$("#toDate").value,oldBike=selectedBikeReport;
   try{
