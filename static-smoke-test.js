@@ -36,6 +36,19 @@ if (!imageExport.includes('writeWebViewToPdf(v)') || !imageExport.includes('WebV
 if (!imageExport.includes('pdfCaptureStarted.compareAndSet(false,true)') || !imageExport.includes('if(finished.get()||!pdfCaptureStarted.compareAndSet(false,true))return;')) throw new Error('Android image export must ignore duplicate WebView page-finished callbacks and start a single PDF/PNG capture per request');
 if (imageExport.includes('createPrintDocumentAdapter("DEEB-image-export")') || imageExport.includes('nativeAdapter.onLayout') || imageExport.includes('nativeAdapter.onWrite')) throw new Error('Image export must not invoke Android framework print callbacks directly');
 for (const required of ['setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrait())','setResolution(new PrintAttributes.Resolution("DEEB","DEEB",300,300))','setMinMargins(PrintAttributes.Margins.NO_MARGINS)','createPrintDocumentAdapter(jobName)','setJavaScriptEnabled(true)']) if (!printHandler.includes(required)) throw new Error('Android printing must use fixed A4 print attributes and the native print adapter: '+required);
+const durableSyncSql = fs.readFileSync(path.join(root,'supabase/migrations/202611250009_durable_pending_sync_pages.sql'),'utf8');
+for (const required of [
+  'add column if not exists pending_page jsonb',
+  'return v_cursor.pending_page',
+  'pending_page=v_response',
+  'pending_page=null',
+  'deeb_pull_auxiliary',
+  'deeb_advance_aux_cursor'
+]) if (!durableSyncSql.includes(required)) throw new Error('Crash-safe sync page replay is missing: '+required);
+const syncClient = fs.readFileSync(path.join(root,'team-sync.js'),'utf8');
+for (const required of ['syncQueueForPush(500)','rebasePendingRecordMutations','blocked_dependency','waiting_retry']) {
+  if (!syncClient.includes(required)) throw new Error('Ordered DEEB19 mutation delivery is missing: '+required);
+}
 const appSource = fs.readFileSync(path.join(root,'app.js'),'utf8');
 
 const memoPrintStart=appSource.indexOf('const printHtml=d=>');
