@@ -17,11 +17,55 @@ global.FileReader = class {
     }
   }
 };
+// Seed a version-3 database before the app opens it, then verify the v4 upgrade is additive.
+const legacyDbReady = new Promise((resolve, reject) => {
+  const request = indexedDB.open("DEBOO16_LOCAL_DB", 3);
+  request.onupgradeneeded = () => {
+    const d = request.result;
+    if (!d.objectStoreNames.contains("records")) {
+      const store = d.createObjectStore("records", { keyPath: "id" });
+      store.createIndex("entity_type", "entity_type", { unique: false });
+      store.createIndex("created_at", "created_at", { unique: false });
+    }
+    if (!d.objectStoreNames.contains("audit_logs")) d.createObjectStore("audit_logs", { keyPath: "id" });
+    if (!d.objectStoreNames.contains("approved_reports")) d.createObjectStore("approved_reports", { keyPath: "id" });
+    if (!d.objectStoreNames.contains("handover_versions")) {
+      const store = d.createObjectStore("handover_versions", { keyPath: "id" });
+      store.createIndex("record_id", "record_id", { unique: false });
+      store.createIndex("created_at", "created_at", { unique: false });
+    }
+    if (!d.objectStoreNames.contains("attachments")) {
+      const store = d.createObjectStore("attachments", { keyPath: "id" });
+      store.createIndex("record_id", "record_id", { unique: false });
+    }
+    if (!d.objectStoreNames.contains("automatic_backups")) d.createObjectStore("automatic_backups", { keyPath: "id" });
+    d.transaction.objectStore("records").put({
+      id: "legacy-before-sync-upgrade", entity_type: "branches",
+      payload: { name: "سجل قديم يجب ألا يضيع" }, branch_id: null, status: "active",
+      is_archived: false, is_deleted: false, created_at: "2026-11-01T00:00:00.000Z",
+      updated_at: "2026-11-01T00:00:00.000Z", created_by: "local"
+    });
+  };
+  request.onsuccess = () => { request.result.close(); resolve(); };
+  request.onerror = () => reject(request.error);
+});
 require("./db.js");
 
 async function main() {
+  await legacyDbReady;
   const db = global.DebooDB;
   assert.ok(db, "Database API should initialize");
+  const legacyRecord = await db.getRecord("legacy-before-sync-upgrade");
+  assert.equal(legacyRecord?.payload?.name, "سجل قديم يجب ألا يضيع", "Version-3 records must survive the additive version-4 upgrade");
+  const upgraded = await new Promise((resolve, reject) => {
+    const request = indexedDB.open("DEBOO16_LOCAL_DB");
+    request.onsuccess = () => { const d = request.result; const info = { version: d.version, stores: [...d.objectStoreNames] }; d.close(); resolve(info); };
+    request.onerror = () => reject(request.error);
+  });
+  assert.equal(upgraded.version, 4, "Sync foundation must use IndexedDB schema version 4");
+  for (const store of ["records", "audit_logs", "approved_reports", "handover_versions", "attachments", "automatic_backups", "sync_state", "sync_outbox", "sync_conflicts"]) {
+    assert.ok(upgraded.stores.includes(store), "Database upgrade must preserve/create store " + store);
+  }
 
   // Version 4 is additive: legacy operational stores remain present and local mode stays the default.
   const localStatus = await db.syncStatus();
