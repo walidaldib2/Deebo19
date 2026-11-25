@@ -569,3 +569,12 @@ function pageGroupsDataTypes() {
   const match = groupsSource.match(/data:\[([^\]]*)\]/);
   return match ? [...match[1].matchAll(/"([^"]+)"/g)].map(item => item[1]) : [];
 }
+
+
+// General Archive must be an independent main-navigation destination with searchable archived content.
+if (!html.includes('data-page="archive"') || !app.includes('p==="archive"') || !app.includes('function openArchivePage(){await reports();$("#showArchive")?.click();}')) {
+  throw new Error('General Archive must open independently from the main navigation.');
+}
+if (!app.includes('id="archiveSearchInput"') || !app.includes('matchesArchiveSearch(x)') || !app.includes('data-print-report-archive')) {
+  throw new Error('General Archive must support searching saved reports and retain report print actions.');
+}
