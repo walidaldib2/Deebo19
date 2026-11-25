@@ -192,6 +192,7 @@ async function main() {
 
   // Backup restore must validate bike patrol_date, not the time-only patrol_time field.
   await db.restore({app:"DEEB",format:2,records:[{id:"bike-restore-check",entity_type:"bike_patrols",payload:{bike:"دراجة اختبار",patrol_date:"2026-11-18",patrol_time:"09:35"},created_at:"2026-11-18T09:35:00.000Z"}],audit_logs:[]});
+  assert.ok((await db.reportArchives()).some(x => x.id === archivedReport.id), "Restoring an older backup without report_archives must preserve newer archived reports");
   assert.ok((await db.all()).some(x=>x.id==="bike-restore-check"), "A valid HH:mm motorcycle visit should restore successfully");
 
   // Branch create, primary-key read-back, and audit are one committed operation.
