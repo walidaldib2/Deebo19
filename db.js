@@ -392,13 +392,15 @@ window.DebooDB = (() => {
     if(current.records.length||current.attachments.length) await downloadBlob(new Blob([JSON.stringify(current,null,2)],{type:"application/json"}),"DEEB-before-restore.json");
     const d=await openDB();
     await new Promise((resolve,reject)=>{
-      const names=["records","audit_logs","approved_reports","report_archives","handover_versions","attachments"];
+      const names=["records","audit_logs","approved_reports"];
+      if(Object.prototype.hasOwnProperty.call(obj,"report_archives"))names.push("report_archives");
+      names.push("handover_versions","attachments");
       const tx=d.transaction(names,"readwrite");
       for(const name of names) tx.objectStore(name).clear();
       obj.records.forEach(x=>tx.objectStore("records").put(x));
       obj.audit_logs.forEach(x=>tx.objectStore("audit_logs").put(x));
       (obj.approved_reports||[]).forEach(x=>tx.objectStore("approved_reports").put(x));
-      (obj.report_archives||[]).forEach(x=>tx.objectStore("report_archives").put(x));
+      if(Object.prototype.hasOwnProperty.call(obj,"report_archives"))(obj.report_archives||[]).forEach(x=>tx.objectStore("report_archives").put(x));
       (obj.handover_versions||[]).forEach(x=>tx.objectStore("handover_versions").put(x));
       preparedAttachments.forEach(x=>tx.objectStore("attachments").put(x));
       tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error("تعذرت الاستعادة."));
