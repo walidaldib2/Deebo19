@@ -2,7 +2,7 @@
 window.DebooDB = (() => {
   "use strict";
   const DB_NAME = "DEBOO16_LOCAL_DB";
-  const DB_VERSION = 3;
+  const DB_VERSION = 4;
   let dbPromise;
   const now = () => new Date().toISOString();
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : "d16-" + Date.now() + "-" + Math.random().toString(16).slice(2));
@@ -29,6 +29,19 @@ window.DebooDB = (() => {
           a.createIndex("record_id","record_id",{unique:false});
         }
         if (!d.objectStoreNames.contains("automatic_backups")) d.createObjectStore("automatic_backups",{keyPath:"id"});
+        // Additive sync stores only: existing operational stores and their records are untouched.
+        if (!d.objectStoreNames.contains("sync_state")) d.createObjectStore("sync_state",{keyPath:"key"});
+        if (!d.objectStoreNames.contains("sync_outbox")) {
+          const q=d.createObjectStore("sync_outbox",{keyPath:"mutation_id"});
+          q.createIndex("status_created_at",["status","created_at"],{unique:false});
+          q.createIndex("next_attempt_at","next_attempt_at",{unique:false});
+          q.createIndex("record_id","record_id",{unique:false});
+        }
+        if (!d.objectStoreNames.contains("sync_conflicts")) {
+          const c=d.createObjectStore("sync_conflicts",{keyPath:"id"});
+          c.createIndex("status_created_at",["status","created_at"],{unique:false});
+          c.createIndex("record_id","record_id",{unique:false});
+        }
       };
       req.onsuccess = () => {
         const connection=req.result;
@@ -355,5 +368,98 @@ window.DebooDB = (() => {
     setTimeout(()=>URL.revokeObjectURL(url),1500);
     return {saved:true,name};
   }
-  return {init,configured,list,all,archivePastDays,purgeExpiredDeleted,getRecord:(id)=>get("records",id),save,archive,unarchive,softDelete,restoreDeleted,audit,approve,approvedReports,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,local:true};
+  // Local-first sync primitives. They are inert unless a team context is explicitly configured.
+  async function readSyncState(key) { return get("sync_state",key); }
+  async function writeSyncState(key,value) {
+    const item={key,value,updated_at:now()};
+    await txStore("sync_state","readwrite",store=>store.put(item));
+    return item;
+  }
+  async function deviceIdentity() {
+    let item=await readSyncState("device_identity");
+    if(item?.value?.device_id)return item.value;
+    const value={device_id:uid(),created_at:now(),platform:typeof navigator!=="undefined"?(navigator.userAgent||"web").slice(0,160):"test"};
+    await writeSyncState("device_identity",value);
+    item=await readSyncState("device_identity");
+    return item.value;
+  }
+  async function setTeamContext(context) {
+    if(!context||typeof context!=="object"||!context.org_id||!context.user_id) throw new Error("بيانات ربط الإدارة والمستخدم غير مكتملة.");
+    const current=await readSyncState("team_context");
+    const value={mode:"team",org_id:String(context.org_id),user_id:String(context.user_id),display_name:String(context.display_name||""),configured_at:current?.value?.configured_at||now()};
+    await deviceIdentity();
+    await writeSyncState("team_context",value);
+    return value;
+  }
+  async function clearTeamContext() {
+    const pending=await getAll("sync_outbox");
+    await writeSyncState("team_context",{mode:"local",cleared_at:now(),pending_mutations:pending.filter(x=>x.status!=="synced").length});
+    return {mode:"local",pending_mutations:pending.filter(x=>x.status!=="synced").length};
+  }
+  async function getTeamContext() {
+    const item=await readSyncState("team_context");
+    return item?.value||{mode:"local"};
+  }
+  async function enqueueSyncMutation(input) {
+    const context=await getTeamContext();
+    if(context.mode!=="team") throw new Error("المزامنة غير مفعلة؛ التطبيق يعمل في الوضع الفردي المحلي.");
+    if(!input||!input.record_id||!input.entity_type||!input.action) throw new Error("بيانات عملية المزامنة غير مكتملة.");
+    const allowed=new Set(["create","update","archive","unarchive","soft_delete","restore_deleted","attachment","approve","handover_version"]);
+    if(!allowed.has(input.action)) throw new Error("نوع عملية المزامنة غير مسموح.");
+    const device=await deviceIdentity(),stamp=now();
+    const row={
+      mutation_id:input.mutation_id||uid(),record_id:String(input.record_id),entity_type:String(input.entity_type),
+      action:input.action,branch_id:input.branch_id||null,org_id:context.org_id,user_id:context.user_id,
+      device_id:device.device_id,base_revision:Number.isInteger(input.base_revision)?input.base_revision:0,
+      snapshot:input.snapshot==null?null:JSON.parse(JSON.stringify(input.snapshot)),
+      created_at:stamp,local_updated_at:input.local_updated_at||stamp,status:"pending",
+      attempts:0,next_attempt_at:stamp,last_error:null,server_revision:null
+    };
+    const existing=await get("sync_outbox",row.mutation_id);
+    if(existing)return existing;
+    await txStore("sync_outbox","readwrite",store=>store.add(row));
+    return row;
+  }
+  async function pendingSyncMutations(limit=100,at=new Date()) {
+    const stamp=at instanceof Date?at.toISOString():String(at);
+    return (await getAll("sync_outbox"))
+      .filter(x=>x.status==="pending"&&(!x.next_attempt_at||x.next_attempt_at<=stamp))
+      .sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at)))
+      .slice(0,Math.max(0,Math.min(500,Number(limit)||100)));
+  }
+  async function markSyncMutationSynced(mutationId,serverRevision=null) {
+    const row=await get("sync_outbox",mutationId);if(!row)return null;
+    const updated={...row,status:"synced",server_revision:serverRevision,synced_at:now(),last_error:null};
+    await txStore("sync_outbox","readwrite",store=>store.put(updated));return updated;
+  }
+  async function retrySyncMutation(mutationId,error) {
+    const row=await get("sync_outbox",mutationId);if(!row)return null;
+    const attempts=(row.attempts||0)+1,delay=Math.min(60*60*1000,1000*Math.pow(2,Math.min(attempts,12)));
+    const updated={...row,status:"pending",attempts,next_attempt_at:new Date(Date.now()+delay).toISOString(),last_error:String(error?.message||error||"تعذرت المزامنة").slice(0,500)};
+    await txStore("sync_outbox","readwrite",store=>store.put(updated));return updated;
+  }
+  async function addSyncConflict(input) {
+    if(!input?.record_id||!input?.mutation_id)throw new Error("بيانات تعارض المزامنة غير مكتملة.");
+    const context=await getTeamContext();
+    const row={id:input.id||uid(),org_id:context.org_id||input.org_id||null,record_id:input.record_id,mutation_id:input.mutation_id,
+      base_revision:Number(input.base_revision||0),server_revision:Number(input.server_revision||0),
+      local_snapshot:input.local_snapshot??null,server_snapshot:input.server_snapshot??null,
+      status:"open",created_at:now(),resolution:null,resolved_at:null};
+    await txStore("sync_conflicts","readwrite",store=>store.add(row));return row;
+  }
+  async function resolveSyncConflict(id,resolution) {
+    const row=await get("sync_conflicts",id);if(!row)throw new Error("تعارض المزامنة غير موجود.");
+    if(row.status!=="open")throw new Error("تمت معالجة هذا التعارض من قبل.");
+    const updated={...row,status:"resolved",resolution:resolution==null?null:JSON.parse(JSON.stringify(resolution)),resolved_at:now()};
+    await txStore("sync_conflicts","readwrite",store=>store.put(updated));return updated;
+  }
+  async function syncStatus() {
+    const [context,outbox,conflicts]=await Promise.all([getTeamContext(),getAll("sync_outbox"),getAll("sync_conflicts")]);
+    return {mode:context.mode||"local",pending:outbox.filter(x=>x.status==="pending").length,
+      synced:outbox.filter(x=>x.status==="synced").length,open_conflicts:conflicts.filter(x=>x.status==="open").length,
+      failed:outbox.filter(x=>x.status==="failed").length};
+  }
+  async function syncCursor() { return (await readSyncState("sync_cursor"))?.value||null; }
+  async function setSyncCursor(value) { return writeSyncState("sync_cursor",value); }
+  return {init,configured,list,all,archivePastDays,purgeExpiredDeleted,getRecord:(id)=>get("records",id),save,archive,unarchive,softDelete,restoreDeleted,audit,approve,approvedReports,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,deviceIdentity,setTeamContext,clearTeamContext,getTeamContext,enqueueSyncMutation,pendingSyncMutations,markSyncMutationSynced,retrySyncMutation,addSyncConflict,resolveSyncConflict,syncStatus,syncCursor,setSyncCursor,local:true};
 })();
