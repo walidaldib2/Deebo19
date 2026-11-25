@@ -364,6 +364,9 @@ window.DebooDB = (() => {
     }
     if((obj.attachments||[]).some(x=>!recordIds.has(x.record_id))) throw new Error("يوجد مرفق مرتبط بسجل غير موجود في النسخة؛ لم يتم تغيير بياناتك.");
     if((obj.handover_versions||[]).some(x=>!recordIds.has(x.record_id)||!Number.isInteger(x.version)||x.version<1||!x.snapshot||typeof x.snapshot!=="object")) throw new Error("يوجد إصدار تسليم غير مرتبط بسجل صالح؛ لم يتم تغيير بياناتك.");
+    const teamContext=await getTeamContext();
+    const unsynced=(await getAll("sync_outbox")).filter(x=>["pending","conflict"].includes(x.status));
+    if(teamContext.mode==="team"||unsynced.length) throw new Error("لا يمكن استعادة نسخة محلية أثناء وضع الفريق أو مع وجود عمليات مزامنة معلقة؛ أكمل المزامنة أو عالج التعارضات أولاً.");
     const preparedAttachments=(obj.attachments||[]).map(x=>{
       let blob=x.blob instanceof Blob?x.blob:null;
       if(!blob){if(typeof x.data_url!=="string"||!/^data:[^;,]+;base64,[A-Za-z0-9+/=]*$/.test(x.data_url)) throw new Error("بيانات المرفق "+(x.name||x.id)+" غير صالحة؛ لم يتم تغيير بياناتك.");blob=dataURLToBlob(x.data_url);}
