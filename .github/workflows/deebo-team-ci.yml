@@ -35,6 +35,13 @@ jobs:
           java-version: 21
       - run: npm install
       - run: npm run prepare:android
+      - run: npm run build:biometric
+      - run: npm run build:native-plugins
+      - name: Verify native JavaScript bridges
+        run: |
+          test -s www/biometric.bundle.js
+          test -s www/native-plugins.bundle.js
+          grep -q 'FileExport' www/native-plugins.bundle.js
       - run: npx cap add android
       - run: npx cap sync android
       - run: npm run configure:android:share
