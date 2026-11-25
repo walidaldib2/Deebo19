@@ -460,8 +460,11 @@ if ((app.split('/* DEEB shared reference identity */').length-1)!==4) throw new 
 for (const rule of ['.brand-name{font-family:Georgia','h1:before,h1:after{content:""!important','background:#073b28!important','background:#fbf4e6!important','border:1.5px solid #c99a32!important','background:#f6ead2!important']) if ((app.split(rule).length-1)<4) throw new Error('A report template is missing shared DEEB identity rule: '+rule);
 if (!app.includes(sharedIdentity) || !app.includes('h1{position:relative!important;isolation:isolate!important')) throw new Error('Report titles must use the gold winged burgundy banner from the approved reference');
 
- // Automatic-backup status must be visible to the user, including the attachment-size skip.
-if (!app.includes('تم تحديث النسخة التلقائية لهذا اليوم بنجاح') || !app.includes('تجاوز 30 ميجابايت') || !app.includes('DebooDB.createAutoBackup()')) throw new Error('Automatic backup status and attachment-size warning must be visible in settings');
+ // Automatic-backup status must be visible in the dedicated backup/restore page, not in Settings.
+const backupPageStart=app.indexOf('async function openBackupPage(){');
+const backupPageEnd=app.indexOf('function settings(){',backupPageStart);
+const backupPageSource=backupPageStart>=0&&backupPageEnd>backupPageStart?app.slice(backupPageStart,backupPageEnd):'';
+if (!backupPageSource.includes('تم تحديث النسخة التلقائية لهذا اليوم') || !backupPageSource.includes('تجاوز 30 ميجابايت') || !backupPageSource.includes('DebooDB.createAutoBackup()')) throw new Error('Automatic backup status and attachment-size warning must be visible in the dedicated backup page');
 
 const androidAssets = fs.readFileSync(path.join(root,'prepare-android.js'),'utf8');
 if (androidAssets.includes('"scanner.js"') || html.includes('src="scanner.js"') || sw.includes('./scanner.js')) throw new Error('Document scanner assets must not be staged or cached');
