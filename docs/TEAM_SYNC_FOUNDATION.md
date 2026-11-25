@@ -71,7 +71,9 @@ Each installation gets a random persistent `device_id`. Team-mode mutations carr
 
 ## Current implementation boundary
 
-The SQL migration is a **schema/RLS foundation only**. The current DEEBO app is not connected to Supabase, and no cloud sync is active. The migration does not yet provide the trusted mutation RPCs, revision-checked write path, invitation/bootstrap workflow, Storage bucket policies, or production RLS test suite. Do not connect real user data or deploy team mode until those pieces are implemented and tested. Direct table writes are not the final sync contract.
+The SQL schema/RLS foundation is followed by a second migration containing authenticated `deeb_apply_record_mutation(jsonb)` and `deeb_pull_records(...)` RPCs. Direct INSERT/UPDATE policies on `deeb_records` are removed so operational record writes must use the revision-checked RPC. The apply RPC validates the authenticated profile, single organization, enrolled device, branch access, and the security-officer entity allowlist; it serializes idempotency-key retries, stores mutation receipts, checks `base_revision`, records conflicts, and appends the supplied audit event only on success. The pull RPC returns branch-scoped records in stable `(updated_at,id)` order with a bounded page size.
+
+**These RPCs are not yet production-ready or connected to the app.** The client still has no network worker; device enrollment/bootstrap, invitations/role administration, append-only handover/report RPCs, attachment Storage lifecycle, cursor persistence, and a production RLS/RPC test suite remain outstanding. The current RPC deliberately rejects non-record actions such as `attachment`, `approve`, and `handover_version` rather than silently acknowledging them. Do not apply the migrations to real data or enable team mode until the remaining work and SQL tests are complete.
 
 ## Implemented in the development branch
 
@@ -81,6 +83,7 @@ The SQL migration is a **schema/RLS foundation only**. The current DEEBO app is 
 - Outbox primitives support stable mutation IDs, ordered pending reads, exponential retry backoff, server acknowledgements, and conflict records.
 - In team mode, regular record create/update, manual and automatic archive, unarchive, motorcycle soft-delete/restore, handover versions, approved report snapshots, and attachment metadata are queued in the same IndexedDB transaction as their local data and audit event. Attachment bytes remain in IndexedDB for a later resumable upload. Local backup restore is blocked while team mode is active or unsynced/conflicted mutations remain, preventing a restore from silently orphaning queued work.
 - Cursor storage is available for later incremental downloads.
+- A separate SQL migration adds authenticated record-apply and incremental-pull RPCs, disables direct client record writes, checks branch/device/org permissions and revisions, stores idempotency receipts, and returns explicit conflict payloads. These server functions have not been applied to a Supabase project or exercised against PostgreSQL.
 - Integration tests seed a version-3 database and verify its existing record survives the additive upgrade; they also cover local-mode default, stable device identity, duplicate mutation IDs, retry timing, acknowledgements, conflict resolution, cursor persistence, queued record/handover/attachment/approval/archive/tombstone changes, and switching back to local mode.
 
 **Important current limit:** the local write paths now queue supported mutations, but there is still no network worker or Supabase endpoint connected. No cloud synchronization is active, and the local integration suite has been updated but not executed in this environment. Do not enroll real team data yet.
@@ -89,7 +92,7 @@ The SQL migration is a **schema/RLS foundation only**. The current DEEBO app is 
 
 1. **Foundation (this branch):** isolated branch, data inventory, tenancy/role model, SQL schema with RLS, and migration/sync design.
 2. **Local outbox integration (in progress):** complete and test every local mutation path, including permanent-retention audit semantics, and attachment upload lifecycle.
-3. **Server mutation API:** authenticated RPCs for idempotent writes, revision checks, audit append, and scoped downloads.
+3. **Server mutation API:** initial authenticated record RPCs are authored; next add append-only handover/report flows, attachment metadata/storage, and database-level regression tests.
 4. **Team enrollment and administration:** create the one organization, invite users, assign roles and branch memberships.
 5. **Attachments and recovery:** private object storage, resumable uploads, encrypted exports, tested restore and rollback.
 6. **UI and Android verification:** mode selection, connection/sync status, permission screens, offline/online scenarios, and physical-device regression tests.
