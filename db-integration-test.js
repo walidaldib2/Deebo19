@@ -66,9 +66,30 @@ async function main() {
   assert.equal(resolved.status, "resolved");
   await db.setSyncCursor({ updated_at: "2026-11-25T00:00:00.000Z", id: "cursor-qa" });
   assert.equal((await db.syncCursor()).id, "cursor-qa");
+
+  // Normal record writes now enter the outbox in the same IndexedDB transaction.
+  const teamBranch = await db.save("branches", { name: "فرع حفظ جماعي", code: "TEAM-QA" });
+  let queuedRecord = (await db.pendingSyncMutations()).find(x => x.record_id === teamBranch.id);
+  assert.ok(queuedRecord, "Saving a record in team mode must enqueue it automatically");
+  assert.equal(queuedRecord.action, "create");
+  assert.equal(queuedRecord.snapshot.payload.name, "فرع حفظ جماعي");
+  await db.archive(teamBranch.id);
+  queuedRecord = (await db.pendingSyncMutations()).find(x => x.record_id === teamBranch.id && x.action === "archive");
+  assert.ok(queuedRecord, "Archiving a record must also enqueue automatically");
+  await db.unarchive(teamBranch.id);
+  assert.ok((await db.pendingSyncMutations()).some(x => x.record_id === teamBranch.id && x.action === "unarchive"));
+
+  const teamHandover = await db.save("handovers", { sender: "تسليم جماعي", receiver: "استلام جماعي" });
+  const queuedHandover = (await db.pendingSyncMutations()).find(x => x.record_id === teamHandover.id && x.action === "handover_version");
+  assert.ok(queuedHandover, "Handover record and immutable version must be represented by a queued sync mutation");
+  assert.ok(queuedHandover.snapshot.handover_version?.snapshot?.payload?.sender === "تسليم جماعي");
+
   const localSwitch = await db.clearTeamContext();
   assert.equal(localSwitch.mode, "local");
   assert.equal((await db.syncStatus()).synced, 1, "Switching back to local mode must retain sync history");
+  const pendingBeforeLocalSave = (await db.syncStatus()).pending;
+  await db.save("branches", { name: "فرع فردي بعد فصل المزامنة", code: "LOCAL-QA" });
+  assert.equal((await db.syncStatus()).pending, pendingBeforeLocalSave, "Local-only writes must not enter the team outbox");
 
   // Backup restore must validate bike patrol_date, not the time-only patrol_time field.
   await db.restore({app:"DEEB",format:2,records:[{id:"bike-restore-check",entity_type:"bike_patrols",payload:{bike:"دراجة اختبار",patrol_date:"2026-11-18",patrol_time:"09:35"},created_at:"2026-11-18T09:35:00.000Z"}],audit_logs:[]});
