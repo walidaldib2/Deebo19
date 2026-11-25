@@ -638,5 +638,7 @@ window.DebooDB = (() => {
   }
   async function syncCursor() { return (await readSyncState("sync_cursor"))?.value||null; }
   async function setSyncCursor(value) { return writeSyncState("sync_cursor",value); }
-  return {init,configured,list,all,archivePastDays,purgeExpiredDeleted,getRecord:(id)=>get("records",id),save,archive,unarchive,softDelete,restoreDeleted,audit,approve,approvedReports,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,deviceIdentity,setTeamContext,clearTeamContext,getTeamContext,enqueueSyncMutation,pendingSyncMutations,markSyncMutationSynced,retrySyncMutation,addSyncConflict,resolveSyncConflict,setRecordServerRevision,applyRemoteSyncPage,applyRemoteAuxData,saveRemoteAttachment,syncStatus,syncCursor,setSyncCursor,local:true};
+  async function auxSyncCursor() { return (await readSyncState("aux_sync_cursor"))?.value||null; }
+  async function setAuxSyncCursor(value) { return writeSyncState("aux_sync_cursor",value); }
+  return {init,configured,list,all,archivePastDays,purgeExpiredDeleted,getRecord:(id)=>get("records",id),save,archive,unarchive,softDelete,restoreDeleted,audit,approve,approvedReports,backup,restore,createAutoBackup,automaticBackups,restoreAutoBackup,downloadBlob,handoverHistory,saveAttachment,attachments,getAttachment,deviceIdentity,setTeamContext,clearTeamContext,getTeamContext,enqueueSyncMutation,pendingSyncMutations,markSyncMutationSynced,retrySyncMutation,addSyncConflict,resolveSyncConflict,setRecordServerRevision,applyRemoteSyncPage,applyRemoteAuxData,saveRemoteAttachment,syncStatus,syncCursor,setSyncCursor,auxSyncCursor,setAuxSyncCursor,local:true};
 })();
