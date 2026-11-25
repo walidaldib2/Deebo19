@@ -211,7 +211,7 @@ const buttonBindingChecks = [
   ['$("#printReport").onclick=async()=>', 'Print-report button is not wired'],
   ['$("#pdfReport").onclick=()=>', 'PDF-report button is not wired'],
   ['$("#excelReport").onclick=async()=>', 'Excel-report button is not wired'],
-  ['$("#csvReport").onclick=()=>', 'CSV-report button is not wired'],
+  ['$("#csvReport").onclick=async()=>', 'CSV-report button is not wired'],
   ['$("#saveReportImage").onclick=async()=>', 'Save-report-image button is not wired']
 ];
 for (const [needle,message] of buttonBindingChecks) if (!app.includes(needle)) throw new Error(message);
