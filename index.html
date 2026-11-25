@@ -82,7 +82,10 @@
     if (target && target.tagName === "SCRIPT") {
       startupFailure("تعذر تحميل ملف التطبيق: " + (target.src || "ملف JavaScript"));
     } else if (event.message) {
-      startupFailure("خطأ أثناء تشغيل التطبيق: " + event.message);
+      const location = event.filename
+        ? "\\nالملف: " + event.filename.split("/").pop() + "\\nالسطر: " + (event.lineno || "?") + " — العمود: " + (event.colno || "?")
+        : "";
+      startupFailure("خطأ أثناء تشغيل التطبيق: " + event.message + location);
     }
   }, true);
   window.addEventListener("unhandledrejection", event => {
