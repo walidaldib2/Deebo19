@@ -131,6 +131,28 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  const { error: auditError } = await admin.from("deeb_audit_logs").insert({
+    id: crypto.randomUUID(),
+    org_id: actor.org_id,
+    branch_id: null,
+    record_id: null,
+    action: "user_invited",
+    old_data: null,
+    new_data: { user_id: newUserId, email, display_name: displayName, role, branch_ids: branchIds },
+    reason: "دعوة مستخدم جديد إلى إدارة DEEB19",
+    actor_user_id: authData.user.id,
+    device_id: null,
+    created_at: new Date().toISOString(),
+  });
+  if (auditError) {
+    if (branchIds.length) {
+      await admin.from("deeb_branch_memberships").delete().eq("org_id", actor.org_id).eq("user_id", newUserId);
+    }
+    await admin.from("deeb_profiles").delete().eq("user_id", newUserId).eq("org_id", actor.org_id);
+    await admin.auth.admin.deleteUser(newUserId);
+    return json(500, { error: "invitation_audit_failed_invitation_rolled_back" });
+  }
+
   return json(200, {
     ok: true,
     invited_user_id: newUserId,
