@@ -132,14 +132,14 @@ if (!attachmentSaveSource.includes('file.size>15*1024*1024') ||
 const navigationStart = html.indexOf('<section class="tiles" id="mainTiles">');
 const navigationEnd = html.indexOf('</section>', navigationStart);
 const navigationHtml = navigationStart >= 0 && navigationEnd > navigationStart ? html.slice(navigationStart, navigationEnd) : '';
-for (const page of ['home','operations','security','reportsGroup','archive','data','backup','settings']) {
+for (const page of ['home','operations','security','data','reportsGroup','archive','settings']) {
   if (!navigationHtml.includes('data-page="'+page+'"')) throw new Error('Main navigation tile is missing: '+page);
 }
-for (const label of ['لوحة التحكم','التشغيل الميداني','إدارة الأمن','التقارير والإحصائيات','الأرشيف العام','البيانات الأساسية','النسخ الاحتياطي والاستعادة','الإعدادات']) {
+for (const label of ['لوحة التحكم','التشغيل الميداني','إدارة الأمن','البيانات الأساسية','التقارير والإحصائيات','الأرشيف العام','الإعدادات']) {
   if (!navigationHtml.includes(label)) throw new Error('Main navigation label was lost: '+label);
 }
 for (const required of ['class="tile-icon"','viewBox="0 0 24 24"']) if (!navigationHtml.includes(required)) throw new Error('Premium vector navigation icon system is missing: '+required);
-if ((navigationHtml.match(/data-page=/g)||[]).length !== 8) throw new Error('Home must contain exactly eight independent primary navigation tiles.');
+if ((navigationHtml.match(/data-page=/g)||[]).length !== 7 || navigationHtml.includes('data-page="backup"')) throw new Error('Home must contain exactly seven primary navigation tiles, with backup and restore nested under Settings.');
 if (navigationHtml.includes('data-page="system"')) throw new Error('Legacy combined data/settings section must not remain in main navigation.');
 const menuStart=appSource.indexOf('const sectionMenus=');
 const menuEnd=appSource.indexOf(';',menuStart);
@@ -576,7 +576,7 @@ function pageGroupsDataTypes() {
 
 
 // General Archive must be an independent main-navigation destination with searchable archived content.
-if (!html.includes('data-page="archive"') || !app.includes('p==="archive"') || !app.includes('function openArchivePage(){await reports();$("#showArchive")?.click();}')) {
+if (!html.includes('data-page="archive"') || !app.includes('p==="archive"') || !app.includes('async function openArchivePage(){') || !app.includes('const open=$("#showArchive");') || !app.includes('back.textContent="القائمة الرئيسية"')) {
   throw new Error('General Archive must open independently from the main navigation.');
 }
 if (!app.includes('id="archiveSearchInput"') || !app.includes('matchesArchiveSearch(x)') || !app.includes('data-print-report-archive')) {
@@ -587,7 +587,7 @@ if (!app.includes('id="archiveSearchInput"') || !app.includes('matchesArchiveSea
 const settingsStart=appSource.indexOf('function settings(){');
 const backupStart=appSource.indexOf('async function openBackupPage(){');
 const settingsSource=settingsStart>=0&&backupStart>settingsStart?appSource.slice(settingsStart,backupStart):'';
-if (!settingsSource.includes('settingsHome') || /backupBtn|restoreFile|createAutoBackup|automaticBackups|النسخ الاحتياطي والاستعادة/.test(settingsSource)) throw new Error('Settings must not duplicate backup or restore functions.');
+if (!settingsSource.includes('settingsHome') || !settingsSource.includes('id="settingsBackup"') || /backupBtn|restoreFile|createAutoBackup|automaticBackups/.test(settingsSource) || !appSource.includes('$("#settingsBackup").onclick=()=>render("backup")') || !appSource.includes('$("#backupHome").onclick=()=>render("settings")')) throw new Error('Backup and restore must appear once as a Settings child branch, without duplicating its controls.');
 if (!appSource.includes('async function openBackupPage()') || !appSource.includes('else if(p==="backup")openBackupPage();')) throw new Error('Backup and restore must have their own page and route.');
 if (!appSource.includes('else if(p==="data")dataManagementPage();')) throw new Error('Basic data must have its own independent route.');
 if (appSource.includes('<button class="secondary" id="showArchive">الأرشيف العام</button>')) throw new Error('General Archive must be opened from its independent main navigation tile.');
