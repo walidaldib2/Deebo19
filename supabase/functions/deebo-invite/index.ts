@@ -104,16 +104,30 @@ Deno.serve(async (req: Request) => {
     return json(500, { error: "profile_creation_failed_invitation_rolled_back" });
   }
 
-  for (const branchId of branchIds) {
-    const { error } = await admin.rpc("deeb_admin_assign_branch_for_invite", {
-      p_actor_user_id: authData.user.id,
-      p_target_user_id: newUserId,
-      p_branch_id: branchId,
-    });
-    if (error) {
+  if (branchIds.length) {
+    const { data: branches, error: branchLookupError } = await admin
+      .from("deeb_branches")
+      .select("id")
+      .eq("org_id", actor.org_id)
+      .eq("is_active", true)
+      .in("id", branchIds);
+    if (branchLookupError || (branches?.length ?? 0) !== branchIds.length) {
       await admin.from("deeb_profiles").delete().eq("user_id", newUserId);
       await admin.auth.admin.deleteUser(newUserId);
-      return json(400, { error: "branch_assignment_failed_invitation_rolled_back" });
+      return json(400, { error: "one_or_more_branches_not_found_invitation_rolled_back" });
+    }
+    const memberships = branchIds.map((branch_id) => ({
+      org_id: actor.org_id,
+      branch_id,
+      user_id: newUserId,
+    }));
+    const { error: membershipError } = await admin
+      .from("deeb_branch_memberships")
+      .insert(memberships);
+    if (membershipError) {
+      await admin.from("deeb_profiles").delete().eq("user_id", newUserId);
+      await admin.auth.admin.deleteUser(newUserId);
+      return json(500, { error: "branch_assignment_failed_invitation_rolled_back" });
     }
   }
 
