@@ -473,7 +473,7 @@ window.DebooDB = (() => {
     await txStore("sync_outbox","readwrite",store=>store.put(updated));return updated;
   }
   async function retrySyncMutation(mutationId,error) {
-    const row=await get("sync_outbox",mutationId);if(!row)return null;
+    const row=await get("sync_outbox",mutationId);if(!row||row.status==="synced"||row.status==="conflict"||row.status==="superseded")return row;
     const attempts=(row.attempts||0)+1,delay=Math.min(60*60*1000,1000*Math.pow(2,Math.min(attempts,12)));
     const updated={...row,status:"pending",attempts,next_attempt_at:new Date(Date.now()+delay).toISOString(),last_error:String(error?.message||error||"تعذرت المزامنة").slice(0,500)};
     await txStore("sync_outbox","readwrite",store=>store.put(updated));return updated;
@@ -485,13 +485,47 @@ window.DebooDB = (() => {
       base_revision:Number(input.base_revision||0),server_revision:Number(input.server_revision||0),
       local_snapshot:input.local_snapshot??null,server_snapshot:input.server_snapshot??null,
       status:"open",created_at:now(),resolution:null,resolved_at:null};
-    await txStore("sync_conflicts","readwrite",store=>store.add(row));return row;
+    const d=await openDB();
+    await new Promise((resolve,reject)=>{
+      const tx=d.transaction(["sync_conflicts","sync_outbox"],"readwrite");
+      tx.objectStore("sync_conflicts").add(row);
+      const mutationRequest=tx.objectStore("sync_outbox").get(row.mutation_id);
+      mutationRequest.onsuccess=()=>{
+        const mutation=mutationRequest.result;
+        if(mutation&&mutation.status!=="synced"&&mutation.status!=="superseded"){
+          tx.objectStore("sync_outbox").put({...mutation,status:"conflict",conflict_id:row.id,last_error:"revision_conflict"});
+        }
+      };
+      tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("تعذر حفظ تعارض المزامنة."));
+      tx.onabort=()=>reject(tx.error||new Error("تم إلغاء حفظ تعارض المزامنة."));
+    });
+    return row;
   }
   async function resolveSyncConflict(id,resolution) {
     const row=await get("sync_conflicts",id);if(!row)throw new Error("تعارض المزامنة غير موجود.");
     if(row.status!=="open")throw new Error("تمت معالجة هذا التعارض من قبل.");
+    const choice=resolution?.choice||"keep_server";
     const updated={...row,status:"resolved",resolution:resolution==null?null:JSON.parse(JSON.stringify(resolution)),resolved_at:now()};
-    await txStore("sync_conflicts","readwrite",store=>store.put(updated));return updated;
+    const d=await openDB();
+    await new Promise((resolve,reject)=>{
+      const tx=d.transaction(["sync_conflicts","sync_outbox"],"readwrite");
+      tx.objectStore("sync_conflicts").put(updated);
+      const request=tx.objectStore("sync_outbox").get(row.mutation_id);
+      request.onsuccess=()=>{
+        const mutation=request.result;
+        if(!mutation)return;
+        if(choice==="keep_local"||choice==="manual_merge"){
+          const snapshot=resolution?.snapshot??mutation.snapshot;
+          tx.objectStore("sync_outbox").put({...mutation,status:"pending",snapshot,base_revision:row.server_revision,
+            attempts:0,next_attempt_at:now(),last_error:null,conflict_id:null});
+        }else{
+          tx.objectStore("sync_outbox").put({...mutation,status:"superseded",superseded_at:now(),last_error:null});
+        }
+      };
+      tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("تعذر اعتماد حل تعارض المزامنة."));
+      tx.onabort=()=>reject(tx.error||new Error("تم إلغاء حل تعارض المزامنة."));
+    });
+    return updated;
   }
   async function syncStatus() {
     const [context,outbox,conflicts]=await Promise.all([getTeamContext(),getAll("sync_outbox"),getAll("sync_conflicts")]);
