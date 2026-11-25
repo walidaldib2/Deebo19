@@ -438,7 +438,8 @@ window.DebooDB = (() => {
     const value={mode:"team",org_id:orgId,user_id:String(context.user_id),display_name:String(context.display_name||""),configured_at:current?.value?.configured_at||now()};
     await deviceIdentity();
     if(!lock?.value?.org_id)await writeSyncState("organization_lock",{org_id:orgId,locked_at:now()});
-    await writeSyncState("team_context",value);    return value;
+    await writeSyncState("team_context",value);
+    return value;
   }
   async function clearTeamContext() {
     const pending=await getAll("sync_outbox");
