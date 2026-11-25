@@ -462,7 +462,7 @@ if (!app.includes(sharedIdentity) || !app.includes('h1{position:relative!importa
 
  // Automatic-backup status must be visible in the dedicated backup/restore page, not in Settings.
 const backupPageStart=app.indexOf('async function openBackupPage(){');
-const backupPageEnd=app.indexOf('function settings(){',backupPageStart);
+const backupPageEnd=app.indexOf('function render(p)',backupPageStart);
 const backupPageSource=backupPageStart>=0&&backupPageEnd>backupPageStart?app.slice(backupPageStart,backupPageEnd):'';
 if (!backupPageSource.includes('تم تحديث النسخة التلقائية لهذا اليوم') || !backupPageSource.includes('تجاوز 30 ميجابايت') || !backupPageSource.includes('DebooDB.createAutoBackup()')) throw new Error('Automatic backup status and attachment-size warning must be visible in the dedicated backup page');
 
