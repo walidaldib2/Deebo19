@@ -50,6 +50,14 @@ for (const required of [
   'deeb_advance_aux_cursor'
 ]) if (!durableSyncSql.includes(required)) throw new Error('Crash-safe sync page replay is missing: '+required);
 const syncClient = fs.readFileSync(path.join(root,'team-sync.js'),'utf8');
+const adminAuditSql = fs.readFileSync(path.join(root,'supabase/migrations/202611250010_audited_user_admin_actions.sql'),'utf8');
+if (!adminAuditSql.includes('deeb_admin_apply_user_action') || !adminAuditSql.includes("'user_role_changed'") ||
+    !adminAuditSql.includes("'user_deactivated'") || !adminAuditSql.includes("'user_reactivated'") ||
+    !adminAuditSql.includes('to service_role')) throw new Error('User administration must be atomic and audited on the server');
+const userAdminEdge = fs.readFileSync(path.join(root,'supabase/functions/deebo-user-admin/index.ts'),'utf8');
+const inviteEdge = fs.readFileSync(path.join(root,'supabase/functions/deebo-invite/index.ts'),'utf8');
+if (!userAdminEdge.includes('deeb_admin_apply_user_action') || !inviteEdge.includes('"user_invited"') ||
+    !inviteEdge.includes('invitation_audit_failed_invitation_rolled_back')) throw new Error('Staff invitations and account changes must be audit logged');
 for (const required of ['syncQueueForPush(500)','rebasePendingRecordMutations','blocked_dependency','waiting_retry']) {
   if (!syncClient.includes(required)) throw new Error('Ordered DEEB19 mutation delivery is missing: '+required);
 }
