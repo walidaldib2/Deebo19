@@ -23,6 +23,53 @@ async function main() {
   const db = global.DebooDB;
   assert.ok(db, "Database API should initialize");
 
+  // Version 4 is additive: legacy operational stores remain present and local mode stays the default.
+  const localStatus = await db.syncStatus();
+  assert.equal(localStatus.mode, "local", "Fresh installs must remain in local-only mode");
+  assert.equal(localStatus.pending, 0);
+  const deviceA = await db.deviceIdentity();
+  const deviceB = await db.deviceIdentity();
+  assert.equal(deviceA.device_id, deviceB.device_id, "Device identity must persist across calls");
+  assert.ok(deviceA.device_id, "Every installation must have a stable device identifier");
+  await assert.rejects(
+    () => db.enqueueSyncMutation({ record_id: "local-only", entity_type: "branches", action: "create" }),
+    /الوضع الفردي المحلي/
+  );
+
+  // Team mode queue is durable, ordered, retryable, idempotent, and separate from local-only behavior.
+  await db.setTeamContext({ org_id: "org-qa", user_id: "user-qa", display_name: "اختبار" });
+  const queued = await db.enqueueSyncMutation({
+    mutation_id: "mutation-qa-001", record_id: "record-qa-001", entity_type: "branches",
+    action: "create", branch_id: "branch-qa", base_revision: 0,
+    snapshot: { name: "فرع مزامنة اختبار" }
+  });
+  const duplicateQueue = await db.enqueueSyncMutation({
+    mutation_id: "mutation-qa-001", record_id: "record-qa-001", entity_type: "branches",
+    action: "create", snapshot: { name: "نسخة مكررة لا تستبدل الأصل" }
+  });
+  assert.equal(duplicateQueue.snapshot.name, "فرع مزامنة اختبار", "Replayed mutation IDs must not overwrite the original queued mutation");
+  assert.equal(queued.device_id, deviceA.device_id);
+  assert.equal(queued.org_id, "org-qa");
+  assert.equal((await db.pendingSyncMutations()).filter(x => x.mutation_id === queued.mutation_id).length, 1);
+  const retried = await db.retrySyncMutation(queued.mutation_id, "انقطاع اتصال تجريبي");
+  assert.equal(retried.attempts, 1);
+  assert.ok(retried.next_attempt_at > new Date().toISOString(), "Retry must use backoff instead of a tight loop");
+  const acknowledged = await db.markSyncMutationSynced(queued.mutation_id, 2);
+  assert.equal(acknowledged.status, "synced");
+  assert.equal(acknowledged.server_revision, 2);
+  const conflict = await db.addSyncConflict({
+    record_id: "record-qa-001", mutation_id: queued.mutation_id, base_revision: 1,
+    server_revision: 2, local_snapshot: { name: "محلي" }, server_snapshot: { name: "سحابي" }
+  });
+  assert.equal(conflict.status, "open");
+  const resolved = await db.resolveSyncConflict(conflict.id, { choice: "keep_server" });
+  assert.equal(resolved.status, "resolved");
+  await db.setSyncCursor({ updated_at: "2026-11-25T00:00:00.000Z", id: "cursor-qa" });
+  assert.equal((await db.syncCursor()).id, "cursor-qa");
+  const localSwitch = await db.clearTeamContext();
+  assert.equal(localSwitch.mode, "local");
+  assert.equal((await db.syncStatus()).synced, 1, "Switching back to local mode must retain sync history");
+
   // Backup restore must validate bike patrol_date, not the time-only patrol_time field.
   await db.restore({app:"DEEB",format:2,records:[{id:"bike-restore-check",entity_type:"bike_patrols",payload:{bike:"دراجة اختبار",patrol_date:"2026-11-18",patrol_time:"09:35"},created_at:"2026-11-18T09:35:00.000Z"}],audit_logs:[]});
   assert.ok((await db.all()).some(x=>x.id==="bike-restore-check"), "A valid HH:mm motorcycle visit should restore successfully");
