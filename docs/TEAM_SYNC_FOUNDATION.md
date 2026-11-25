@@ -83,7 +83,10 @@ The SQL schema/RLS foundation is followed by a second migration containing authe
 - Outbox primitives support stable mutation IDs, ordered pending reads, exponential retry backoff, server acknowledgements, and conflict records.
 - In team mode, regular record create/update, manual and automatic archive, unarchive, motorcycle soft-delete/restore, handover versions, approved report snapshots, and attachment metadata are queued in the same IndexedDB transaction as their local data and audit event. Attachment bytes remain in IndexedDB for a later resumable upload. Local backup restore is blocked while team mode is active or unsynced/conflicted mutations remain, preventing a restore from silently orphaning queued work.
 - Cursor storage is available for later incremental downloads.
-- A separate SQL migration adds authenticated record-apply and incremental-pull RPCs, disables direct client record writes, checks branch/device/org permissions and revisions, stores idempotency receipts, and returns explicit conflict payloads. These server functions have not been applied to a Supabase project or exercised against PostgreSQL.
+- A separate SQL migration adds authenticated record-apply and incremental-pull RPCs, disables direct client record writes, checks branch/device/org permissions and revisions, stores idempotency receipts, and returns explicit conflict payloads. Handover versions are appended atomically with the parent record update.
+- Device enrollment, device heartbeat, and monotonic per-device cursor advancement are available only through authenticated RPCs; direct device registration/update policies are removed.
+- A dedicated append-only RPC stores approved report snapshots and their audit event. Attachment metadata remains blocked until the private object upload can be verified.
+- These server functions have not been applied to a Supabase project or exercised against PostgreSQL.
 - Integration tests seed a version-3 database and verify its existing record survives the additive upgrade; they also cover local-mode default, stable device identity, duplicate mutation IDs, retry timing, acknowledgements, conflict resolution, cursor persistence, queued record/handover/attachment/approval/archive/tombstone changes, and switching back to local mode.
 
 **Important current limit:** the local write paths now queue supported mutations, but there is still no network worker or Supabase endpoint connected. No cloud synchronization is active, and the local integration suite has been updated but not executed in this environment. Do not enroll real team data yet.
@@ -92,7 +95,7 @@ The SQL schema/RLS foundation is followed by a second migration containing authe
 
 1. **Foundation (this branch):** isolated branch, data inventory, tenancy/role model, SQL schema with RLS, and migration/sync design.
 2. **Local outbox integration (in progress):** complete and test every local mutation path, including permanent-retention audit semantics, and attachment upload lifecycle.
-3. **Server mutation API:** initial authenticated record RPCs are authored; next add append-only handover/report flows, attachment metadata/storage, and database-level regression tests.
+3. **Server mutation API:** authenticated record, handover, approved-report, device-enrollment, and cursor RPCs are authored; next add attachment Storage lifecycle and database-level regression tests.
 4. **Team enrollment and administration:** create the one organization, invite users, assign roles and branch memberships.
 5. **Attachments and recovery:** private object storage, resumable uploads, encrypted exports, tested restore and rollback.
 6. **UI and Android verification:** mode selection, connection/sync status, permission screens, offline/online scenarios, and physical-device regression tests.
