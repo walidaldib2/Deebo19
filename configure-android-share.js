@@ -410,7 +410,8 @@ public class FileExportPlugin extends Plugin {
       try{temp=File.createTempFile("deeb-pdf-",".pdf",getContext().getCacheDir());}
       catch(Exception e){view.destroy();call.reject("تعذر إنشاء ملف PDF مؤقت: "+e.getMessage());return;}
       final Runnable cleanup=()->handler.post(()->{try{if(view.getParent() instanceof ViewGroup)((ViewGroup)view.getParent()).removeView(view);}catch(Exception ignored){}try{view.stopLoading();view.destroy();}catch(Exception ignored){}try{if(temp.exists())temp.delete();}catch(Exception ignored){}});
-      final java.util.function.Consumer<String> fail=message->{if(finished.compareAndSet(false,true)){cleanup.run();call.reject(message);}};
+      final Uri[] savedPdfUri=new Uri[1];
+      final java.util.function.Consumer<String> fail=message->{if(finished.compareAndSet(false,true)){if(savedPdfUri[0]!=null){try{getContext().getContentResolver().delete(savedPdfUri[0],null,null);}catch(Exception ignored){}}cleanup.run();call.reject(message);}};
       view.setBackgroundColor(Color.WHITE);view.setLayerType(View.LAYER_TYPE_SOFTWARE,null);view.setVerticalScrollBarEnabled(false);view.setHorizontalScrollBarEnabled(false);
       view.getSettings().setJavaScriptEnabled(true);view.getSettings().setDomStorageEnabled(true);view.getSettings().setUseWideViewPort(true);view.getSettings().setLoadWithOverviewMode(false);view.setInitialScale(100);
       root.addView(view,new FrameLayout.LayoutParams(width,height));
@@ -442,10 +443,10 @@ public class FileExportPlugin extends Plugin {
               Uri uri=null;File legacy=null;
               if(Build.VERSION.SDK_INT>=29){
                 values.put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/DEEB");values.put(MediaStore.Downloads.IS_PENDING,1);
-                uri=getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
+                uri=getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);savedPdfUri[0]=uri;
                 if(uri==null)throw new Exception("تعذر إنشاء ملف PDF في مجلد التنزيلات.");
                 try(java.io.InputStream in=new java.io.FileInputStream(temp);OutputStream out=getContext().getContentResolver().openOutputStream(uri)){if(out==null)throw new Exception("تعذر فتح ملف PDF للحفظ.");byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);out.flush();}
-                ContentValues ready=new ContentValues();ready.put(MediaStore.Downloads.IS_PENDING,0);getContext().getContentResolver().update(uri,ready,null,null);
+                ContentValues ready=new ContentValues();ready.put(MediaStore.Downloads.IS_PENDING,0);getContext().getContentResolver().update(uri,ready,null,null);savedPdfUri[0]=null;
               }else{
                 File dir=new File(getContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),"DEEB");if(!dir.exists()&&!dir.mkdirs())throw new Exception("تعذر إنشاء مجلد التنزيلات.");
                 legacy=new File(dir,fileName);try(java.io.InputStream in=new java.io.FileInputStream(temp);OutputStream out=new FileOutputStream(legacy)){byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);out.flush();}
