@@ -162,7 +162,7 @@ window.DebooDB = (() => {
       org_id:context.org_id,user_id:context.user_id,device_id:device.device_id,
       base_revision:Number(old?.server_revision||old?.revision||0),
       snapshot:JSON.parse(JSON.stringify(snapshot)),created_at:stamp,local_updated_at:row.updated_at||stamp,
-      status:"pending",attempts:0,next_attempt_at:stamp,last_error:null,server_revision:null};
+      status:"pending",attempts:0,next_attempt_at:now(),last_error:null,server_revision:null};
   }
   function putRecordMutation(tx,mutation) {
     if(mutation)tx.objectStore("sync_outbox").put(mutation);
@@ -469,7 +469,7 @@ window.DebooDB = (() => {
       device_id:device.device_id,schema_version:4,base_revision:Number.isInteger(input.base_revision)?input.base_revision:0,
       snapshot:input.snapshot==null?null:JSON.parse(JSON.stringify(input.snapshot)),
       created_at:stamp,local_updated_at:input.local_updated_at||stamp,status:"pending",
-      attempts:0,next_attempt_at:stamp,last_error:null,server_revision:null
+      attempts:0,next_attempt_at:now(),last_error:null,server_revision:null
     };
     const existing=await get("sync_outbox",row.mutation_id);
     if(existing)return existing;
