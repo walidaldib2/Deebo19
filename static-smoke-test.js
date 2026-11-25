@@ -6,8 +6,8 @@ const missing = required.filter(f => !fs.existsSync(path.join(root,f)));
 if (missing.length) throw new Error('Missing required files: '+missing.join(', '));
 const html = fs.readFileSync(path.join(root,'index.html'),'utf8');
 for (const f of ['qrcode.js','db.js','team-sync.js','biometric.bundle.js','app.js']) if (!html.includes(`src="${f}"`)) throw new Error('index.html does not load '+f);
-const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
-const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
+// Reuse the database source loaded at the top of this smoke test.
+// Reuse the app source loaded at the top of this smoke test.
 if (!db.includes('DB_VERSION = 5') || !db.includes('"report_archives"') || !db.includes('async function archiveReport') || !db.includes('async function reportArchives')) throw new Error('Persistent report archive storage and API are required');
 for (const marker of ['archiveCurrentReport','archiveBikeMapReport','أرشيف خرائط الدراجات','archiveReportFilter','saveBikeMapArchive']) if (!app.includes(marker)) throw new Error('Report archive UI is missing '+marker);
 const sw = fs.readFileSync(path.join(root,'sw.js'),'utf8');
@@ -149,7 +149,7 @@ const serviceWorkerSource = fs.readFileSync(path.join(root,'sw.js'),'utf8');
 const androidWorkflowSource = fs.readFileSync(path.join(root,'.github/workflows/android-apk.yml'),'utf8');
 if (scannerBridgeSource.includes('DocumentScanner') || androidAssetsSource.includes('"scanner.js"') || serviceWorkerSource.includes('./scanner.js') || androidWorkflowSource.includes('scanner.js') || androidSetup.includes('const documentScannerPlugin =') || androidSetup.includes('@CapacitorPlugin(name = "DocumentScanner")') || androidSetup.includes('implementation "com.google.android.gms:play-services-mlkit-document-scanner')) throw new Error('Document scanning must be fully excluded from the app bundle, Android plugins, dependencies, and service-worker cache');
 if (androidSetup.includes('saveScannedPdf') || androidSetup.includes('scannedPdfStoragePermissionCallback')) throw new Error('Unused scanner PDF export code must not remain in the native file plugin');
-const appScannerSource = fs.readFileSync(path.join(root,'app.js'),'utf8');
+const appScannerSource = app;
 if (html.includes('src="scanner.js"') || html.includes('data-page="scanner"') || appScannerSource.includes('DEEBNativePlugins?.DocumentScanner') || appScannerSource.includes('window.DEebScanner')) throw new Error('Document scanner must remain removed from the user interface and navigation');
 if (!androidSetup.includes('["android:allowBackup", "false"]') || !androidSetup.includes('["android:usesCleartextTraffic", "false"]')) throw new Error('Android backup/network hardening is missing');
 const iconBuilder = fs.readFileSync(path.join(root,'prepare-android-icons.js'),'utf8');
@@ -291,7 +291,7 @@ if (!app.includes('id="monthlyReport"') || !app.includes('تقرير شهري'))
 if (!app.includes('hasBikeReport=$("#reportType").value==="bike_patrols"&&cache.some(x=>x.entity_type==="bikes"&&!x.is_archived)')) throw new Error("Registered bikes with no visits must still be printable as empty reports");
 if (!app.includes('صور ومستندات البلاغ') || !app.includes('["documents","incidents"].includes(type)')) throw new Error('Incident attachment upload flow is missing');
 const dbSource = fs.readFileSync(path.join(root,'db.js'),'utf8');
-if (!dbSource.includes('const DB_VERSION = 4') || !dbSource.includes('createAutoBackup') || !dbSource.includes('automatic_backups')) throw new Error('Daily local automatic backup store is missing');
+if (!dbSource.includes('const DB_VERSION = 5') || !dbSource.includes('createAutoBackup') || !dbSource.includes('automatic_backups')) throw new Error('Daily local automatic backup store is missing');
 
 if (!app.includes('patrol_date') || !app.includes('location_url') || !app.includes('extractSharedCoordinates')) throw new Error('WhatsApp fixed-location patrol flow is incomplete');
 const manifest = JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
