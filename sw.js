@@ -1,4 +1,4 @@
-const CACHE = "deebo-local-v10-25";
+const CACHE = "deebo-local-v10-26";
 
 const CORE = [
   "./",
@@ -6,6 +6,7 @@ const CORE = [
   "./style.css",
   "./app.js",
   "./db.js",
+  "./team-sync.js",
   "./qrcode.js",
   "./manifest.json",
   "./icon.svg",
