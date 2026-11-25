@@ -2,6 +2,12 @@
 window.DebooDB = (() => {
   "use strict";
   const DB_NAME = "DEBOO16_LOCAL_DB";
+  let lastSyncMutationMs = 0;
+  function syncMutationTimestamp() {
+    const stamp = Math.max(Date.now(), lastSyncMutationMs + 1);
+    lastSyncMutationMs = stamp;
+    return new Date(stamp).toISOString();
+  }
   const DB_VERSION = 4;
   let dbPromise;
   const now = () => new Date().toISOString();
@@ -151,7 +157,7 @@ window.DebooDB = (() => {
   async function prepareRecordMutation(row,action,snapshot,old=null) {
     const context=await getTeamContext();
     if(context.mode!=="team")return null;
-    const device=await deviceIdentity(),stamp=now();
+    const device=await deviceIdentity(),stamp=syncMutationTimestamp();
     return {mutation_id:uid(),record_id:row.id,entity_type:row.entity_type,action,branch_id:row.branch_id||null,
       org_id:context.org_id,user_id:context.user_id,device_id:device.device_id,
       base_revision:Number(old?.server_revision||old?.revision||0),
@@ -456,7 +462,7 @@ window.DebooDB = (() => {
     if(!input||!input.record_id||!input.entity_type||!input.action) throw new Error("بيانات عملية المزامنة غير مكتملة.");
     const allowed=new Set(["create","update","archive","unarchive","soft_delete","restore_deleted","attachment","approve","handover_version"]);
     if(!allowed.has(input.action)) throw new Error("نوع عملية المزامنة غير مسموح.");
-    const device=await deviceIdentity(),stamp=now();
+    const device=await deviceIdentity(),stamp=syncMutationTimestamp();
     const row={
       mutation_id:input.mutation_id||uid(),record_id:String(input.record_id),entity_type:String(input.entity_type),
       action:input.action,branch_id:input.branch_id||null,org_id:context.org_id,user_id:context.user_id,
