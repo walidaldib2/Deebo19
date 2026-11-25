@@ -655,7 +655,7 @@ function bikeMapReportsPage(){
   const bike=$("#bikeMapReportBike").value,from=$("#bikeMapReportFrom").value,to=$("#bikeMapReportTo").value,host=$("#bikeMapReportPreview");
   if(!bike){reportHtml="";host.innerHTML='<div class="empty">اختر الدراجة لإعداد الخريطة.</div>';return;}
   const visitDate=x=>String(x.payload?.patrol_date||x.created_at||"").slice(0,10);
-  const visits=cache.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived&&!x.is_deleted&&String(x.payload?.bike||"").trim()===bike).filter(x=>{const d=visitDate(x);return (!from||d>=from)&&(!to||d<=to);}).sort((a,b)=>visitDate(a).localeCompare(visitDate(b))||comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time));
+  const visits=cache.filter(x=>x.entity_type==="bike_patrols"&&!x.is_deleted&&String(x.payload?.bike||"").trim()===bike).filter(x=>{const d=visitDate(x);return (!from||d>=from)&&(!to||d<=to);}).sort((a,b)=>visitDate(a).localeCompare(visitDate(b))||comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time));
   const located=visits.filter(x=>validCoordinatePair(x.payload?.lat,x.payload?.lng));
   const mapPoints=located.map(x=>({lat:Number(x.payload.lat),lng:Number(x.payload.lng),site:x.payload.site||x.payload.branch||x.payload.location||"موقع المرور",date:x.payload.patrol_date||visitDate(x),time:x.payload.patrol_time||""}));
   const mapJson=JSON.stringify(mapPoints).replace(/</g,"\\u003c");
