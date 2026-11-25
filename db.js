@@ -217,7 +217,8 @@ window.DebooDB = (() => {
   async function archive(id,reason="أرشفة سجل") {
     const old=await get("records",id);if(!old)throw new Error("السجل غير موجود.");
     const row={...old,is_archived:true,updated_at:now()},d=await openDB();
-    await new Promise((resolve,reject)=>{const tx=d.transaction(["records","audit_logs"],"readwrite");tx.objectStore("records").put(row);tx.objectStore("audit_logs").put(makeAudit("archive",id,old,row,reason));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("فشلت الأرشفة وسجل المراجعة."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء الأرشفة."));});
+    const mutation=await prepareRecordMutation(row,"archive",row,old);
+    await new Promise((resolve,reject)=>{const tx=d.transaction(mutation?["records","audit_logs","sync_outbox"]:["records","audit_logs"],"readwrite");tx.objectStore("records").put(row);tx.objectStore("audit_logs").put(makeAudit("archive",id,old,row,reason));putRecordMutation(tx,mutation);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("فشلت الأرشفة وسجل المراجعة."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء الأرشفة."));});
     try{await createAutoBackup();}catch(error){console.warn("DEEB automatic backup:",error);}
     return row;
   }
@@ -227,7 +228,8 @@ window.DebooDB = (() => {
     if(old.entity_type!=="bike_patrols")throw new Error("الحذف المؤقت متاح لبنود مرور الدراجات فقط.");
     if(old.is_deleted)throw new Error("بند المرور موجود بالفعل في المحذوفات.");
     const stamp=now(),row={...old,is_deleted:true,deleted_at:stamp,updated_at:stamp},d=await openDB();
-    await new Promise((resolve,reject)=>{const tx=d.transaction(["records","audit_logs"],"readwrite");tx.objectStore("records").put(row);tx.objectStore("audit_logs").put(makeAudit("soft_delete",id,old,row,reason));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("تعذر نقل بند المرور إلى المحذوفات."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء نقل بند المرور."));});
+    const mutation=await prepareRecordMutation(row,"soft_delete",row,old);
+    await new Promise((resolve,reject)=>{const tx=d.transaction(mutation?["records","audit_logs","sync_outbox"]:["records","audit_logs"],"readwrite");tx.objectStore("records").put(row);tx.objectStore("audit_logs").put(makeAudit("soft_delete",id,old,row,reason));putRecordMutation(tx,mutation);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("تعذر نقل بند المرور إلى المحذوفات."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء نقل بند المرور."));});
     try{await createAutoBackup();}catch(error){console.warn("DEEB deleted-item backup:",error);}
     return row;
   }
@@ -235,8 +237,8 @@ window.DebooDB = (() => {
     const old=await get("records",id);
     if(!old||!old.is_deleted||old.entity_type!=="bike_patrols")throw new Error("بند المرور غير موجود في المحذوفات.");
     const row={...old,is_deleted:false,is_archived:false,updated_at:now()};delete row.deleted_at;delete row.archived_at;
-    const d=await openDB();
-    await new Promise((resolve,reject)=>{const tx=d.transaction(["records","audit_logs"],"readwrite");tx.objectStore("records").put(row);tx.objectStore("audit_logs").put(makeAudit("restore_deleted",id,old,row,reason));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("تعذرت استعادة بند المرور."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء الاستعادة."));});
+    const d=await openDB(),mutation=await prepareRecordMutation(row,"restore_deleted",row,old);
+    await new Promise((resolve,reject)=>{const tx=d.transaction(mutation?["records","audit_logs","sync_outbox"]:["records","audit_logs"],"readwrite");tx.objectStore("records").put(row);tx.objectStore("audit_logs").put(makeAudit("restore_deleted",id,old,row,reason));putRecordMutation(tx,mutation);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("تعذرت استعادة بند المرور."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء الاستعادة."));});
     try{await createAutoBackup();}catch(error){console.warn("DEEB restored-item backup:",error);}
     return row;
   }
@@ -254,8 +256,8 @@ window.DebooDB = (() => {
   }
   async function unarchive(id,reason="استعادة سجل من الأرشيف") {
     const old=await get("records",id);if(!old)throw new Error("السجل غير موجود.");
-    const row={...old,is_archived:false,updated_at:now()},d=await openDB();
-    await new Promise((resolve,reject)=>{const tx=d.transaction(["records","audit_logs"],"readwrite");tx.objectStore("records").put(row);tx.objectStore("audit_logs").put(makeAudit("unarchive",id,old,row,reason));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("فشلت الاستعادة وسجل المراجعة."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء الاستعادة."));});
+    const row={...old,is_archived:false,updated_at:now()},d=await openDB(),mutation=await prepareRecordMutation(row,"unarchive",row,old);
+    await new Promise((resolve,reject)=>{const tx=d.transaction(mutation?["records","audit_logs","sync_outbox"]:["records","audit_logs"],"readwrite");tx.objectStore("records").put(row);tx.objectStore("audit_logs").put(makeAudit("unarchive",id,old,row,reason));putRecordMutation(tx,mutation);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("فشلت الاستعادة وسجل المراجعة."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء الاستعادة."));});
     try{await createAutoBackup();}catch(error){console.warn("DEEB automatic backup:",error);}
     return row;
   }
