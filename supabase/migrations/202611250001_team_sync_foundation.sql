@@ -22,7 +22,7 @@ create table if not exists public.deeb_profiles (
 );
 
 create table if not exists public.deeb_branches (
-  id uuid primary key,
+  id text primary key,
   org_id uuid not null references public.deeb_organizations(id) on delete restrict,
   name text not null,
   branch_code text,
@@ -35,7 +35,7 @@ create table if not exists public.deeb_branches (
 
 create table if not exists public.deeb_branch_memberships (
   org_id uuid not null references public.deeb_organizations(id) on delete restrict,
-  branch_id uuid not null,
+  branch_id text not null,
   user_id uuid not null references auth.users(id) on delete restrict,
   created_at timestamptz not null default now(),
   primary key (branch_id, user_id),
@@ -43,7 +43,7 @@ create table if not exists public.deeb_branch_memberships (
 );
 
 create table if not exists public.deeb_devices (
-  id uuid primary key,
+  id text primary key,
   org_id uuid not null references public.deeb_organizations(id) on delete restrict,
   user_id uuid not null references auth.users(id) on delete restrict,
   device_name text not null,
@@ -55,9 +55,9 @@ create table if not exists public.deeb_devices (
 );
 
 create table if not exists public.deeb_records (
-  id uuid primary key,
+  id text primary key,
   org_id uuid not null references public.deeb_organizations(id) on delete restrict,
-  branch_id uuid,
+  branch_id text,
   entity_type text not null,
   payload jsonb not null default '{}'::jsonb,
   status text not null default 'active',
@@ -68,8 +68,8 @@ create table if not exists public.deeb_records (
   revision bigint not null default 1 check (revision > 0),
   created_by uuid references auth.users(id) on delete restrict,
   updated_by uuid references auth.users(id) on delete restrict,
-  origin_device_id uuid references public.deeb_devices(id) on delete restrict,
-  last_mutation_id uuid,
+  origin_device_id text references public.deeb_devices(id) on delete restrict,
+  last_mutation_id text,
   client_updated_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -86,16 +86,16 @@ create index if not exists deeb_records_org_sync_idx
   on public.deeb_records (org_id, updated_at, id);
 
 create table if not exists public.deeb_audit_logs (
-  id uuid primary key,
+  id text primary key,
   org_id uuid not null references public.deeb_organizations(id) on delete restrict,
-  branch_id uuid,
-  record_id uuid,
+  branch_id text,
+  record_id text,
   action text not null,
   old_data jsonb,
   new_data jsonb,
   reason text not null default '',
   actor_user_id uuid references auth.users(id) on delete restrict,
-  device_id uuid references public.deeb_devices(id) on delete restrict,
+  device_id text references public.deeb_devices(id) on delete restrict,
   created_at timestamptz not null default now(),
   foreign key (org_id, branch_id) references public.deeb_branches(org_id, id) on delete restrict
 );
@@ -103,27 +103,27 @@ create index if not exists deeb_audit_org_created_idx
   on public.deeb_audit_logs (org_id, created_at desc, id);
 
 create table if not exists public.deeb_approved_reports (
-  id uuid primary key,
+  id text primary key,
   org_id uuid not null references public.deeb_organizations(id) on delete restrict,
-  branch_id uuid,
+  branch_id text,
   title text not null default 'تقرير DEEBO',
   snapshot jsonb not null,
   actor_user_id uuid references auth.users(id) on delete restrict,
-  device_id uuid references public.deeb_devices(id) on delete restrict,
+  device_id text references public.deeb_devices(id) on delete restrict,
   created_at timestamptz not null default now(),
   foreign key (org_id, branch_id) references public.deeb_branches(org_id, id) on delete restrict
 );
 
 create table if not exists public.deeb_handover_versions (
-  id uuid primary key,
+  id text primary key,
   org_id uuid not null references public.deeb_organizations(id) on delete restrict,
-  branch_id uuid,
-  record_id uuid not null,
+  branch_id text,
+  record_id text not null,
   version integer not null check (version > 0),
   snapshot jsonb not null,
   reason text not null default '',
   actor_user_id uuid references auth.users(id) on delete restrict,
-  device_id uuid references public.deeb_devices(id) on delete restrict,
+  device_id text references public.deeb_devices(id) on delete restrict,
   created_at timestamptz not null default now(),
   foreign key (org_id, branch_id) references public.deeb_branches(org_id, id) on delete restrict,
   foreign key (org_id, record_id) references public.deeb_records(org_id, id) on delete restrict,
@@ -131,17 +131,17 @@ create table if not exists public.deeb_handover_versions (
 );
 
 create table if not exists public.deeb_attachments (
-  id uuid primary key,
+  id text primary key,
   org_id uuid not null references public.deeb_organizations(id) on delete restrict,
-  branch_id uuid,
-  record_id uuid not null,
+  branch_id text,
+  record_id text not null,
   storage_path text not null,
   file_name text not null,
   mime_type text not null default 'application/octet-stream',
   size_bytes bigint not null check (size_bytes >= 0),
   sha256 text,
   uploaded_by uuid references auth.users(id) on delete restrict,
-  device_id uuid references public.deeb_devices(id) on delete restrict,
+  device_id text references public.deeb_devices(id) on delete restrict,
   created_at timestamptz not null default now(),
   foreign key (org_id, branch_id) references public.deeb_branches(org_id, id) on delete restrict,
   foreign key (org_id, record_id) references public.deeb_records(org_id, id) on delete restrict,
@@ -149,11 +149,11 @@ create table if not exists public.deeb_attachments (
 );
 
 create table if not exists public.deeb_sync_conflicts (
-  id uuid primary key default gen_random_uuid(),
+  id text primary key default gen_random_uuid()::text,
   org_id uuid not null references public.deeb_organizations(id) on delete restrict,
-  branch_id uuid,
-  record_id uuid not null,
-  mutation_id uuid not null,
+  branch_id text,
+  record_id text not null,
+  mutation_id text not null,
   base_revision bigint not null,
   server_revision bigint not null,
   local_snapshot jsonb not null,
@@ -193,7 +193,7 @@ as $$
   )
 $$;
 
-create or replace function public.deeb_can_access_branch(target_branch uuid)
+create or replace function public.deeb_can_access_branch(target_branch text)
 returns boolean
 language sql stable security definer
 set search_path = public
