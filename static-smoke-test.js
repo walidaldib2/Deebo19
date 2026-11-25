@@ -5,8 +5,8 @@ const required = ['index.html','app.js','db.js','team-sync.js','style.css','sw.j
 const missing = required.filter(f => !fs.existsSync(path.join(root,f)));
 if (missing.length) throw new Error('Missing required files: '+missing.join(', '));
 const html = fs.readFileSync(path.join(root,'index.html'),'utf8');
-const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
-const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
+// Reuse database source loaded at the top of this smoke test.
+// Reuse app source loaded at the top of this smoke test.
 const vm = require('node:vm');
 for (const file of ['app.js','db.js','team-sync.js','preferences.js','sw.js','qrcode.js','biometric.bundle.js','native-plugins.bundle.js']) {
   const source = fs.readFileSync(path.join(root,file),'utf8');
