@@ -971,7 +971,16 @@ async function reports(){
 
  $("#saveReportImage").onclick=async()=>{const d=get(),hasBikeReport=$("#reportType").value==="bike_patrols"&&cache.some(x=>x.entity_type==="bikes"&&!x.is_archived);if(!d.length&&!hasBikeReport){toast("لا توجد سجلات في الفترة المحددة");return;}const native=window.DEEBNativePlugins?.FileExport;if(!native||!native.saveHtmlAsImages){toast("حفظ التقرير في معرض الصور متاح من تطبيق DEEB على أندرويد");return;}const button=$("#saveReportImage");button.disabled=true;button.textContent="جارٍ تجهيز الصورة...";try{await archiveCurrentReport();const result=await native.saveHtmlAsImages({html:reportCoordinatesOnly(readableReportHtml(printHtml(d)),d),name:"DEEB-report"});if(result?.saved!==true||!Number.isInteger(result.count)||result.count<1)throw new Error("لم يؤكد النظام حفظ صورة واحدة على الأقل.");toast("تم حفظ "+result.count+" صورة في معرض الصور داخل Pictures/DEEB");}catch(e){toast("تعذر حفظ صورة التقرير: "+(e.message||e));}finally{button.disabled=false;button.textContent="حفظ التقرير صورة";}};
  let archivedReportKey="",archivedReportPromise=null;
- const archiveCurrentReport=async()=>{\n  const d=get(),type=$("#reportType").value||"all",from=$("#fromDate").value,to=$("#toDate").value;\n  const html=reportCoordinatesOnly(readableReportHtml(printHtml(d)),d);\n  const key=[type,from,to,selectedBikeReport||"all",selectedArchivedRecordId||"",selectedArchiveIds.slice().sort().join(","),d.map(x=>x.id+":"+x.updated_at).join("|")].join("::");\n  if(key===archivedReportKey&&archivedReportPromise)return archivedReportPromise;\n  archivedReportKey=key;\n  archivedReportPromise=DebooDB.archiveReport({title:(type==="all"?"التقرير الشامل":labels[type]||type),report_type:type,from_date:from,to_date:to,html,meta:{record_count:d.length}});\n  return archivedReportPromise;\n };\n $("#saveReportArchive").onclick=async()=>{try{await archiveCurrentReport();toast("تم حفظ التقرير في الأرشيف بنجاح.");}catch(e){toast("تعذر حفظ التقرير في الأرشيف: "+e.message);}};\n const sendReportToPrinter=async()=>{
+ const archiveCurrentReport=async()=>{
+  const d=get(),type=$("#reportType").value||"all",from=$("#fromDate").value,to=$("#toDate").value;
+  const html=reportCoordinatesOnly(readableReportHtml(printHtml(d)),d);
+  const key=[type,from,to,selectedBikeReport||"all",selectedArchivedRecordId||"",selectedArchiveIds.slice().sort().join(","),d.map(x=>x.id+":"+x.updated_at).join("|")].join("::");
+  if(key===archivedReportKey&&archivedReportPromise)return archivedReportPromise;
+  archivedReportKey=key;
+  archivedReportPromise=DebooDB.archiveReport({title:(type==="all"?"التقرير الشامل":labels[type]||type),report_type:type,from_date:from,to_date:to,html,meta:{record_count:d.length}});
+  return archivedReportPromise;
+ };
+ $("#saveReportArchive").onclick=async()=>{try{await archiveCurrentReport();toast("تم حفظ التقرير في الأرشيف بنجاح.");}catch(e){toast("تعذر حفظ التقرير في الأرشيف: "+e.message);}};\n const sendReportToPrinter=async()=>{
   const button=$("#printReport");if(button.disabled)return;
   const d=get(),hasBikeReport=$("#reportType").value==="bike_patrols"&&cache.some(x=>x.entity_type==="bikes"&&!x.is_archived);
   if(!d.length&&!hasBikeReport){toast("لا توجد سجلات في الفترة المحددة");return;}
