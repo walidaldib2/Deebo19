@@ -89,7 +89,7 @@ for (const required of ['syncQueueForPush(500)','rebasePendingRecordMutations','
   if (!syncClient.includes(required)) throw new Error('Ordered DEEB19 mutation delivery is missing: '+required);
 }
 const appSource = fs.readFileSync(path.join(root,'app.js'),'utf8');
-if (!appSource.includes('<h3 class=\\"report-preview-title\\">تقرير مرور دراجة \'+esc(g.bike)')) throw new Error("Bike report preview title must use the registered bike number, not its display order.");
+if (!appSource.includes('تقرير مرور دراجة \\"+esc(g.bike)+\\"</h3>') || appSource.includes('تقرير مرور دراجة \\"+(gi+1)+\\"</h3>')) throw new Error("Bike report preview title must use the registered bike number, not its display order.");
 
 const memoPrintStart=appSource.indexOf('const printHtml=d=>');
 const memoPrintEnd=appSource.indexOf('if($("#reportType").value==="branch_patrols")',memoPrintStart);
