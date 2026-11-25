@@ -1047,6 +1047,7 @@ async function reports(){
  const showArchive=async()=>{
   $("#archivePanel").classList.remove("hidden");$("#reportSummary").parentElement.classList.add("hidden");
   const [archived,approved,reportArchives]=await Promise.all([DebooDB.all({archived:true}),DebooDB.approvedReports(),DebooDB.reportArchives()]),host=$("#archiveContent");
+  reportArchives.forEach(item=>{const snapshot=item.snapshot||item,meta=snapshot.meta||(snapshot.meta={});if(String(snapshot.report_type||item.report_type)==="bike_map"&&!Array.isArray(meta.data)){const bike=String(meta.bike||"").trim(),from=String(snapshot.from_date||item.from_date||""),to=String(snapshot.to_date||item.to_date||""),records=[...data,...archived],seen=new Set();meta.data=records.filter(x=>x.entity_type==="bike_patrols"&&!x.is_deleted&&String(x.payload?.bike||"").trim()===bike).filter(x=>{const d=String(x.payload?.patrol_date||x.created_at||"").slice(0,10);return (!from||d>=from)&&(!to||d<=to)&&!seen.has(x.id)&&seen.add(x.id);}).map(x=>({id:x.id,created_at:x.created_at,payload:x.payload||{}}));}});
   const dates=[...new Set(archived.map(dayOf).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
   const shifts=[...new Set(archived.map(x=>String(x.payload?.shift||x.payload?.shift_name||"غير محدد")))].sort();
 const branches=[...new Set(archived.map(x=>String(x.payload?.branch||x.branch_id||"غير محدد"))) ].sort();
