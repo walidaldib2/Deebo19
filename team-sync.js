@@ -109,7 +109,10 @@
     try {
       const session = await readSession();
       if (session?.access_token) await request("/auth/v1/logout", { method: "POST" }, session.access_token);
-    } finally { await writeSession(null); }
+    } finally {
+      await writeSession(null);
+      if (window.DebooDB) await window.DebooDB.clearTeamContext();
+    }
   }
   async function rpc(name, args, token) {
     return request("/rest/v1/rpc/" + encodeURIComponent(name), {
@@ -191,10 +194,11 @@
     await window.DebooDB.markSyncMutationSynced(mutation.mutation_id, null);
     return { synced: true, attachment: true };
   }
-  async function pushPending(session) {
+  async function pushPending(session, userId) {
     const pending = await window.DebooDB.pendingSyncMutations(100);
-    const result = { sent: 0, conflicts: 0, failed: 0 };
+    const result = { sent: 0, conflicts: 0, failed: 0, blocked_other_user: 0 };
     for (const row of pending) {
+      if (row.user_id !== userId) { result.blocked_other_user++; continue; }
       const envelope = {
         mutation_id: row.mutation_id, record_id: row.record_id,
         action: row.action, branch_id: row.branch_id || null,
@@ -279,7 +283,7 @@
       const device = await window.DebooDB.deviceIdentity();
       await enroll(session, profile[0], device);
       await rpc("deeb_touch_device", { p_device_id: device.device_id }, session.access_token);
-      const pushed = await pushPending(session);
+      const pushed = await pushPending(session, user.id);
       const pulled = await pullPages(session, device);
       return { ok: true, mode: team.mode, pushed, pulled, status: await window.DebooDB.syncStatus() };
     })();
