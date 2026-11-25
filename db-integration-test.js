@@ -123,6 +123,15 @@ async function main() {
   await db.unarchive(teamBranch.id);
   assert.ok((await db.pendingSyncMutations()).some(x => x.record_id === teamBranch.id && x.action === "unarchive"));
 
+  const teamBikeVisit = await db.save("bike_patrols", {
+    bike: "دراجة مزامنة", person: "فرد اختبار", site: "موقع اختبار",
+    patrol_date: "2026-11-25", patrol_time: "12:00"
+  });
+  await db.softDelete(teamBikeVisit.id);
+  assert.ok((await db.pendingSyncMutations()).some(x => x.record_id === teamBikeVisit.id && x.action === "soft_delete"));
+  await db.restoreDeleted(teamBikeVisit.id);
+  assert.ok((await db.pendingSyncMutations()).some(x => x.record_id === teamBikeVisit.id && x.action === "restore_deleted"));
+
   const teamHandover = await db.save("handovers", { sender: "تسليم جماعي", receiver: "استلام جماعي" });
   const queuedHandover = (await db.pendingSyncMutations()).find(x => x.record_id === teamHandover.id && x.action === "handover_version");
   assert.ok(queuedHandover, "Handover record and immutable version must be represented by a queued sync mutation");
