@@ -115,16 +115,24 @@ window.DebooDB = (() => {
     const candidates=rows.filter(row=>{
       if(row.is_archived||row.is_deleted||!shiftTypes.has(row.entity_type))return false;
       const date=recordWorkDate(row);
-      return /^\d{4}-\d{2}-\d{2}$/.test(date)&&date<today;
+      return /^\\d{4}-\\d{2}-\\d{2}$/.test(date)&&date<today;
     });
     if(!candidates.length)return {archived:0,today};
-    const d=await openDB(),stamp=now();
+    const d=await openDB(),stamp=now(),prepared=[];
+    for(const old of candidates){
+      const row={...old,is_archived:true,archived_at:stamp,updated_at:stamp};
+      const auditItem=makeAudit("archive",old.id,old,row,"أرشفة تلقائية لانتهاء يوم الشفت");
+      const mutation=await prepareRecordMutation(row,"archive",{record:row,audit:auditItem},old);
+      prepared.push({row,auditItem,mutation});
+    }
+    const hasMutations=prepared.some(x=>x.mutation);
     await new Promise((resolve,reject)=>{
-      const tx=d.transaction(["records","audit_logs"],"readwrite"),records=tx.objectStore("records"),logs=tx.objectStore("audit_logs");
-      candidates.forEach(old=>{
-        const row={...old,is_archived:true,archived_at:stamp,updated_at:stamp};
-        records.put(row);
-        logs.put(makeAudit("archive",old.id,old,row,"أرشفة تلقائية لانتهاء يوم الشفت"));
+      const names=hasMutations?["records","audit_logs","sync_outbox"]:["records","audit_logs"];
+      const tx=d.transaction(names,"readwrite"),records=tx.objectStore("records"),logs=tx.objectStore("audit_logs");
+      prepared.forEach(item=>{
+        records.put(item.row);
+        logs.put(item.auditItem);
+        putRecordMutation(tx,item.mutation);
       });
       tx.oncomplete=resolve;
       tx.onerror=()=>reject(tx.error||new Error("تعذرت الأرشفة التلقائية."));
