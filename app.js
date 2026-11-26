@@ -1314,7 +1314,8 @@ async function openArchivePage(){
  if(reportHead)reportHead.classList.add("hidden");
  const reportCard=$("#reportSummary")?.closest(".card");
  if(reportCard)reportCard.classList.add("hidden");
- await showArchive();
+ if(typeof open?.onclick!=="function")throw new Error("زر فتح الأرشيف غير جاهز.");
+ await open.onclick();
  const heading=archivePanel.querySelector(".page-head h3");
  if(heading)heading.textContent="الأرشيف العام";
  const back=$("#closeArchive");
