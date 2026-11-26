@@ -14,6 +14,7 @@ on:
       - feature/deeb-premium-gold-ui-2026-11-24
       - fix/bike-map-print-details-2026-11-25
       - fix/historical-bike-map-display-2026-11-27
+      - fix/restore-seven-main-sections-2026-11-27
 
 concurrency:
   group: deeb-android-apk-${{ github.event_name }}-${{ github.ref }}
