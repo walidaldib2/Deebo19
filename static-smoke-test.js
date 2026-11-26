@@ -527,3 +527,5 @@ for (const pageName of ["mapPage","bikeMapsPage","bikeMapReportsPage"]) {
     throw new Error("Historical bike map page must draw selected dates from active and archived patrol records: " + pageName);
   }
 }
+
+// Seven-section navigation restoration regression coverage.
