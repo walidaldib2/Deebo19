@@ -117,7 +117,7 @@ async function main() {
   assert.equal(auto.updated, true);
   const backups = await db.automaticBackups();
   assert.equal(backups.length, 1);
-  assert.equal(backups[0].record_count, (await db.all()).length);
+  assert.equal(backups[0].record_count, (await db.backup()).records.length);
   const again = await db.createAutoBackup();
   assert.equal(again.created, false);
   assert.equal(again.updated, true);
