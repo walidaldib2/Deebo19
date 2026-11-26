@@ -1305,6 +1305,7 @@ function statisticsPage(){
 }
 async function openArchivePage(){
  await reports();
+ const open=$("#showArchive");
  const archivePanel=$("#archivePanel");
  if(!archivePanel)throw new Error("تعذر فتح الأرشيف العام.");
  // اترك مركز التقارير وعناصره في DOM مخفية؛ أدوات عرض وطباعة التقارير تعتمد عليها عند فتح تقرير من الأرشيف.
