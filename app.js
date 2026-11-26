@@ -982,7 +982,7 @@ async function reports(){
  const archiveCurrentReport=async()=>{
   const d=get(),type=$("#reportType").value||"all",from=$("#fromDate").value,to=$("#toDate").value;
   const html=reportCoordinatesOnly(readableReportHtml(printHtml(d)),d);
-  const key=[type,from,to,selectedBikeReport||"all",selectedArchivedRecordId||"",selectedArchiveIds.slice().sort().join(","),d.map(x=>x.id+":"+x.updated_at).join("|"),html].join("::");
+  const key=[type,from,to,selectedBikeReport||"all",selectedArchivedRecordId||"",selectedArchiveIds.slice().sort().join(","),d.map(x=>x.id+":"+x.updated_at).join("|")].join("::");
   let fingerprint=2166136261;
   for(let i=0;i<key.length;i++){fingerprint^=key.charCodeAt(i);fingerprint=Math.imul(fingerprint,16777619);}
   const dedupeKey="deeb-report-"+(fingerprint>>>0).toString(16);
