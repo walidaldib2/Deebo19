@@ -1069,7 +1069,7 @@ async function reports(){
   const getReportType=item=>String(item.snapshot?.report_type||item.report_type||"all");
   if(archiveReportSelection==="categories"){
    // كل نوع يمكن اختياره في مركز التقارير له قسم مقابل هنا، بالإضافة إلى خرائط الدراجات.
-   const reportTypes=[...new Set([...Array.from(area.querySelectorAll("[data-report-type]"),button=>button.dataset.reportType).filter(Boolean),...reportArchives.map(getReportType),...approved.map(getReportType),"bike_map"])].filter(type=>type&&type!=="all"&&type!=="bikes").sort((a,b)=>typeTitle(a).localeCompare(typeTitle(b),"ar"));
+   const reportTypes=[...new Set([...Array.from(area.querySelectorAll("[data-report-type]"),button=>button.dataset.reportType).filter(Boolean),...reportArchives.map(getReportType),...approved.map(getReportType),"bike_map","bike_patrols"])].filter(type=>type&&type!=="all"&&type!=="bikes").sort((a,b)=>typeTitle(a).localeCompare(typeTitle(b),"ar"));
    host.innerHTML=reportTypes.length?'<p class="muted archive-instruction">اختار نوع التقرير، وبعدها حدد التاريخ لعرض التقارير الخاصة باليوم المطلوب.</p><div class="archive-category-grid">'+reportTypes.map(type=>
     '<button type="button" class="archive-category" data-archive-category="'+esc(type)+'"><strong>'+esc(typeTitle(type))+'</strong><span>عرض التقارير حسب التاريخ</span></button>'
    ).join("")+'</div>':'<div class="empty">لا توجد تقارير أو سجلات مؤرشفة حتى الآن.</div>';
@@ -1182,7 +1182,8 @@ const branches=[...new Set(archived.map(x=>String(x.payload?.branch||x.branch_id
   $("#archiveBackToTypes").onclick=()=>{archiveReportSelection="categories";showArchive();};
   host.querySelectorAll("[data-restore-record]").forEach(btn=>btn.onclick=async()=>{if(!confirm("استعادة السجل إلى قائمة العمل؟"))return;try{await DebooDB.unarchive(btn.dataset.restoreRecord);await refresh();toast("تمت استعادة السجل");await showArchive();}catch(e){toast("تعذرت الاستعادة: "+e.message);}});
  };
- $("#showArchive").onclick=showArchive;$("#closeArchive").onclick=()=>{$("#archivePanel").classList.add("hidden");$("#reportSummary").parentElement.classList.remove("hidden");};
+ window.DEebOpenArchive=showArchive;
+ $("#showArchive").onclick=()=>window.DEebOpenArchive();$("#closeArchive").onclick=()=>{$("#archivePanel").classList.add("hidden");$("#reportSummary").parentElement.classList.remove("hidden");};
 }
 function reportHTML(d){const by={};d.forEach(x=>by[x.entity_type]=(by[x.entity_type]||0)+1);return `<h3>تقرير DEEB</h3><p class="muted">تاريخ الإنشاء: ${new Date().toLocaleString("ar-EG")} • عدد السجلات: ${d.length}</p>${stats(Object.entries(by).map(([k,v])=>[labels[k]||k,v]))}<div class="table-wrap"><table><thead><tr><th>القسم</th><th>التاريخ</th><th>ملخص</th></tr></thead><tbody>${d.map(x=>`<tr><td>${labels[x.entity_type]||x.entity_type}</td><td>${new Date(x.created_at).toLocaleString("ar-EG")}</td><td>${esc(Object.values(x.payload||{}).filter(Boolean).slice(0,4).join(" • "))}</td></tr>`).join("")}</tbody></table></div><p class="muted">المُعد: المستخدم المسجل حاليًا • الاعتماد والتوقيع: __________________</p>`}
 async function settings(){area.innerHTML=`${pageHead("الإعدادات", '<button class="secondary" id="settingsHome">القائمة الرئيسية</button>')}<div class="card"><h3>النسخ الاحتياطي والاستعادة</h3><p class="muted">إنشاء نسخة خارجية أو استعادة نسخة سابقة، وإدارة النسخ التلقائية من مكان واحد.</p><button class="secondary" type="button" id="settingsBackup">فتح النسخ الاحتياطي والاستعادة</button></div><div class="card"><h3>وضع التشغيل الفردي</h3><p class="muted">يعمل DEEB محليًا على جهاز واحد دون حساب أو إنترنت. يظل هذا الوضع متاحًا حتى عند عدم إعداد اتصال الإدارة.</p><span class="pill">تخزين محلي IndexedDB</span><div class="actions"><button class="secondary" id="installAppBtn">تثبيت التطبيق على الجهاز</button><button class="secondary" id="storageCheckBtn">فحص مساحة التخزين</button><button class="secondary" id="storagePersistBtn">طلب حماية البيانات من الإزالة التلقائية</button></div><div id="deviceStatus" class="muted" aria-live="polite">جارٍ فحص حالة الجهاز...</div></div>
@@ -1314,8 +1315,8 @@ async function openArchivePage(){
  if(reportHead)reportHead.classList.add("hidden");
  const reportCard=$("#reportSummary")?.closest(".card");
  if(reportCard)reportCard.classList.add("hidden");
- if(typeof open?.onclick!=="function")throw new Error("زر فتح الأرشيف غير جاهز.");
- await open.onclick();
+ if(typeof window.DEebOpenArchive!=="function")throw new Error("تعذر تجهيز وظيفة عرض الأرشيف.");
+ await window.DEebOpenArchive();
  const heading=archivePanel.querySelector(".page-head h3");
  if(heading)heading.textContent="الأرشيف العام";
  const back=$("#closeArchive");
