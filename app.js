@@ -596,7 +596,6 @@ function mapPage(){
   $("#bikeRouteSummary").innerHTML='<div class="stats"><div class="stat"><strong>'+visits.length+'</strong><span>إجمالي الزيارات</span></div><div class="stat"><strong>'+located.length+'</strong><span>نقاط على الخريطة</span></div><div class="stat"><strong>'+new Set(visits.map(x=>x.payload?.bike||"")).size+'</strong><span>عدد الدراجات</span></div></div>'+(routeUrl?'<div class="actions"><a class="primary" target="_blank" rel="noopener" href="'+routeUrl+'">فتح خط السير على خرائط Google</a></div>':'<p class="notice">لا توجد إحداثيات محفوظة لهذه الزيارات. أضف إحداثيات الوصول أو شارك موقع واتساب مع التطبيق حتى تظهر النقاط على الخريطة.</p>')+(points.length?'<div class="table-wrap"><table><thead><tr><th>م</th><th>التوقيت</th><th>الدراجة</th><th>المكان</th><th>الإحداثيات</th><th>الخريطة</th></tr></thead><tbody>'+points.map((x,i)=>{const lat=Number(x.p.lat),lng=Number(x.p.lng),ok=String(x.p.lat??"").trim()!==""&&String(x.p.lng??"").trim()!==""&&Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180;return '<tr><td>'+(i+1)+'</td><td>'+esc(x.p.patrol_time||"—")+'</td><td>'+esc(x.p.bike||"—")+'</td><td>'+esc(x.p.site||x.p.branch||"غير محدد")+'</td><td>'+(ok?lat.toFixed(6)+", "+lng.toFixed(6):"غير مسجل")+'</td><td>'+(ok?'<a target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat='+lat+'&mlon='+lng+'#map=16/'+lat+'/'+lng+'">عرض النقطة</a>':"—")+'</td></tr>';}).join("")+'</tbody></table></div>':'<div class="empty">لا توجد زيارات دراجات مسجلة في هذا التاريخ.</div>');
  };
  $("#openBikePatrolRecords").onclick=()=>render("bikepatrol");$("#mapDate").onchange=paint;$("#mapBike").onchange=paint;$("#mapToday").onclick=()=>{$("#mapDate").value=today;$("#mapBike").value="";paint();};paint();
-}
  })().catch(error=>{console.error("DEEB map page load failed",error);if(area)area.innerHTML=pageHead("تعذر تحميل خريطة المرور")+'<div class="card notice">'+esc(error?.message||error)+'</div>';});
 }
 function renderBikeLeafletMap(targetId, points){
@@ -656,7 +655,6 @@ function bikeMapsPage(){
  $("#openBikePatrolRecords").onclick=()=>render("bikepatrol");
  $("#openBikeMapReports").onclick=()=>render("bikeMapReports");
  paint();
-}
  })().catch(error=>{console.error("DEEB bike maps page load failed",error);if(area)area.innerHTML=pageHead("تعذر تحميل خرائط الدراجات")+'<div class="card notice">'+esc(error?.message||error)+'</div>';});
 }
 function bikeMapReportsPage(){
@@ -713,7 +711,6 @@ function bikeMapReportsPage(){
  const autoArchiveMap=()=>queueMicrotask(()=>{if(!reportHtml||!$("#bikeMapReportBike").value)return;archiveBikeMapReport().catch(error=>toast("تعذر حفظ خريطة الدراجة تلقائيًا في الأرشيف: "+(error?.message||error)));});
  ["bikeMapReportBike","bikeMapReportFrom","bikeMapReportTo"].forEach(id=>$("#"+id)?.addEventListener("change",autoArchiveMap));
  autoArchiveMap();
-}
  })().catch(error=>{console.error("DEEB bike map report load failed",error);if(area)area.innerHTML=pageHead("تعذر تحميل تقرير خريطة الدراجة")+'<div class="card notice">'+esc(error?.message||error)+'</div>';});
 }
 async function reports(){
