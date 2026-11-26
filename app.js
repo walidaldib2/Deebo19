@@ -1308,7 +1308,8 @@ function statisticsPage(){
 }
 async function openArchivePage(){
  await reports();
- const open=$("#showArchive"),archivePanel=$("#archivePanel");
+ const open=$("#showArchive");
+ const archivePanel=$("#archivePanel");
  if(!open||!archivePanel)throw new Error("تعذر فتح الأرشيف العام.");
  // افتح محتوى الأرشيف أولاً، ثم افصله عن مركز التقارير ليصبح صفحة مستقلة.
  open.click();
