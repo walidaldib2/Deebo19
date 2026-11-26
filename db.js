@@ -297,7 +297,13 @@ window.DebooDB = (() => {
   async function reportArchives() { return (await getAll("report_archives")).sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||""))); }
   async function archiveReport(snapshot) {
     if(!snapshot||typeof snapshot!=="object"||typeof snapshot.html!=="string"||!snapshot.html.trim()) throw new Error("لا يمكن أرشفة تقرير بدون محتوى صالح.");
-    const item={id:uid(),title:String(snapshot.title||"تقرير DEEB"),report_type:String(snapshot.report_type||"general"),created_at:now(),from_date:snapshot.from_date||"",to_date:snapshot.to_date||"",html:snapshot.html,meta:snapshot.meta||{},actor:"مستخدم الجهاز"};
+    const dedupeKey=String(snapshot.dedupe_key||"").trim();
+    if(dedupeKey){
+      const existing=await getAll("report_archives");
+      const duplicate=existing.find(item=>item.dedupe_key===dedupeKey);
+      if(duplicate)return duplicate;
+    }
+    const item={id:uid(),title:String(snapshot.title||"تقرير DEEB"),report_type:String(snapshot.report_type||"general"),created_at:now(),from_date:snapshot.from_date||"",to_date:snapshot.to_date||"",html:snapshot.html,dedupe_key:dedupeKey||undefined,meta:snapshot.meta||{},actor:"مستخدم الجهاز"};
     const d=await openDB(); await new Promise((resolve,reject)=>{const tx=d.transaction("report_archives","readwrite");tx.objectStore("report_archives").put(item);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("تعذر حفظ التقرير في الأرشيف."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء أرشفة التقرير."));});
     try{await createAutoBackup();}catch(error){console.warn("DEEB report archive backup:",error);} return item;
   }
