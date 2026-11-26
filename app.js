@@ -1367,7 +1367,7 @@ function render(p){
   else if(p==="incidents")singleSectionPage("الحوادث والبلاغات","incidents");
   else if(p==="tasks")singleSectionPage("المهام والتكليفات","tasks");
   else if(p==="stats")statisticsPage();
-  else if(p==="archive")openArchivePage();
+  else if(p==="archive")openArchivePage().catch(error=>{console.error("DEEB archive navigation failed:",error);if(area)area.innerHTML=pageHead("تعذر فتح الأرشيف العام")+'<div class="card"><p class="notice">'+esc(error?.message||String(error))+'</p><button class="primary" type="button" data-back-home>العودة للرئيسية</button></div>';});
   else if(p==="backup")openBackupPage();
   else if(p==="settings")settings();
   else throw new Error("القسم المطلوب غير مربوط بصفحة داخل التطبيق: "+p);
