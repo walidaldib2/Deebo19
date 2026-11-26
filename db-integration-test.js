@@ -82,6 +82,19 @@ async function main() {
   assert.equal(await db.getRecord(expiredVisit.id), null, "Purged visits must no longer exist in the records store");
   assert.ok((await db.audit()).some(x => x.record_id === expiredVisit.id && x.action === "permanent_delete"), "Permanent expiry must remain visible in the audit log");
 
+  // Historical bike-map coordinates must survive the automatic shift archive.
+  const historicalMapVisit = await db.save("bike_patrols", {
+    bike: "دراجة خريطة تاريخية", person: "فرد اختبار", site: "فرع اختبار محفوظ",
+    patrol_date: "2026-11-19", patrol_time: "22:15", lat: "30.062600", lng: "31.249700"
+  });
+  await db.archivePastDays("2026-11-20");
+  assert.equal((await db.all()).some(x => x.id === historicalMapVisit.id), false,
+    "Past bike visits should leave active records after shift archiving");
+  const archivedMapVisit = (await db.all({ archived: true })).find(x => x.id === historicalMapVisit.id);
+  assert.ok(archivedMapVisit, "Historical bike visits should remain retrievable from archived records");
+  assert.equal(archivedMapVisit.payload.lat, "30.062600", "Archiving must preserve saved latitude");
+  assert.equal(archivedMapVisit.payload.lng, "31.249700", "Archiving must preserve saved longitude");
+
   // Handover snapshots and report approvals remain linked to their records.
   const handover = await db.save("handovers", { sender: "مُسلّم", receiver: "مُستلم" });
   const history = await db.handoverHistory(handover.id);
