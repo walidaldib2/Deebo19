@@ -983,11 +983,25 @@ async function reports(){
   const d=get(),type=$("#reportType").value||"all",from=$("#fromDate").value,to=$("#toDate").value;
   const html=reportCoordinatesOnly(readableReportHtml(printHtml(d)),d);
   const key=[type,from,to,selectedBikeReport||"all",selectedArchivedRecordId||"",selectedArchiveIds.slice().sort().join(","),d.map(x=>x.id+":"+x.updated_at).join("|"),html].join("::");
+  let fingerprint=2166136261;
+  for(let i=0;i<key.length;i++){fingerprint^=key.charCodeAt(i);fingerprint=Math.imul(fingerprint,16777619);}
+  const dedupeKey="deeb-report-"+(fingerprint>>>0).toString(16);
   if(key===archivedReportKey&&archivedReportPromise)return archivedReportPromise;
   archivedReportKey=key;
-  archivedReportPromise=DebooDB.archiveReport({title:(type==="all"?"التقرير الشامل":labels[type]||type),report_type:type,from_date:from,to_date:to,html,meta:{record_count:d.length,data:d,selected_bike_report:selectedBikeReport}}).catch(error=>{if(archivedReportKey===key){archivedReportKey="";archivedReportPromise=null;}throw error;});
+  archivedReportPromise=DebooDB.archiveReport({title:(type==="all"?"التقرير الشامل":labels[type]||type),report_type:type,from_date:from,to_date:to,html,dedupe_key:dedupeKey,meta:{record_count:d.length,data:d,selected_bike_report:selectedBikeReport}}).catch(error=>{if(archivedReportKey===key){archivedReportKey="";archivedReportPromise=null;}throw error;});
   return archivedReportPromise;
  };
+ const autoArchiveCurrentReport=async()=>{
+  const d=get(),type=$("#reportType").value,hasBikeReport=type==="bike_patrols"&&cache.some(x=>x.entity_type==="bikes"&&!x.is_archived);
+  if(!d.length&&!hasBikeReport)return null;
+  return archiveCurrentReport();
+ };
+ const queueAutomaticReportArchive=()=>queueMicrotask(()=>autoArchiveCurrentReport().catch(error=>toast("تعذر حفظ التقرير تلقائيًا في الأرشيف: "+(error?.message||error))));
+ ["fromDate","toDate","reportType","bikeReportSelect"].forEach(id=>$("#"+id)?.addEventListener("change",queueAutomaticReportArchive));
+ $("#monthlyReport")?.addEventListener("click",queueAutomaticReportArchive);
+ $("#bikeQuickReports")?.addEventListener("click",queueAutomaticReportArchive);
+ area.querySelectorAll("[data-report-type]").forEach(button=>button.addEventListener("click",queueAutomaticReportArchive));
+ queueAutomaticReportArchive();
  const buildArchivedReportHtml=item=>{
   const snapshot=item?.snapshot||item||{},meta=snapshot.meta||{};
   const type=String(snapshot.report_type||item?.report_type||"all");
