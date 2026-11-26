@@ -605,7 +605,13 @@ function renderBikeLeafletMap(targetId, points){
   if(el._deebLeafletMap){try{el._deebLeafletMap.remove();}catch{}el._deebLeafletMap=null;}
   el.dataset.mapReady="1";
   const map=L.map(el,{scrollWheelZoom:false});el._deebLeafletMap=map;
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',crossOrigin:true}).addTo(map);
+  const street=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Tiles © Esri"}).addTo(map);
+  const osm=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'});
+  const satellite=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Imagery © Esri"});
+  const labels=L.tileLayer("https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Labels © Esri"});
+  const satelliteWithLabels=L.layerGroup([satellite,labels]);
+  L.control.layers({"شوارع تفصيلية":street,"OpenStreetMap":osm,"قمر صناعي":satelliteWithLabels},null,{collapsed:true,position:"topright"}).addTo(map);
+  L.control.scale({metric:true,imperial:false,position:"bottomleft"}).addTo(map);
   const latlngs=latest.map(p=>[Number(p.lat),Number(p.lng)]);
   const byBike=new Map();latest.forEach(p=>{const key=String(p.bike||"دراجة غير محددة");if(!byBike.has(key))byBike.set(key,[]);byBike.get(key).push([Number(p.lat),Number(p.lng)]);});
   byBike.forEach(line=>{if(line.length>1)L.polyline(line,{color:"#8b1732",weight:4,opacity:.75,dashArray:targetId==="bikeMapReportLeafletMap"?"7 5":null}).addTo(map);});
