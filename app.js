@@ -1247,7 +1247,8 @@ function statisticsPage(){
 }
 async function openArchivePage(){
  await reports();
- const archivePanel=$("#archivePanel"),open=$("#showArchive"),reportSummary=$("#reportSummary");
+ const open=$("#showArchive");
+ const archivePanel=$("#archivePanel"),reportSummary=$("#reportSummary");
  if(!open||!archivePanel||!reportSummary)throw new Error("تعذر فتح الأرشيف العام.");
  const reportCard=reportSummary.closest(".card");
  if(reportCard)reportCard.classList.add("hidden");
