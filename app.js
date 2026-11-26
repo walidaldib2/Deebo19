@@ -1308,16 +1308,15 @@ function statisticsPage(){
 }
 async function openArchivePage(){
  await reports();
- const open=$("#showArchive");
- const archivePanel=$("#archivePanel"),reportSummary=$("#reportSummary");
- if(!open||!archivePanel||!reportSummary)throw new Error("تعذر فتح الأرشيف العام.");
- const reportCard=reportSummary.closest(".card");
- if(reportCard)reportCard.classList.add("hidden");
- const heading=area.querySelector(".page-head h1");
- if(heading)heading.textContent="الأرشيف العام";
- const pageActions=area.querySelector(".page-head .actions");
- if(pageActions)pageActions.classList.add("hidden");
+ const open=$("#showArchive"),archivePanel=$("#archivePanel");
+ if(!open||!archivePanel)throw new Error("تعذر فتح الأرشيف العام.");
+ // افتح محتوى الأرشيف أولاً، ثم افصله عن مركز التقارير ليصبح صفحة مستقلة.
  open.click();
+ archivePanel.classList.remove("hidden");
+ area.innerHTML="";
+ area.appendChild(archivePanel);
+ const heading=archivePanel.querySelector(".page-head h3");
+ if(heading)heading.textContent="الأرشيف العام";
  const back=$("#closeArchive");
  if(back){back.textContent="القائمة الرئيسية";back.onclick=()=>render("landing");}
 }
