@@ -1070,12 +1070,10 @@ async function reports(){
   if(archiveReportSelection==="categories"){
    const archiveableTypes=["branch_patrols","bike_patrols","manager_rounds","incidents","tasks","handovers","absences","emergencies","written_reports","memos","daily_rosters","bike_shift_assignments"];
    const reportTypes=[...new Set([...archiveableTypes,...reportArchives.map(x=>String(x.snapshot?.report_type||x.report_type||"all")),...approved.map(getReportType),"bike_map"].filter(x=>x&&x!=="all"))];
-   if(archived.length)reportTypes.push("archived_records");
-   reportTypes.sort((a,b)=>a==="bike_map"?-1:b==="bike_map"?1:a==="archived_records"?1:b==="archived_records"?-1:a.localeCompare(b,"ar"));
-   host.innerHTML=reportTypes.length?'<div class="archive-category-grid">'+reportTypes.map(type=>{
-    const count=type==="archived_records"?archived.length:archived.filter(x=>x.entity_type===type).length+reportArchives.filter(x=>String(x.snapshot?.report_type||x.report_type||"all")===type).length+approved.filter(x=>getReportType(x)===type).length;
-    return '<button type="button" class="archive-category" data-archive-category="'+esc(type)+'"><strong>'+esc(typeTitle(type))+'</strong><span>'+count+' عنصر محفوظ</span></button>';
-   }).join("")+'</div>':'<div class="empty">لا توجد تقارير محفوظة حتى الآن.</div>';
+   reportTypes.sort((a,b)=>a==="bike_map"?-1:b==="bike_map"?1:a.localeCompare(b,"ar"));
+   host.innerHTML=reportTypes.length?'<p class="muted archive-instruction">اختار نوع التقرير، وبعدها حدد التاريخ لعرض التقارير الخاصة باليوم المطلوب.</p><div class="archive-category-grid">'+reportTypes.map(type=>
+    '<button type="button" class="archive-category" data-archive-category="'+esc(type)+'"><strong>'+esc(typeTitle(type))+'</strong><span>عرض التقارير حسب التاريخ</span></button>'
+   ).join("")+'</div>':'<div class="empty">لا توجد أنواع تقارير متاحة.</div>';
    host.querySelectorAll("[data-archive-category]").forEach(button=>button.onclick=()=>{archiveReportSelection=button.dataset.archiveCategory;showArchive();});
    return;
   }
