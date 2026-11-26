@@ -1105,7 +1105,6 @@ async function reports(){
   host.querySelectorAll("[data-image-report-archive]").forEach(btn=>btn.onclick=()=>{const item=selectedReports.find(x=>x.id===btn.dataset.imageReportArchive)||selectedApproved.find(x=>x.id===btn.dataset.imageReportArchive);saveArchivedImage(item,btn);});
   return;
   const dates=[...new Set(archived.map(dayOf).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
-  const dates=[...new Set(archived.map(dayOf).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
   const shifts=[...new Set(archived.map(x=>String(x.payload?.shift||x.payload?.shift_name||"غير محدد")))].sort();
 const branches=[...new Set(archived.map(x=>String(x.payload?.branch||x.branch_id||"غير محدد"))) ].sort();
   const bikes=[...new Set([...data.filter(x=>x.entity_type==="bikes").map(x=>String(x.payload?.number||"").trim()),...archived.filter(x=>x.entity_type==="bike_patrols").map(x=>String(x.payload?.bike||"").trim())].filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ar",{numeric:true}));
