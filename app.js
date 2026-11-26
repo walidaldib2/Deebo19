@@ -633,7 +633,7 @@ function renderBikeLeafletMap(targetId, points){
   });
   window.__deebLeafletLoader=loader;
  }
- loader.then(draw).catch(()=>{const el=document.getElementById(targetId);if(el)el.innerHTML='<div class="notice">تعذر تحميل الخريطة. تحقق من اتصال الإنترنت وحاول مرة أخرى.</div>';});
+ loader.then(draw).catch(()=>{window.__deebLeafletLoader=null;const failed=document.getElementById("deebLeafletJs");if(failed)failed.remove();const el=document.getElementById(targetId);if(el)el.innerHTML='<div class="notice">تعذر تحميل الخريطة. تحقق من اتصال الإنترنت واضغط إعادة اختيار التاريخ للمحاولة مرة أخرى.</div>';});
 }
 async function bikeMapsPage(){
  const archivedMapRecords=await DebooDB.all({archived:true});
