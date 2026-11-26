@@ -1065,11 +1065,11 @@ async function reports(){
   $("#archivePanel")?.classList.remove("hidden");$("#reportSummary")?.parentElement?.classList.add("hidden");
   const [archived,approved,reportArchives]=await Promise.all([DebooDB.all({archived:true}),DebooDB.approvedReports(),DebooDB.reportArchives()]),host=$("#archiveContent");
   reportArchives.forEach(item=>{const snapshot=item.snapshot||item,meta=snapshot.meta||(snapshot.meta={});if(String(snapshot.report_type||item.report_type)==="bike_map"&&!Array.isArray(meta.data)){const bike=String(meta.bike||"").trim(),from=String(snapshot.from_date||item.from_date||""),to=String(snapshot.to_date||item.to_date||""),records=[...data,...archived],seen=new Set();meta.data=records.filter(x=>x.entity_type==="bike_patrols"&&!x.is_deleted&&String(x.payload?.bike||"").trim()===bike).filter(x=>{const d=String(x.payload?.patrol_date||x.created_at||"").slice(0,10);return (!from||d>=from)&&(!to||d<=to)&&!seen.has(x.id)&&seen.add(x.id);}).map(x=>({id:x.id,created_at:x.created_at,payload:x.payload||{}}));}});
-  const typeTitle=type=>({written_reports:"التقرير اليومي",memos:"المذكرة",branch_patrols:"متابعة الفروع",manager_rounds:"مرور المديرين",bike_map:"خرائط الدراجات"}[type]||labels[type]||type);
+  const typeTitle=type=>({written_reports:"التقرير اليومي",memos:"المذكرة",branch_patrols:"متابعة الفروع",manager_rounds:"مرور المديرين",bike_map:"خرائط الدراجات",bike_patrols:"متابعة مرور الدراجات"}[type]||labels[type]||type);
   const getReportType=item=>String(item.snapshot?.report_type||item.report_type||"all");
   if(archiveReportSelection==="categories"){
    // الأرشيف العام يحتوي على خمسة أنواع تقارير معتمدة فقط، بغض النظر عن وجود نسخ محفوظة حالياً.
-   const reportTypes=["written_reports","memos","branch_patrols","manager_rounds","bike_map"];
+   const reportTypes=["written_reports","memos","branch_patrols","manager_rounds","bike_patrols","bike_map"];
    host.innerHTML=reportTypes.length?'<p class="muted archive-instruction">اختار نوع التقرير، وبعدها حدد التاريخ لعرض التقارير الخاصة باليوم المطلوب.</p><div class="archive-category-grid">'+reportTypes.map(type=>
     '<button type="button" class="archive-category" data-archive-category="'+esc(type)+'"><strong>'+esc(typeTitle(type))+'</strong><span>عرض التقارير حسب التاريخ</span></button>'
    ).join("")+'</div>':'<div class="empty">لا توجد تقارير أو سجلات مؤرشفة حتى الآن.</div>';
