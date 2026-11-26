@@ -581,6 +581,7 @@ function comparePatrolTimes(a,b){
 function mapPage(){
  return (async()=>{
  const archivedMapRecords=await DebooDB.all({archived:true});
+// Map views include archived patrol entries so historical coordinates remain available.
  const mapRecords=[...cache,...archivedMapRecords].filter(x=>!x.is_deleted);
  const today=new Date().toLocaleDateString("en-CA");
  area.innerHTML=pageHead("مرور الدراجات",'<button class="primary" id="openBikePatrolRecords">تسجيل مرور جديد</button><button class="secondary" id="mapToday">اليوم</button>')+
