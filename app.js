@@ -578,7 +578,8 @@ function comparePatrolTimes(a,b){
  if(av===null&&bv!==null)return 1;
  return String(a||"").localeCompare(String(b||""),"ar");
 }
-async function mapPage(){
+function mapPage(){
+ return (async()=>{
  const archivedMapRecords=await DebooDB.all({archived:true});
  const mapRecords=[...cache,...archivedMapRecords].filter(x=>!x.is_deleted);
  const today=new Date().toLocaleDateString("en-CA");
@@ -594,6 +595,8 @@ async function mapPage(){
   $("#bikeRouteSummary").innerHTML='<div class="stats"><div class="stat"><strong>'+visits.length+'</strong><span>إجمالي الزيارات</span></div><div class="stat"><strong>'+located.length+'</strong><span>نقاط على الخريطة</span></div><div class="stat"><strong>'+new Set(visits.map(x=>x.payload?.bike||"")).size+'</strong><span>عدد الدراجات</span></div></div>'+(routeUrl?'<div class="actions"><a class="primary" target="_blank" rel="noopener" href="'+routeUrl+'">فتح خط السير على خرائط Google</a></div>':'<p class="notice">لا توجد إحداثيات محفوظة لهذه الزيارات. أضف إحداثيات الوصول أو شارك موقع واتساب مع التطبيق حتى تظهر النقاط على الخريطة.</p>')+(points.length?'<div class="table-wrap"><table><thead><tr><th>م</th><th>التوقيت</th><th>الدراجة</th><th>المكان</th><th>الإحداثيات</th><th>الخريطة</th></tr></thead><tbody>'+points.map((x,i)=>{const lat=Number(x.p.lat),lng=Number(x.p.lng),ok=String(x.p.lat??"").trim()!==""&&String(x.p.lng??"").trim()!==""&&Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180;return '<tr><td>'+(i+1)+'</td><td>'+esc(x.p.patrol_time||"—")+'</td><td>'+esc(x.p.bike||"—")+'</td><td>'+esc(x.p.site||x.p.branch||"غير محدد")+'</td><td>'+(ok?lat.toFixed(6)+", "+lng.toFixed(6):"غير مسجل")+'</td><td>'+(ok?'<a target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat='+lat+'&mlon='+lng+'#map=16/'+lat+'/'+lng+'">عرض النقطة</a>':"—")+'</td></tr>';}).join("")+'</tbody></table></div>':'<div class="empty">لا توجد زيارات دراجات مسجلة في هذا التاريخ.</div>');
  };
  $("#openBikePatrolRecords").onclick=()=>render("bikepatrol");$("#mapDate").onchange=paint;$("#mapBike").onchange=paint;$("#mapToday").onclick=()=>{$("#mapDate").value=today;$("#mapBike").value="";paint();};paint();
+}
+ })();
 }
 function renderBikeLeafletMap(targetId, points){
  const target=document.getElementById(targetId);if(!target)return;
@@ -617,7 +620,8 @@ function renderBikeLeafletMap(targetId, points){
  if(!document.getElementById("deebLeafletCss")){const css=document.createElement("link");css.id="deebLeafletCss";css.rel="stylesheet";css.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";document.head.appendChild(css);}
  let js=document.getElementById("deebLeafletJs");if(!js){js=document.createElement("script");js.id="deebLeafletJs";js.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";document.head.appendChild(js);}js.addEventListener("load",draw,{once:true});js.addEventListener("error",()=>{const current=document.getElementById(targetId);if(current)current.innerHTML='<div class="notice">تعذر تحميل مكتبة الخرائط. تحقق من اتصال الإنترنت ثم أعد فتح القسم.</div>';},{once:true});
 }
-async function bikeMapsPage(){
+function bikeMapsPage(){
+ return (async()=>{
  const archivedMapRecords=await DebooDB.all({archived:true});
  const mapRecords=[...cache,...archivedMapRecords].filter(x=>!x.is_deleted);
  const bikes=[...new Set(mapRecords.filter(x=>x.entity_type==="bike_patrols").map(x=>String(x.payload?.bike||"").trim()).filter(Boolean).concat(cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived).map(x=>String(x.payload?.number||"").trim()).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,"ar",{numeric:true}));
@@ -652,7 +656,10 @@ async function bikeMapsPage(){
  $("#openBikeMapReports").onclick=()=>render("bikeMapReports");
  paint();
 }
-async function bikeMapReportsPage(){
+ })();
+}
+function bikeMapReportsPage(){
+ return (async()=>{
  const archivedMapRecords=await DebooDB.all({archived:true});
  const mapRecords=[...cache,...archivedMapRecords].filter(x=>!x.is_deleted);
  const bikes=[...new Set(mapRecords.filter(x=>x.entity_type==="bike_patrols").map(x=>String(x.payload?.bike||"").trim()).filter(Boolean).concat(cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived).map(x=>String(x.payload?.number||"").trim()).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,"ar",{numeric:true}));
@@ -705,6 +712,8 @@ async function bikeMapReportsPage(){
  const autoArchiveMap=()=>queueMicrotask(()=>{if(!reportHtml||!$("#bikeMapReportBike").value)return;archiveBikeMapReport().catch(error=>toast("تعذر حفظ خريطة الدراجة تلقائيًا في الأرشيف: "+(error?.message||error)));});
  ["bikeMapReportBike","bikeMapReportFrom","bikeMapReportTo"].forEach(id=>$("#"+id)?.addEventListener("change",autoArchiveMap));
  autoArchiveMap();
+}
+ })();
 }
 async function reports(){
  area.innerHTML=pageHead("مركز التقارير")+'<div class="card">جارٍ تحميل التقارير والسجلات...</div>';
