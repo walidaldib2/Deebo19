@@ -509,3 +509,21 @@ function pageGroupsDataTypes() {
   const match = groupsSource.match(/data:\[([^\]]*)\]/);
   return match ? [...match[1].matchAll(/"([^"]+)"/g)].map(item => item[1]) : [];
 }
+
+
+// Historical bike maps must include automatically archived patrol records.
+// The active cache deliberately excludes archived records, so each map screen
+// loads archived rows from IndexedDB and merges them without including deleted rows.
+for (const pageName of ["mapPage","bikeMapsPage","bikeMapReportsPage"]) {
+  const start = appSource.indexOf("async function " + pageName + "(){");
+  const next = appSource.indexOf("\nfunction ", start + 1);
+  const nextAsync = appSource.indexOf("\nasync function ", start + 1);
+  const ends = [next,nextAsync].filter(index => index > start);
+  const end = ends.length ? Math.min(...ends) : appSource.length;
+  const source = start >= 0 ? appSource.slice(start,end) : "";
+  if (!source.includes("await DebooDB.all({archived:true})") ||
+      !source.includes("const mapRecords=[...cache,...archivedMapRecords].filter(x=>!x.is_deleted)") ||
+      !source.includes("mapRecords.filter(x=>x.entity_type===\\"bike_patrols\\"")) {
+    throw new Error("Historical bike map page must draw selected dates from active and archived patrol records: " + pageName);
+  }
+}
