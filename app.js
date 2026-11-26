@@ -1069,7 +1069,7 @@ async function reports(){
   const getReportType=item=>String(item.snapshot?.report_type||item.report_type||"all");
   if(archiveReportSelection==="categories"){
    // كل نوع يمكن اختياره في مركز التقارير له قسم مقابل هنا، بالإضافة إلى خرائط الدراجات.
-   const reportTypes=[...new Set([...Object.keys(labels).filter(type=>type!=="bikes"),...reportArchives.map(getReportType),...approved.map(getReportType),"bike_map"])].filter(type=>type&&type!=="all"&&type!=="bikes").sort((a,b)=>typeTitle(a).localeCompare(typeTitle(b),"ar"));
+   const reportTypes=[...new Set([...Array.from(area.querySelectorAll("[data-report-type]"),button=>button.dataset.reportType).filter(Boolean),...reportArchives.map(getReportType),...approved.map(getReportType),"bike_map"])].filter(type=>type&&type!=="all"&&type!=="bikes").sort((a,b)=>typeTitle(a).localeCompare(typeTitle(b),"ar"));
    host.innerHTML=reportTypes.length?'<p class="muted archive-instruction">اختار نوع التقرير، وبعدها حدد التاريخ لعرض التقارير الخاصة باليوم المطلوب.</p><div class="archive-category-grid">'+reportTypes.map(type=>
     '<button type="button" class="archive-category" data-archive-category="'+esc(type)+'"><strong>'+esc(typeTitle(type))+'</strong><span>عرض التقارير حسب التاريخ</span></button>'
    ).join("")+'</div>':'<div class="empty">لا توجد تقارير أو سجلات مؤرشفة حتى الآن.</div>';
