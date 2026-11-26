@@ -1062,7 +1062,7 @@ async function reports(){
  $("#approveReport").onclick=async()=>{try{const d=get();if(!d.length){toast("لا توجد سجلات لاعتمادها");return;}await archiveCurrentReport();await DebooDB.approve({title:"تقرير معتمد",created_at:new Date().toISOString(),report_type:$("#reportType").value,from_date:$("#fromDate").value,to_date:$("#toDate").value,html:reportCoordinatesOnly(readableReportHtml(printHtml(d)),d),data:d});toast("تم حفظ نسخة التقرير المعتمدة محليًا");}catch(e){toast("تعذر اعتماد التقرير: "+e.message);}};
  let archiveDateSelection="",archiveShiftSelection="",archiveTypeSelection="",archiveBranchSelection="",archiveBikeSelection="",archiveReportSelection="categories",archiveReportDateSelection="",archiveSearchText="";
  const showArchive=async()=>{
-  $("#archivePanel").classList.remove("hidden");$("#reportSummary").parentElement.classList.add("hidden");
+  $("#archivePanel")?.classList.remove("hidden");$("#reportSummary")?.parentElement?.classList.add("hidden");
   const [archived,approved,reportArchives]=await Promise.all([DebooDB.all({archived:true}),DebooDB.approvedReports(),DebooDB.reportArchives()]),host=$("#archiveContent");
   reportArchives.forEach(item=>{const snapshot=item.snapshot||item,meta=snapshot.meta||(snapshot.meta={});if(String(snapshot.report_type||item.report_type)==="bike_map"&&!Array.isArray(meta.data)){const bike=String(meta.bike||"").trim(),from=String(snapshot.from_date||item.from_date||""),to=String(snapshot.to_date||item.to_date||""),records=[...data,...archived],seen=new Set();meta.data=records.filter(x=>x.entity_type==="bike_patrols"&&!x.is_deleted&&String(x.payload?.bike||"").trim()===bike).filter(x=>{const d=String(x.payload?.patrol_date||x.created_at||"").slice(0,10);return (!from||d>=from)&&(!to||d<=to)&&!seen.has(x.id)&&seen.add(x.id);}).map(x=>({id:x.id,created_at:x.created_at,payload:x.payload||{}}));}});
   const typeTitle=type=>({written_reports:"التقرير اليومي",memos:"المذكرة",branch_patrols:"متابعة الفروع",manager_rounds:"مرور المديرين",bike_map:"خرائط الدراجات"}[type]||labels[type]||type);
@@ -1305,14 +1305,13 @@ function statisticsPage(){
 }
 async function openArchivePage(){
  await reports();
- const open=$("#showArchive");
  const archivePanel=$("#archivePanel");
- if(!open||!archivePanel)throw new Error("تعذر فتح الأرشيف العام.");
- // افتح محتوى الأرشيف أولاً، ثم افصله عن مركز التقارير ليصبح صفحة مستقلة.
- open.click();
+ if(!archivePanel)throw new Error("تعذر فتح الأرشيف العام.");
+ // انقل لوحة الأرشيف أولاً ثم حمّلها مباشرة؛ لا تضغط زر التقارير لأن نقل الصفحة يزيل عناصرها.
  archivePanel.classList.remove("hidden");
  area.innerHTML="";
  area.appendChild(archivePanel);
+ await showArchive();
  const heading=archivePanel.querySelector(".page-head h3");
  if(heading)heading.textContent="الأرشيف العام";
  const back=$("#closeArchive");
