@@ -77,19 +77,18 @@ if (!attachmentSaveSource.includes('file.size>15*1024*1024') ||
 const navigationStart = html.indexOf('<section class="tiles" id="mainTiles">');
 const navigationEnd = html.indexOf('</section>', navigationStart);
 const navigationHtml = navigationStart >= 0 && navigationEnd > navigationStart ? html.slice(navigationStart, navigationEnd) : '';
-for (const page of ['home','operations','security','reportsGroup','system']) {
+for (const page of ['home','operations','security','tasksGroup','reportsGroup','data','system']) {
   if (!navigationHtml.includes('data-page="'+page+'"')) throw new Error('Main navigation tile is missing: '+page);
 }
-for (const label of ['لوحة التحكم','التشغيل الميداني','إدارة الأمن','التقارير والسجلات','البيانات والإعدادات']) {
+for (const label of ['لوحة التحكم','التشغيل الميداني','إدارة الأمن','التكليفات والمتابعة','التقارير والسجلات','البيانات الأساسية','إدارة النظام']) {
   if (!navigationHtml.includes(label)) throw new Error('Main navigation label was lost: '+label);
 }
 for (const required of ['class="tile-icon"','viewBox="0 0 24 24"']) if (!navigationHtml.includes(required)) throw new Error('Premium vector navigation icon system is missing: '+required);
-if ((navigationHtml.match(/data-page=/g)||[]).length !== 5) throw new Error('Home must contain exactly five primary navigation tiles.');
+if ((navigationHtml.match(/data-page=/g)||[]).length !== 7) throw new Error('Home must contain exactly seven primary navigation sections.');
 const menuStart=appSource.indexOf('const sectionMenus=');
 const menuEnd=appSource.indexOf(';',menuStart);
 const menuSource=menuStart>=0&&menuEnd>menuStart?appSource.slice(menuStart,menuEnd+1):'';
-if (!menuSource.includes('["tasks","المهام والتكليفات"]') || !menuSource.includes('["handovers","تسليم واستلام الشفت"]')) throw new Error('Tasks and handovers must remain available under field operations.');
-if (menuSource.includes('tasksGroup:')) throw new Error('Tasks group must not remain as a duplicate top-level section.');
+if (!menuSource.includes('tasksGroup:{title:"التكليفات والمتابعة"') || !menuSource.includes('["tasks","المهام والتكليفات"]') || !menuSource.includes('["handovers","تسليم واستلام الشفت"]')) throw new Error('Tasks and handovers must remain inside their dedicated section.');
 const groupsStart=appSource.indexOf('const pageGroups=');
 const groupsEnd=appSource.indexOf(';',groupsStart);
 const groupsSource=groupsStart>=0&&groupsEnd>groupsStart?appSource.slice(groupsStart,groupsEnd+1):'';
