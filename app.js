@@ -1090,7 +1090,7 @@ async function reports(){
     const from=String(item.from_date||snapshot.from_date||"").slice(0,10);
     const to=String(item.to_date||snapshot.to_date||"").slice(0,10);
     if(from||to)if((!from||selectedDate>=from)&&(!to||selectedDate<=to))return true;
-    const dates=Array.isArray(meta.data)?meta.data.map(row=>String(row.payload?.work_date||row.payload?.patrol_date||row.payload?.incident_date||row.payload?.report_date||row.payload?.absence_date||row.payload?.handover_date||row.payload?.emergency_date||row.created_at||"").slice(0,10)).filter(Boolean):[];
+    const rows=Array.isArray(meta.data)?meta.data:(Array.isArray(snapshot.data)?snapshot.data:[]);const dates=rows.map(row=>String(row.payload?.work_date||row.payload?.patrol_date||row.payload?.incident_date||row.payload?.report_date||row.payload?.absence_date||row.payload?.handover_date||row.payload?.emergency_date||row.created_at||"").slice(0,10)).filter(Boolean);
     return dates.includes(selectedDate)||String(item.created_at||"").slice(0,10)===selectedDate;
    };
    const search=archiveSearchText.trim().toLocaleLowerCase("ar");
