@@ -285,7 +285,10 @@ async function main() {
 
   // Full external backup round-trip must preserve records, audit, approved reports,
   // handover versions, and attachment bytes—not only attachment metadata.
-  const roundTripReport = await db.archiveReport({ title: "تقرير استعادة", report_type: "general", html: "<!doctype html><html><body>نسخة محفوظة</body></html>" });
+  const roundTripReport = await db.archiveReport({ title: "تقرير استعادة", report_type: "general", dedupe_key: "integration-test-report-1", html: "<!doctype html><html><body>نسخة محفوظة</body></html>" });
+  const duplicateRoundTripReport = await db.archiveReport({ title: "تقرير استعادة مكرر", report_type: "general", dedupe_key: "integration-test-report-1", html: "<!doctype html><html><body>نسخة مكررة</body></html>" });
+  assert.equal(duplicateRoundTripReport.id, roundTripReport.id, "Repeated automatic archive requests with the same report fingerprint must reuse the saved snapshot");
+  assert.equal((await db.reportArchives()).filter(x => x.dedupe_key === "integration-test-report-1").length, 1, "A report fingerprint must create only one archive item");
   const fullBackup = await db.backup();
   assert.ok(fullBackup.report_archives.some(x => x.id === roundTripReport.id), "Full backup must include generated report archives");
   assert.ok(fullBackup.attachments.some(x => x.id === incidentAttachment.id && x.data_url.startsWith("data:text/plain;base64,")));
