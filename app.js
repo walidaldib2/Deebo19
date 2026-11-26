@@ -1073,7 +1073,7 @@ async function reports(){
    if(archived.length)reportTypes.push("archived_records");
    reportTypes.sort((a,b)=>a==="bike_map"?-1:b==="bike_map"?1:a==="archived_records"?1:b==="archived_records"?-1:a.localeCompare(b,"ar"));
    host.innerHTML=reportTypes.length?'<div class="archive-category-grid">'+reportTypes.map(type=>{
-    const count=type==="archived_records"?archived.length:reportArchives.filter(x=>String(x.snapshot?.report_type||x.report_type||"all")===type).length+approved.filter(x=>getReportType(x)===type).length;
+    const count=type==="archived_records"?archived.length:archived.filter(x=>x.entity_type===type).length+reportArchives.filter(x=>String(x.snapshot?.report_type||x.report_type||"all")===type).length+approved.filter(x=>getReportType(x)===type).length;
     return '<button type="button" class="archive-category" data-archive-category="'+esc(type)+'"><strong>'+esc(typeTitle(type))+'</strong><span>'+count+' عنصر محفوظ</span></button>';
    }).join("")+'</div>':'<div class="empty">لا توجد تقارير محفوظة حتى الآن.</div>';
    host.querySelectorAll("[data-archive-category]").forEach(button=>button.onclick=()=>{archiveReportSelection=button.dataset.archiveCategory;showArchive();});
@@ -1086,27 +1086,47 @@ async function reports(){
    const selectedDate=archiveReportDateSelection;
    const inSelectedDate=item=>{
     if(!selectedDate)return false;
-    const from=String(item.from_date||item.snapshot?.from_date||"").slice(0,10);
-    const to=String(item.to_date||item.snapshot?.to_date||"").slice(0,10);
-    if(from||to)return (!from||selectedDate>=from)&&(!to||selectedDate<=to);
-    return String(item.created_at||"").slice(0,10)===selectedDate;
+    const snapshot=item.snapshot||item,meta=snapshot.meta||item.meta||{};
+    const from=String(item.from_date||snapshot.from_date||"").slice(0,10);
+    const to=String(item.to_date||snapshot.to_date||"").slice(0,10);
+    if(from||to)if((!from||selectedDate>=from)&&(!to||selectedDate<=to))return true;
+    const dates=Array.isArray(meta.data)?meta.data.map(row=>String(row.payload?.work_date||row.payload?.patrol_date||row.payload?.incident_date||row.payload?.report_date||row.payload?.absence_date||row.payload?.handover_date||row.payload?.emergency_date||row.created_at||"").slice(0,10)).filter(Boolean):[];
+    return dates.includes(selectedDate)||String(item.created_at||"").slice(0,10)===selectedDate;
    };
    const search=archiveSearchText.trim().toLocaleLowerCase("ar");
    const matches=item=>inSelectedDate(item)&&(!search||[item.title,item.report_type,item.created_at,item.from_date,item.to_date,JSON.stringify(item.snapshot||{}),JSON.stringify(item.meta||{})].join(" ").toLocaleLowerCase("ar").includes(search));
    const savedForDate=saved.filter(matches);
    const approvedForDate=approvedForType.filter(matches);
+   const archivedForDate=selectedDate?archived.filter(x=>x.entity_type===type&&dayOf(x)===selectedDate):[];
    const savedRows=savedForDate.map(x=>'<tr><td>'+esc(x.title||typeTitle(type))+'</td><td>'+esc(String(x.created_at||"").replace("T"," ").slice(0,16))+'</td><td>'+esc((x.from_date||"—")+" — "+(x.to_date||"—"))+'</td><td><button class="tiny primary" data-print-report-archive="'+esc(x.id)+'">فتح التقرير</button> <button class="tiny" data-pdf-report-archive="'+esc(x.id)+'">حفظ PDF</button> <button class="tiny" data-image-report-archive="'+esc(x.id)+'">حفظ صورة</button></td></tr>').join("");
    const approvedRows=approvedForDate.map(x=>'<tr><td>'+esc(x.snapshot?.title||x.title||"تقرير DEEB")+'</td><td>'+esc(String(x.created_at||"").replace("T"," ").slice(0,16))+'</td><td><button class="tiny primary" data-print-approved="'+esc(x.id)+'">فتح التقرير</button> <button class="tiny" data-pdf-approved="'+esc(x.id)+'">حفظ PDF</button> <button class="tiny" data-image-approved="'+esc(x.id)+'">حفظ صورة</button></td></tr>').join("");
    host.innerHTML='<div class="archive-category-back"><button type="button" class="secondary" id="archiveBackToTypes">العودة لأنواع التقارير</button></div>'+
     '<div class="field archive-date-picker"><label for="archiveReportDate">اختار تاريخ التقرير المطلوب</label><input id="archiveReportDate" type="date" value="'+esc(selectedDate)+'"></div>'+
     (selectedDate?
-      (savedForDate.length||approvedForDate.length?
+      (savedForDate.length||approvedForDate.length||archivedForDate.length?
        (savedForDate.length?'<h4>التقارير المحفوظة</h4><div class="table-wrap"><table><thead><tr><th>التقرير</th><th>تاريخ الحفظ</th><th>الفترة</th><th>الإجراءات</th></tr></thead><tbody>'+savedRows+'</tbody></table></div>':'')+
-       (approvedForDate.length?'<h4>نسخ التقارير المعتمدة</h4><div class="table-wrap"><table><thead><tr><th>التقرير</th><th>تاريخ الاعتماد</th><th>الإجراءات</th></tr></thead><tbody>'+approvedRows+'</tbody></table></div>':'')
-       :'<div class="empty">لا يوجد تقرير محفوظ من هذا النوع في التاريخ المحدد.</div>')
-      :'<div class="empty">اختار التاريخ علشان يظهر لك التقرير المحفوظ في اليوم ده.</div>');
+       (approvedForDate.length?'<h4>نسخ التقارير المعتمدة</h4><div class="table-wrap"><table><thead><tr><th>التقرير</th><th>تاريخ الاعتماد</th><th>الإجراءات</th></tr></thead><tbody>'+approvedRows+'</tbody></table></div>':'')+
+       (archivedForDate.length?'<h4>السجلات المؤرشفة في التاريخ المحدد</h4><div class="table-wrap"><table><thead><tr><th>القسم</th><th>عدد السجلات</th><th>التاريخ</th><th>الإجراء</th></tr></thead><tbody><tr><td>'+esc(typeTitle(type))+'</td><td>'+archivedForDate.length+'</td><td>'+esc(selectedDate)+'</td><td><button type="button" class="tiny primary" id="openArchivedDateReport">فتح التقرير</button> <button type="button" class="tiny" id="pdfArchivedDateReport">حفظ PDF</button> <button type="button" class="tiny" id="imageArchivedDateReport">حفظ صورة</button></td></tr></tbody></table></div>':'')
+       :'<div class="empty">لا توجد بيانات محفوظة من هذا النوع في التاريخ المحدد.</div>')
+      :'<div class="empty">اختار التاريخ علشان تظهر التقارير والسجلات الخاصة باليوم ده.</div>');
    $("#archiveBackToTypes").onclick=()=>{archiveReportSelection="categories";archiveReportDateSelection="";archiveSearchText="";showArchive();};
    $("#archiveReportDate").onchange=e=>{archiveReportDateSelection=e.target.value;showArchive();};
+   const buildArchivedRecordsReport=()=>{
+    if(!archivedForDate.length)return "";
+    const oldType=$("#reportType").value,oldFrom=$("#fromDate").value,oldTo=$("#toDate").value,oldBike=selectedBikeReport;
+    try{$("#reportType").value=type;$("#fromDate").value=selectedDate;$("#toDate").value=selectedDate;selectedBikeReport="all";return reportCoordinatesOnly(readableReportHtml(printHtml(archivedForDate)),archivedForDate);}
+    finally{$("#reportType").value=oldType;$("#fromDate").value=oldFrom;$("#toDate").value=oldTo;selectedBikeReport=oldBike;}
+   };
+   const exportArchivedRecords=async(kind)=>{
+    const html=buildArchivedRecordsReport();if(!html){toast("لا توجد بيانات لإنشاء التقرير.");return;}
+    const native=window.DEEBNativePlugins?.FileExport;if(!native){toast("خدمة حفظ الملفات غير متاحة.");return;}
+    try{if(kind==="pdf"&&native.saveHtmlAsPdf){const result=await native.saveHtmlAsPdf({html,name:"DEEB-archive-"+type+"-"+selectedDate});if(result?.saved!==true)throw new Error("لم يؤكد النظام حفظ PDF.");toast("تم حفظ PDF في Downloads/DEEB.");}
+    else if(kind==="image"&&native.saveHtmlAsImages){const result=await native.saveHtmlAsImages({html,name:"DEEB-archive-"+type+"-"+selectedDate});if(result?.saved!==true||!Number.isInteger(result.count)||result.count<1)throw new Error("لم يؤكد النظام حفظ الصور.");toast("تم حفظ صور التقرير في Pictures/DEEB.");}
+    else if(native.printHtml){const result=await native.printHtml({html});if(result?.started!==true)throw new Error("لم تبدأ خدمة الطباعة.");toast("تم إرسال التقرير للطباعة.");}else throw new Error("ميزة الحفظ غير متاحة.");}catch(e){toast("تعذر تجهيز التقرير: "+(e?.message||e));}
+   };
+   $("#openArchivedDateReport")?.addEventListener("click",()=>openArchivedReportViewer({title:typeTitle(type)+" - "+selectedDate,report_type:type,from_date:selectedDate,to_date:selectedDate,meta:{data:archivedForDate}},buildArchivedRecordsReport()));
+   $("#pdfArchivedDateReport")?.addEventListener("click",()=>exportArchivedRecords("pdf"));
+   $("#imageArchivedDateReport")?.addEventListener("click",()=>exportArchivedRecords("image"));
    const exportItem=async(item,kind,button)=>{
     const html=buildArchivedReportHtml(item);
     if(!html){toast("بيانات التقرير المؤرشف غير متاحة.");return;}
