@@ -1069,7 +1069,7 @@ async function reports(){
   const getReportType=item=>String(item.snapshot?.report_type||item.report_type||"all");
   if(archiveReportSelection==="categories"){
    // كل نوع يمكن اختياره في مركز التقارير له قسم مقابل هنا، بالإضافة إلى خرائط الدراجات.
-   const reportTypes=[...new Set([...Object.keys(labels).filter(type=>type!=="bikes"),"bike_map"])];
+   const reportTypes=[...new Set([...Object.keys(labels).filter(type=>type!=="bikes"),...reportArchives.map(getReportType),...approved.map(getReportType),"bike_map"])].filter(type=>type&&type!=="all"&&type!=="bikes").sort((a,b)=>typeTitle(a).localeCompare(typeTitle(b),"ar"));
    host.innerHTML=reportTypes.length?'<p class="muted archive-instruction">اختار نوع التقرير، وبعدها حدد التاريخ لعرض التقارير الخاصة باليوم المطلوب.</p><div class="archive-category-grid">'+reportTypes.map(type=>
     '<button type="button" class="archive-category" data-archive-category="'+esc(type)+'"><strong>'+esc(typeTitle(type))+'</strong><span>عرض التقارير حسب التاريخ</span></button>'
    ).join("")+'</div>':'<div class="empty">لا توجد تقارير أو سجلات مؤرشفة حتى الآن.</div>';
@@ -1305,13 +1305,14 @@ function statisticsPage(){
 }
 async function openArchivePage(){
  await reports();
- const open=$("#showArchive");
  const archivePanel=$("#archivePanel");
  if(!archivePanel)throw new Error("تعذر فتح الأرشيف العام.");
- // انقل لوحة الأرشيف أولاً ثم حمّلها مباشرة؛ لا تضغط زر التقارير لأن نقل الصفحة يزيل عناصرها.
+ // اترك مركز التقارير وعناصره في DOM مخفية؛ أدوات عرض وطباعة التقارير تعتمد عليها عند فتح تقرير من الأرشيف.
  archivePanel.classList.remove("hidden");
- area.innerHTML="";
- area.appendChild(archivePanel);
+ const reportHead=area.querySelector(":scope > .page-head");
+ if(reportHead)reportHead.classList.add("hidden");
+ const reportCard=$("#reportSummary")?.closest(".card");
+ if(reportCard)reportCard.classList.add("hidden");
  await showArchive();
  const heading=archivePanel.querySelector(".page-head h3");
  if(heading)heading.textContent="الأرشيف العام";
