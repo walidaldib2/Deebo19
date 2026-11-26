@@ -23,7 +23,7 @@ const detailLayout=detailLayoutStart>=0&&detailLayoutEnd>detailLayoutStart?app.s
 if(!detailLayout.includes('Math.ceil(detailPoints.length/3)') ||
    !detailLayout.includes('Math.floor(index/detailRowCount)+1') ||
    !detailLayout.includes('index%detailRowCount+1') ||
-   !detailLayout.includes('grid-template-rows:repeat('+detailRowCount+',auto)') ||
+   !detailLayout.includes("grid-template-rows:repeat('+detailRowCount+',auto)") ||
    !app.includes('grid-template-columns:repeat(3,minmax(0,1fr))') ||
    !app.includes('.deeb-report-map{height:130mm;width:100%') ||
    !app.includes('grid-auto-rows:min-content;grid-auto-flow:row;align-content:start') ||
