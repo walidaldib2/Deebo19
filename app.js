@@ -596,25 +596,44 @@ async function mapPage(){
 }
 function renderBikeLeafletMap(targetId, points){
  const target=document.getElementById(targetId);if(!target)return;
- if(!points.length){target.innerHTML='<div class="empty">لا توجد إحداثيات صحيحة لعرضها على الخريطة.</div>';return;}
+ target.dataset.mapPoints=JSON.stringify(points||[]);
+ if(!points?.length){target.innerHTML='<div class="empty">لا توجد إحداثيات صحيحة لعرضها على الخريطة.</div>';return;}
  const draw=()=>{
-  if(!window.L||!document.getElementById(targetId))return;
-  const el=document.getElementById(targetId);if(el.dataset.mapReady==="1")return;el.dataset.mapReady="1";
-  const map=L.map(el,{scrollWheelZoom:false});
+  const el=document.getElementById(targetId);if(!window.L||!el)return;
+  let latest=[];try{latest=JSON.parse(el.dataset.mapPoints||"[]");}catch{}
+  if(!latest.length)return;
+  if(el._deebLeafletMap){try{el._deebLeafletMap.remove();}catch{}el._deebLeafletMap=null;}
+  el.dataset.mapReady="1";
+  const map=L.map(el,{scrollWheelZoom:false});el._deebLeafletMap=map;
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',crossOrigin:true}).addTo(map);
-  const latlngs=points.map(p=>[p.lat,p.lng]);
-  const byBike=new Map();points.forEach(p=>{const key=String(p.bike||"دراجة غير محددة");if(!byBike.has(key))byBike.set(key,[]);byBike.get(key).push([p.lat,p.lng]);});
-  byBike.forEach((line)=>{if(line.length>1)L.polyline(line,{color:"#8b1732",weight:4,opacity:.75,dashArray:targetId==="bikeMapReportLeafletMap"?"7 5":null}).addTo(map);});if(targetId==="bikeMapReportLeafletMap"&&points.length>1){const coords=points.map(p=>p.lng+","+p.lat).join(";");fetch("https://router.project-osrm.org/route/v1/driving/"+coords+"?overview=full&geometries=geojson&steps=false").then(r=>{if(!r.ok)throw new Error("route");return r.json();}).then(data=>{if(data.code==="Ok"&&data.routes?.[0]){const road=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);L.polyline(road,{color:"#8b1732",weight:5,opacity:.9}).addTo(map);const status=document.getElementById("deebRouteStatus");if(status)status.textContent="المسار مرسوم على شبكة الطرق حسب الإحداثيات المسجلة.";}}).catch(()=>{const status=document.getElementById("deebRouteStatus");if(status)status.textContent="تعذر جلب مسار الطرق؛ الخط المتقطع يوضح ترتيب نقاط المرور المسجلة فقط.";});}
-  points.forEach((p,i)=>{
-   const safe=v=>String(v||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const latlngs=latest.map(p=>[Number(p.lat),Number(p.lng)]);
+  const byBike=new Map();latest.forEach(p=>{const key=String(p.bike||"دراجة غير محددة");if(!byBike.has(key))byBike.set(key,[]);byBike.get(key).push([Number(p.lat),Number(p.lng)]);});
+  byBike.forEach(line=>{if(line.length>1)L.polyline(line,{color:"#8b1732",weight:4,opacity:.75,dashArray:targetId==="bikeMapReportLeafletMap"?"7 5":null}).addTo(map);});
+  if(targetId==="bikeMapReportLeafletMap"&&latest.length>1){
+   const coords=latest.map(p=>Number(p.lng)+","+Number(p.lat)).join(";");
+   fetch("https://router.project-osrm.org/route/v1/driving/"+coords+"?overview=full&geometries=geojson&steps=false").then(r=>{if(!r.ok)throw new Error("route");return r.json();}).then(data=>{
+    if(data.code==="Ok"&&data.routes?.[0]){const road=data.routes[0].geometry.coordinates.map(v=>[v[1],v[0]]);L.polyline(road,{color:"#8b1732",weight:5,opacity:.9}).addTo(map);const status=document.getElementById("deebRouteStatus");if(status)status.textContent="المسار مرسوم على شبكة الطرق حسب الإحداثيات المسجلة.";}
+   }).catch(()=>{const status=document.getElementById("deebRouteStatus");if(status)status.textContent="تعذر جلب مسار الطرق؛ الخط المتقطع يوضح ترتيب نقاط المرور المسجلة فقط.";});
+  }
+  latest.forEach((p,i)=>{
+   const safe=v=>String(v||"").replace(/[&<>"]/g,v=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[v]));
    const popup='<b>'+(i+1)+'. '+safe(p.bike||"دراجة غير محددة")+'</b><br>'+safe(p.site||"موقع المرور")+'<br>'+safe(p.date||"")+' '+safe(p.time||"");
-   L.marker([p.lat,p.lng],{icon:L.divIcon({className:"deeb-map-pin",html:'<span>'+(i+1)+'</span>',iconSize:[30,30],iconAnchor:[15,15]})}).addTo(map).bindPopup(popup);
+   L.marker([Number(p.lat),Number(p.lng)],{icon:L.divIcon({className:"deeb-map-pin",html:'<span>'+(i+1)+'</span>',iconSize:[30,30],iconAnchor:[15,15]})}).addTo(map).bindPopup(popup);
   });
   map.fitBounds(L.latLngBounds(latlngs).pad(.18),{maxZoom:16});setTimeout(()=>map.invalidateSize(),150);
  };
  if(window.L){draw();return;}
  if(!document.getElementById("deebLeafletCss")){const css=document.createElement("link");css.id="deebLeafletCss";css.rel="stylesheet";css.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";document.head.appendChild(css);}
- let js=document.getElementById("deebLeafletJs");if(!js){js=document.createElement("script");js.id="deebLeafletJs";js.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";js.onload=draw;js.onerror=()=>{target.innerHTML='<div class="notice">تعذر تحميل الخريطة. تحقق من اتصال الإنترنت وحاول مرة أخرى.</div>';};document.head.appendChild(js);}else if(window.L)draw();
+ let loader=window.__deebLeafletLoader;
+ if(!loader){
+  loader=new Promise((resolve,reject)=>{
+   const existing=document.getElementById("deebLeafletJs");
+   if(existing){existing.addEventListener("load",()=>resolve(),{once:true});existing.addEventListener("error",()=>reject(new Error("Leaflet load failed")),{once:true});if(window.L)resolve();return;}
+   const js=document.createElement("script");js.id="deebLeafletJs";js.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";js.onload=resolve;js.onerror=()=>reject(new Error("Leaflet load failed"));document.head.appendChild(js);
+  });
+  window.__deebLeafletLoader=loader;
+ }
+ loader.then(draw).catch(()=>{const el=document.getElementById(targetId);if(el)el.innerHTML='<div class="notice">تعذر تحميل الخريطة. تحقق من اتصال الإنترنت وحاول مرة أخرى.</div>';});
 }
 async function bikeMapsPage(){
  const archivedMapRecords=await DebooDB.all({archived:true});
