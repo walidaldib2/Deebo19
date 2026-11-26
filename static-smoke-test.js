@@ -29,7 +29,7 @@ if (!app.includes("meta:{record_count:d.length,data:d,selected_bike_report:selec
 if (!app.includes('id="archiveReportFilterSlot"') || !app.includes("archiveFilterSlot.replaceChildren(archiveFilter)")) throw new Error("Report archive category selector must be located in the archive header, not inside the archive records list");
 const nativeEntry = fs.readFileSync(path.join(root,"native-plugins-entry.js"),"utf8");
 if (!JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8")).scripts?.["build:native-plugins"] || !nativeEntry.includes("registerPlugin('FileExport')")) throw new Error("Android native print/export plugin bridge must be built and registered");
-if (!app.includes('reportHtml].join("|")') || !app.includes('html].join("::")') || !app.includes('archivedReportPromise=null;}throw error;') || !app.includes('bikeMapArchivePromise=null;}throw error;')) throw new Error('Report archive snapshots must detect changed content and allow retry after a failed local save');
+if (!app.includes('d.map(x=>x.id+":"+x.updated_at).join("|")') || !app.includes('archivedReportPromise=null;}throw error;') || !app.includes('bikeMapArchivePromise=null;}throw error;')) throw new Error('Report archive snapshots must detect changed records and allow retry after a failed local save');
 const sw = fs.readFileSync(path.join(root,'sw.js'),'utf8');
 for (const f of ['index.html','style.css','app.js','db.js','team-sync.js','qrcode.js','manifest.json','icon.svg']) if (!sw.includes(`./${f}`)) throw new Error('Service worker core cache missing '+f);
 const pkg = JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
