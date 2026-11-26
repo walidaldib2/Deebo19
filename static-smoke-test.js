@@ -17,6 +17,17 @@ for (const f of ['qrcode.js','db.js','team-sync.js','biometric.bundle.js','app.j
 // Reuse the app source loaded at the top of this smoke test.
 if (!db.includes('DB_VERSION = 5') || !db.includes('"report_archives"') || !db.includes('async function archiveReport') || !db.includes('async function reportArchives')) throw new Error('Persistent report archive storage and API are required');
 for (const marker of ['archiveCurrentReport','archiveBikeMapReport','أرشيف خرائط الدراجات','archiveReportFilter','saveBikeMapArchive','data-pdf-report-archive','data-image-report-archive','data-pdf-approved','data-image-approved','saveArchivedPdf','saveArchivedImage']) if (!app.includes(marker)) throw new Error('Report archive UI is missing '+marker);
+const detailLayoutStart=app.indexOf('const detailPoints=visits.map');
+const detailLayoutEnd=app.indexOf('const mapMarkup=',detailLayoutStart);
+const detailLayout=detailLayoutStart>=0&&detailLayoutEnd>detailLayoutStart?app.slice(detailLayoutStart,detailLayoutEnd):'';
+if(!detailLayout.includes('Math.ceil(detailPoints.length/21)') ||
+   !detailLayout.includes('Math.floor(index/7)+1') ||
+   !detailLayout.includes('index%7+1') ||
+   !detailLayout.includes('grid-template-columns:repeat(3,minmax(0,1fr))') ||
+   !detailLayout.includes('grid-template-rows:repeat(7,minmax(25mm,auto))') ||
+   !detailLayout.includes('list-style:none')) {
+  throw new Error('Bike map details must paginate 21 points and place 1-7, 8-14, 15-21 top-to-bottom in three RTL columns without duplicate list markers.');
+}
 if (!app.includes('bikes:[["number","رقم الدراجة","text",1],["code","كود الدراجة","text"],["type","نوع الدراجة","text"],["description","الوصف","text"],["status","الحالة","select","جاهزة|بالمرور|صيانة|متوقفة"]]')) throw new Error("Bike registry must store bike details without a fixed responsible person");
 if (!app.includes('bike_patrols:[["bike","الدراجة","text",1],["person","اسم الفرد القائم بالمرور","text",1]')) throw new Error("The responsible patrol person must remain recorded on each daily bike patrol entry");
 if (!app.includes('bike_shift_assignments:[["work_date","تاريخ الشفت","date",1],["shift","الشفت","select","صباحي|مسائي|ليلي",1],["assignments","توزيع الأفراد على الدراجات","custom"]]') || !app.includes('["bikeShiftAssignments","توزيع شفت مرور الدراجات"]') || !app.includes('data-bike-assignment=') || !app.includes('اختَر الفرد الراكب لكل دراجة مسجلة قبل الحفظ')) throw new Error("Daily bike shift assignment screen must map each registered bike to a patrol rider and save by date and shift");
