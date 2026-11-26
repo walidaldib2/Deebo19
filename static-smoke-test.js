@@ -20,13 +20,15 @@ for (const marker of ['archiveCurrentReport','archiveBikeMapReport','أرشيف 
 const detailLayoutStart=app.indexOf('const detailPoints=visits.map');
 const detailLayoutEnd=app.indexOf('const mapMarkup=',detailLayoutStart);
 const detailLayout=detailLayoutStart>=0&&detailLayoutEnd>detailLayoutStart?app.slice(detailLayoutStart,detailLayoutEnd):'';
-if(!detailLayout.includes('Math.ceil(detailPoints.length/21)') ||
-   !detailLayout.includes('Math.floor(index/7)+1') ||
-   !detailLayout.includes('index%7+1') ||
+if(!detailLayout.includes('Math.ceil(detailPoints.length/3)') ||
+   !detailLayout.includes('Math.floor(index/detailRowCount)+1') ||
+   !detailLayout.includes('index%detailRowCount+1') ||
+   !detailLayout.includes('height:125mm;grid-template-rows:repeat(') ||
    !app.includes('grid-template-columns:repeat(3,minmax(0,1fr))') ||
-   !app.includes('grid-template-rows:repeat(7,minmax(25mm,auto))') ||
+   !app.includes('height:289mm') ||
+   !app.includes('break-before:auto;page-break-before:auto') ||
    !app.includes('list-style:none')) {
-  throw new Error('Bike map details must paginate 21 points and place 1-7, 8-14, 15-21 top-to-bottom in three RTL columns without duplicate list markers.');
+  throw new Error('Bike map report must fit its map and all visit details on one A4 page in three ordered columns without duplicate list markers.');
 }
 if (!app.includes('bikes:[["number","رقم الدراجة","text",1],["code","كود الدراجة","text"],["type","نوع الدراجة","text"],["description","الوصف","text"],["status","الحالة","select","جاهزة|بالمرور|صيانة|متوقفة"]]')) throw new Error("Bike registry must store bike details without a fixed responsible person");
 if (!app.includes('bike_patrols:[["bike","الدراجة","text",1],["person","اسم الفرد القائم بالمرور","text",1]')) throw new Error("The responsible patrol person must remain recorded on each daily bike patrol entry");
