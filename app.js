@@ -1068,8 +1068,8 @@ async function reports(){
   const typeTitle=type=>({written_reports:"التقرير اليومي",memos:"المذكرة",branch_patrols:"متابعة الفروع",manager_rounds:"مرور المديرين",bike_map:"خرائط الدراجات",bike_patrols:"متابعة مرور الدراجات"}[type]||labels[type]||type);
   const getReportType=item=>String(item.snapshot?.report_type||item.report_type||"all");
   if(archiveReportSelection==="categories"){
-   // الأرشيف العام يحتوي على خمسة أنواع تقارير معتمدة فقط، بغض النظر عن وجود نسخ محفوظة حالياً.
-   const reportTypes=["written_reports","memos","branch_patrols","manager_rounds","bike_patrols","bike_map"];
+   // كل نوع يمكن اختياره في مركز التقارير له قسم مقابل هنا، بالإضافة إلى خرائط الدراجات.
+   const reportTypes=[...new Set([...Object.keys(labels).filter(type=>type!=="bikes"),"bike_map"])];
    host.innerHTML=reportTypes.length?'<p class="muted archive-instruction">اختار نوع التقرير، وبعدها حدد التاريخ لعرض التقارير الخاصة باليوم المطلوب.</p><div class="archive-category-grid">'+reportTypes.map(type=>
     '<button type="button" class="archive-category" data-archive-category="'+esc(type)+'"><strong>'+esc(typeTitle(type))+'</strong><span>عرض التقارير حسب التاريخ</span></button>'
    ).join("")+'</div>':'<div class="empty">لا توجد تقارير أو سجلات مؤرشفة حتى الآن.</div>';
