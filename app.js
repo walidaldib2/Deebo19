@@ -589,10 +589,54 @@ async function mapPage(){
   const located=points.filter(x=>validCoordinatePair(x.p.lat,x.p.lng));
   const coords=located.map(x=>Number(x.p.lat)+","+Number(x.p.lng));
   const routeUrl=coords.length>1?"https://www.google.com/maps/dir/?api=1&origin="+encodeURIComponent(coords[0])+"&destination="+encodeURIComponent(coords[coords.length-1])+(coords.length>2?"&waypoints="+encodeURIComponent(coords.slice(1,-1).join("|")):"")+"&travelmode=driving":coords.length===1?"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(coords[0]):"";
-  $("#bikeRouteSummary").innerHTML='<div class="stats"><div class="stat"><strong>'+visits.length+'</strong><span>إجمالي الزيارات</span></div><div class="stat"><strong>'+located.length+'</strong><span>نقاط على الخريطة</span></div><div class="stat"><strong>'+new Set(visits.map(x=>x.payload?.bike||"")).size+'</strong><span>عدد الدراجات</span></div></div>'+(located.length?'<div id="bikeRouteLeafletMap" class="deeb-live-map" style="height:380px;width:100%;margin:14px 0;border:1px solid #c99a32;border-radius:10px"></div>':'')+(routeUrl?'<div class="actions"><a class="primary" target="_blank" rel="noopener" href="'+routeUrl+'">فتح خط السير على خرائط Google</a></div>':'<p class="notice">لا توجد إحداثيات محفوظة لهذه الزيارات. أضف إحداثيات الوصول أو شارك موقع واتساب مع التطبيق حتى تظهر النقاط على الخريطة.</p>')+(points.length?'<div class="table-wrap"><table><thead><tr><th>م</th><th>التوقيت</th><th>الدراجة</th><th>المكان</th><th>الإحداثيات</th><th>الخريطة</th></tr></thead><tbody>'+points.map((x,i)=>{const lat=Number(x.p.lat),lng=Number(x.p.lng),ok=String(x.p.lat??"").trim()!==""&&String(x.p.lng??"").trim()!==""&&Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180;return '<tr><td>'+(i+1)+'</td><td>'+esc(x.p.patrol_time||"—")+'</td><td>'+esc(x.p.bike||"—")+'</td><td>'+esc(x.p.site||x.p.branch||"غير محدد")+'</td><td>'+(ok?lat.toFixed(6)+", "+lng.toFixed(6):"غير مسجل")+'</td><td>'+(ok?'<a target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat='+lat+'&mlon='+lng+'#map=16/'+lat+'/'+lng+'">عرض النقطة</a>':"—")+'</td></tr>';}).join("")+'</tbody></table></div>':'<div class="empty">لا توجد زيارات دراجات مسجلة في هذا التاريخ.</div>');
-   if(located.length)renderBikeLeafletMap("bikeRouteLeafletMap",located.map(x=>({lat:Number(x.p.lat),lng:Number(x.p.lng),bike:x.p.bike,site:x.p.site||x.p.branch,date:x.p.patrol_date,time:x.p.patrol_time})));
+  $("#bikeRouteSummary").innerHTML='<div class="stats"><div class="stat"><strong>'+visits.length+'</strong><span>إجمالي الزيارات</span></div><div class="stat"><strong>'+located.length+'</strong><span>نقاط على الخريطة</span></div><div class="stat"><strong>'+new Set(visits.map(x=>x.payload?.bike||"")).size+'</strong><span>عدد الدراجات</span></div></div>'+(located.length?'<div id="bikeRouteLeafletMap" class="deeb-live-map" style="height:380px;width:100%;margin:14px 0;border:1px solid #c99a32;border-radius:10px"></div>':'')+'<div class="actions"><button class="secondary" id="toggleBikeFlyover" type="button">مشهد التحليق ثلاثي الأبعاد</button></div><div id="bikeFlyoverPanel" style="display:'+(window.__deebFlyoverOpen?'block':'none')+'"><div class="actions"><button class="primary" id="startBikeFlyover" type="button">ابدأ التحليق بين النقاط</button><button class="secondary" id="stopBikeFlyover" type="button">إيقاف التحليق</button></div><div id="bikeFlyoverMap" style="height:440px;width:100%;margin:10px 0;border:1px solid #c99a32;border-radius:10px;overflow:hidden"></div><p class="muted">مشهد ثلاثي الأبعاد للطرق والتضاريس والمباني المتاحة في بيانات الخريطة. ليس بثاً حياً أو تصويراً فضائياً مباشراً.</p></div>'+(routeUrl?'<div class="actions"><a class="primary" target="_blank" rel="noopener" href="'+routeUrl+'">فتح خط السير على خرائط Google</a></div>':'<p class="notice">لا توجد إحداثيات محفوظة لهذه الزيارات. أضف إحداثيات الوصول أو شارك موقع واتساب مع التطبيق حتى تظهر النقاط على الخريطة.</p>')+(points.length?'<div class="table-wrap"><table><thead><tr><th>م</th><th>التوقيت</th><th>الدراجة</th><th>المكان</th><th>الإحداثيات</th><th>الخريطة</th></tr></thead><tbody>'+points.map((x,i)=>{const lat=Number(x.p.lat),lng=Number(x.p.lng),ok=String(x.p.lat??"").trim()!==""&&String(x.p.lng??"").trim()!==""&&Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180;return '<tr><td>'+(i+1)+'</td><td>'+esc(x.p.patrol_time||"—")+'</td><td>'+esc(x.p.bike||"—")+'</td><td>'+esc(x.p.site||x.p.branch||"غير محدد")+'</td><td>'+(ok?lat.toFixed(6)+", "+lng.toFixed(6):"غير مسجل")+'</td><td>'+(ok?'<a target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat='+lat+'&mlon='+lng+'#map=16/'+lat+'/'+lng+'">عرض النقطة</a>':"—")+'</td></tr>';}).join("")+'</tbody></table></div>':'<div class="empty">لا توجد زيارات دراجات مسجلة في هذا التاريخ.</div>');
+   const flyPoints=located.map(x=>({lat:Number(x.p.lat),lng:Number(x.p.lng),bike:x.p.bike,site:x.p.site||x.p.branch,date:x.p.patrol_date,time:x.p.patrol_time}));
+   if(located.length)renderBikeLeafletMap("bikeRouteLeafletMap",flyPoints);
+   const flyToggle=$("#toggleBikeFlyover");if(flyToggle)flyToggle.onclick=()=>{window.__deebFlyoverOpen=!window.__deebFlyoverOpen;const panel=$("#bikeFlyoverPanel");if(panel)panel.style.display=window.__deebFlyoverOpen?"block":"none";if(window.__deebFlyoverOpen)renderBikeFlyoverMap("bikeFlyoverMap",flyPoints);else stopBikeFlyoverTour();};
+   const flyStart=$("#startBikeFlyover");if(flyStart)flyStart.onclick=()=>startBikeFlyoverTour();
+   const flyStop=$("#stopBikeFlyover");if(flyStop)flyStop.onclick=()=>stopBikeFlyoverTour();
+   if(window.__deebFlyoverOpen&&located.length)renderBikeFlyoverMap("bikeFlyoverMap",flyPoints);
  };
  $("#openBikePatrolRecords").onclick=()=>render("bikepatrol");$("#mapDate").onchange=paint;$("#mapBike").onchange=paint;$("#mapToday").onclick=()=>{$("#mapDate").value=today;$("#mapBike").value="";paint();};paint();
+}
+function stopBikeFlyoverTour(){
+ if(window.__deebFlyoverTimer){clearInterval(window.__deebFlyoverTimer);window.__deebFlyoverTimer=null;}
+ window.__deebFlyoverIndex=0;
+}
+function startBikeFlyoverTour(){
+ const map=window.__deebFlyoverMap,points=window.__deebFlyoverPoints||[];if(!map||!points.length)return;
+ stopBikeFlyoverTour();let index=0;
+ const visit=()=>{const p=points[index%points.length];map.easeTo({center:[p.lng,p.lat],zoom:18.2,pitch:75,bearing:(index*48)%360,duration:2200});index++;};
+ visit();window.__deebFlyoverTimer=setInterval(visit,4200);
+}
+function renderBikeFlyoverMap(targetId,points){
+ const el=document.getElementById(targetId);if(!el||!points?.length)return;
+ const valid=points.filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&Number(p.lat)>=-90&&Number(p.lat)<=90&&Number(p.lng)>=-180&&Number(p.lng)<=180);
+ if(!valid.length){el.innerHTML='<div class="notice">لا توجد إحداثيات صحيحة للتحليق.</div>';return;}
+ window.__deebFlyoverPoints=valid;
+ const draw=()=>{
+  const host=document.getElementById(targetId);if(!host||!window.maplibregl)return;
+  if(window.__deebFlyoverMap){try{window.__deebFlyoverMap.remove();}catch{}window.__deebFlyoverMap=null;}
+  const center=[valid.reduce((n,p)=>n+Number(p.lng),0)/valid.length,valid.reduce((n,p)=>n+Number(p.lat),0)/valid.length];
+  const map=new maplibregl.Map({container:host,style:'https://styles.maptoolkit.org/street-3d.json',center,zoom:valid.length===1?17:14,pitch:68,bearing:0,maxPitch:85,attributionControl:{compact:false},antialias:true});
+  window.__deebFlyoverMap=map;
+  map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'top-right');
+  map.on('load',()=>{
+   const features=valid.map((p,i)=>({type:'Feature',geometry:{type:'Point',coordinates:[Number(p.lng),Number(p.lat)]},properties:{n:i+1,bike:p.bike||'دراجة',site:p.site||'موقع المرور',date:p.date||'',time:p.time||''}}));
+   map.addSource('deeb-fly-points',{type:'geojson',data:{type:'FeatureCollection',features}});
+   map.addLayer({id:'deeb-fly-points-circle',type:'circle',source:'deeb-fly-points',paint:{'circle-radius':8,'circle-color':'#8b1732','circle-stroke-color':'#ffffff','circle-stroke-width':2}});
+   map.addLayer({id:'deeb-fly-points-label',type:'symbol',source:'deeb-fly-points',layout:{'text-field':['get','n'],'text-size':12,'text-font':['Open Sans Bold','Arial Unicode MS Bold'],'text-offset':[0,1.35],'text-anchor':'top'},paint:{'text-color':'#ffffff','text-halo-color':'#8b1732','text-halo-width':2}});
+   if(valid.length>1){map.addSource('deeb-fly-route',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:valid.map(p=>[Number(p.lng),Number(p.lat)])},properties:{}}});map.addLayer({id:'deeb-fly-route-line',type:'line',source:'deeb-fly-route',paint:{'line-color':'#8b1732','line-width':4,'line-opacity':0.85}});}
+   map.on('click','deeb-fly-points-circle',e=>{const f=e.features?.[0];if(!f)return;const c=f.geometry.coordinates,p=f.properties;new maplibregl.Popup().setLngLat(c).setHTML('<b>'+String(p.n)+'. '+String(p.bike)+'</b><br>'+String(p.site)+'<br>'+String(p.date)+' '+String(p.time)).addTo(map);map.flyTo({center:c,zoom:19,pitch:78,duration:1800});});
+   map.on('mouseenter','deeb-fly-points-circle',()=>map.getCanvas().style.cursor='pointer');map.on('mouseleave','deeb-fly-points-circle',()=>map.getCanvas().style.cursor='');
+   if(valid.length>1){const bounds=new maplibregl.LngLatBounds();valid.forEach(p=>bounds.extend([Number(p.lng),Number(p.lat)]));map.fitBounds(bounds,{padding:55,maxZoom:16,duration:1200});}
+  });
+ };
+ if(window.maplibregl){draw();return;}
+ if(!document.getElementById('deebMapLibreCss')){const css=document.createElement('link');css.id='deebMapLibreCss';css.rel='stylesheet';css.href='https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css';document.head.appendChild(css);}
+ let loader=window.__deebMapLibreLoader;
+ if(!loader){loader=new Promise((resolve,reject)=>{const js=document.createElement('script');js.id='deebMapLibreJs';js.src='https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js';js.onload=resolve;js.onerror=()=>reject(new Error('MapLibre load failed'));document.head.appendChild(js);});window.__deebMapLibreLoader=loader;}
+ loader.then(draw).catch(()=>{const host=document.getElementById(targetId);if(host)host.innerHTML='<div class="notice">تعذر تحميل محرك التحليق ثلاثي الأبعاد. تحقق من الإنترنت ثم أعد فتح المشهد.</div>';});
 }
 function renderBikeLeafletMap(targetId, points){
  const target=document.getElementById(targetId);if(!target)return;
