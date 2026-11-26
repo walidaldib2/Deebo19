@@ -96,7 +96,7 @@ const dataGroupMatch=groupsSource.match(/data:\[([^\]]*)\]/);
 const dataGroupSource=dataGroupMatch?.[1]||"";
 if (!dataGroupSource.startsWith('"branches","patrol_people","bikes"') || dataGroupSource.includes('"employees"') || dataGroupSource.includes('"emergency_people"')) throw new Error('Employee and emergency-person registries must not be duplicated in general master data.');
 if (!groupsSource.includes('emergency:["emergencies","emergency_people"]')) throw new Error('Emergency personnel must remain available inside the emergency section.');
-if (!menuSource.includes('tasksGroup:{title:"التكليفات والمتابعة"') || !menuSource.includes('["tasks","المهام والتكليفات"]') || !menuSource.includes('["handovers","تسليم واستلام الشفت"]')) throw new Error("Tasks and handovers must remain in their dedicated seventh-section menu.");
+if (!appSource.includes('tasksGroup:{title:"التكليفات والمتابعة"') || !appSource.includes('["tasks","المهام والتكليفات"]') || !appSource.includes('["handovers","تسليم واستلام الشفت"]')) throw new Error("Tasks and handovers must remain in their dedicated seventh-section menu.");
 
 for (const required of ['function landing(){','function home(){','async function weather(city){','async function weatherCoords(']) if (!appSource.includes(required)) throw new Error('Core dashboard/weather feature was lost: '+required);
 for (const required of ['id="weatherTemp"','id="weatherDesc"','id="weatherExtra"','id="weatherGo"','id="weatherGPS"']) if (!appSource.includes(required)) throw new Error('Landing weather control is missing: '+required);
