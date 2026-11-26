@@ -1053,8 +1053,8 @@ async function reports(){
   const typeTitle=type=>type==="bike_map"?"تقارير خرائط الدراجات":type==="archived_records"?"سجلات المتابعات المؤرشفة":(labels[type]||type);
   const getReportType=item=>String(item.snapshot?.report_type||item.report_type||"all");
   if(archiveReportSelection==="categories"){
-   const reportTypes=[...new Set([...reportArchives.map(x=>String(x.snapshot?.report_type||x.report_type||"all")),...approved.map(getReportType)].filter(x=>x&&x!=="all"))];
-   if(!reportTypes.includes("bike_map"))reportTypes.push("bike_map");
+   const archiveableTypes=["branch_patrols","bike_patrols","manager_rounds","incidents","tasks","handovers","absences","emergencies","written_reports","memos","daily_rosters","bike_shift_assignments"];
+   const reportTypes=[...new Set([...archiveableTypes,...reportArchives.map(x=>String(x.snapshot?.report_type||x.report_type||"all")),...approved.map(getReportType),"bike_map"].filter(x=>x&&x!=="all"))];
    if(archived.length)reportTypes.push("archived_records");
    reportTypes.sort((a,b)=>a==="bike_map"?-1:b==="bike_map"?1:a==="archived_records"?1:b==="archived_records"?-1:a.localeCompare(b,"ar"));
    host.innerHTML=reportTypes.length?'<div class="archive-category-grid">'+reportTypes.map(type=>{
@@ -1264,12 +1264,18 @@ function statisticsPage(){
 }
 async function openArchivePage(){
  await reports();
- const open=$("#showArchive");
- if(!open)throw new Error("تعذر فتح الأرشيف العام.");
+ const archivePanel=$("#archivePanel"),open=$("#showArchive"),reportSummary=$("#reportSummary");
+ if(!open||!archivePanel||!reportSummary)throw new Error("تعذر فتح الأرشيف العام.");
+ const reportCard=reportSummary.closest(".card");
+ if(reportCard)reportCard.classList.add("hidden");
+ const heading=area.querySelector(".page-head h1");
+ if(heading)heading.textContent="الأرشيف العام";
+ const pageActions=area.querySelector(".page-head .actions");
+ if(pageActions)pageActions.classList.add("hidden");
  open.click();
  const back=$("#closeArchive");
  if(back){back.textContent="القائمة الرئيسية";back.onclick=()=>render("landing");}
- }
+}
 async function openBackupPage(){
  area.innerHTML=pageHead("النسخ الاحتياطي والاستعادة", '<button class="secondary" id="backupHome">القائمة الرئيسية</button>')+`
  <div class="card"><h3>نسخة احتياطية خارجية</h3><p class="muted">نزّل ملف JSON يحتوي على بيانات التطبيق ومرفقاته، واحتفظ به خارج الهاتف في مكان آمن.</p><div class="actions"><button class="primary" id="backupBtn">إنشاء وتنزيل نسخة احتياطية</button><label class="secondary">استعادة نسخة JSON من ملف <input id="restoreFile" type="file" accept="application/json" hidden></label></div><p class="muted">الاستعادة تستبدل البيانات الحالية بمحتويات النسخة المختارة. أنشئ نسخة حديثة أولًا.</p></div>
