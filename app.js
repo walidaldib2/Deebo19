@@ -575,13 +575,15 @@ function comparePatrolTimes(a,b){
  if(av===null&&bv!==null)return 1;
  return String(a||"").localeCompare(String(b||""),"ar");
 }
-function mapPage(){
+async function mapPage(){
+ const archivedMapRecords=await DebooDB.all({archived:true});
+ const mapRecords=[...cache,...archivedMapRecords].filter(x=>!x.is_deleted);
  const today=new Date().toLocaleDateString("en-CA");
  area.innerHTML=pageHead("مرور الدراجات",'<button class="primary" id="openBikePatrolRecords">تسجيل مرور جديد</button><button class="secondary" id="mapToday">اليوم</button>')+
  '<div class="card"><p class="muted">يعرض التطبيق نقاط الوصول التي تم حفظ إحداثياتها مع مرور الدراجات. اختر التاريخ والدراجة لعرض خط سير الزيارات حسب التوقيت.</p><div class="form"><div class="field"><label>تاريخ المرور</label><input id="mapDate" type="date" value="'+today+'"></div><div class="field"><label>الدراجة</label><select id="mapBike"><option value="">كل الدراجات</option>'+[...new Set(cache.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived).map(x=>String(x.payload?.bike||"").trim()).filter(Boolean))].sort().map(v=>'<option>'+esc(v)+'</option>').join("")+'</select></div></div><div id="bikeRouteSummary"></div></div>';
  const paint=()=>{
   const date=$("#mapDate").value,bike=$("#mapBike").value;
-  const visits=cache.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived&&String(x.payload?.patrol_date||String(x.created_at||"").slice(0,10))===date&&(!bike||String(x.payload?.bike||"")===bike)).sort((a,b)=>comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time));
+  const visits=mapRecords.filter(x=>x.entity_type==="bike_patrols"&&String(x.payload?.patrol_date||String(x.created_at||"").slice(0,10))===date&&(!bike||String(x.payload?.bike||"")===bike)).sort((a,b)=>comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time));
   const points=visits.map(x=>({row:x,p:x.payload||{}}));
   const located=points.filter(x=>validCoordinatePair(x.p.lat,x.p.lng));
   const coords=located.map(x=>Number(x.p.lat)+","+Number(x.p.lng));
@@ -612,8 +614,10 @@ function renderBikeLeafletMap(targetId, points){
  if(!document.getElementById("deebLeafletCss")){const css=document.createElement("link");css.id="deebLeafletCss";css.rel="stylesheet";css.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";document.head.appendChild(css);}
  let js=document.getElementById("deebLeafletJs");if(!js){js=document.createElement("script");js.id="deebLeafletJs";js.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";js.onload=draw;js.onerror=()=>{target.innerHTML='<div class="notice">تعذر تحميل الخريطة. تحقق من اتصال الإنترنت وحاول مرة أخرى.</div>';};document.head.appendChild(js);}else if(window.L)draw();
 }
-function bikeMapsPage(){
- const bikes=[...new Set(cache.filter(x=>x.entity_type==="bike_patrols").map(x=>String(x.payload?.bike||"").trim()).filter(Boolean).concat(cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived).map(x=>String(x.payload?.number||"").trim()).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,"ar",{numeric:true}));
+async function bikeMapsPage(){
+ const archivedMapRecords=await DebooDB.all({archived:true});
+ const mapRecords=[...cache,...archivedMapRecords].filter(x=>!x.is_deleted);
+ const bikes=[...new Set(mapRecords.filter(x=>x.entity_type==="bike_patrols").map(x=>String(x.payload?.bike||"").trim()).filter(Boolean).concat(cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived).map(x=>String(x.payload?.number||"").trim()).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,"ar",{numeric:true}));
  const dateValue=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
  const todayDate=new Date(),today=dateValue(todayDate),yesterdayDate=new Date(todayDate);yesterdayDate.setDate(yesterdayDate.getDate()-1);const yesterday=dateValue(yesterdayDate);
  area.innerHTML=pageHead("خرائط الدراجات",'<button class="secondary" id="openBikeMapReports">تقارير خرائط الدراجات</button><button class="primary" id="openBikePatrolRecords">تسجيل مرور جديد</button>')+
@@ -631,7 +635,7 @@ function bikeMapsPage(){
  const visitDate=x=>normalizePatrolDate(x.payload?.patrol_date)||normalizePatrolDate(x.created_at);
  const paint=()=>{
   const bike=$("#individualBikeMap").value,from=$("#bikeMapFrom").value,to=$("#bikeMapTo").value,host=$("#individualBikeMapContent");
-  const visits=cache.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived&&(!bike||String(x.payload?.bike||"").trim()===bike)).filter(x=>{const d=visitDate(x);return (!from||d>=from)&&(!to||d<=to);}).sort((a,b)=>visitDate(a).localeCompare(visitDate(b))||comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time));
+  const visits=mapRecords.filter(x=>x.entity_type==="bike_patrols"&&(!bike||String(x.payload?.bike||"").trim()===bike)).filter(x=>{const d=visitDate(x);return (!from||d>=from)&&(!to||d<=to);}).sort((a,b)=>visitDate(a).localeCompare(visitDate(b))||comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time));
   const located=visits.filter(x=>validCoordinatePair(x.payload?.lat,x.payload?.lng));
   const coords=located.map(x=>Number(x.payload.lat)+","+Number(x.payload.lng));
   const routeUrl=bike?(coords.length>1?"https://www.google.com/maps/dir/?api=1&origin="+encodeURIComponent(coords[0])+"&destination="+encodeURIComponent(coords[coords.length-1])+(coords.length>2?"&waypoints="+encodeURIComponent(coords.slice(1,-1).join("|")):"")+"&travelmode=driving":coords.length===1?"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(coords[0]):""):"";
@@ -645,8 +649,10 @@ function bikeMapsPage(){
  $("#openBikeMapReports").onclick=()=>render("bikeMapReports");
  paint();
 }
-function bikeMapReportsPage(){
- const bikes=[...new Set(cache.filter(x=>x.entity_type==="bike_patrols"&&!x.is_deleted).map(x=>String(x.payload?.bike||"").trim()).filter(Boolean).concat(cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived).map(x=>String(x.payload?.number||"").trim()).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,"ar",{numeric:true}));
+async function bikeMapReportsPage(){
+ const archivedMapRecords=await DebooDB.all({archived:true});
+ const mapRecords=[...cache,...archivedMapRecords].filter(x=>!x.is_deleted);
+ const bikes=[...new Set(mapRecords.filter(x=>x.entity_type==="bike_patrols").map(x=>String(x.payload?.bike||"").trim()).filter(Boolean).concat(cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived).map(x=>String(x.payload?.number||"").trim()).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,"ar",{numeric:true}));
  const today=new Date().toLocaleDateString("en-CA"),monthStart=[new Date().getFullYear(),String(new Date().getMonth()+1).padStart(2,"0"),"01"].join("-");
  area.innerHTML=pageHead("خرائط الدراجات",'<button class="secondary" id="backToBikeMaps">خرائط الدراجات</button><button class="primary" id="printBikeMapReport">طباعة التقرير</button><button class="secondary" id="saveBikeMapReportPdf">حفظ PDF</button><button class="secondary" id="saveBikeMapReportImage">حفظ التقرير صورة</button>')+
  '<div class="card"><p class="muted">خريطة مرور مستقلة لكل دراجة، بنفس بيانات وتصميم تقرير المرور الأصلي. تظهر الخريطة بدل جدول المرور، ولا يتم تعديل التقرير الأصلي.</p><div class="form"><div class="field"><label>الدراجة</label><select id="bikeMapReportBike"><option value="">اختر الدراجة</option>'+bikes.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("")+'</select></div><div class="field"><label>من تاريخ</label><input id="bikeMapReportFrom" type="date" value="'+monthStart+'"></div><div class="field"><label>إلى تاريخ</label><input id="bikeMapReportTo" type="date" value="'+today+'"></div></div><div id="bikeMapReportPreview"><div class="empty">اختر الدراجة لإعداد الخريطة.</div></div></div>';
@@ -655,7 +661,7 @@ function bikeMapReportsPage(){
   const bike=$("#bikeMapReportBike").value,from=$("#bikeMapReportFrom").value,to=$("#bikeMapReportTo").value,host=$("#bikeMapReportPreview");
   if(!bike){reportHtml="";host.innerHTML='<div class="empty">اختر الدراجة لإعداد الخريطة.</div>';return;}
   const visitDate=x=>String(x.payload?.patrol_date||x.created_at||"").slice(0,10);
-  const visits=cache.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived&&!x.is_deleted&&String(x.payload?.bike||"").trim()===bike).filter(x=>{const d=visitDate(x);return (!from||d>=from)&&(!to||d<=to);}).sort((a,b)=>visitDate(a).localeCompare(visitDate(b))||comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time));
+  const visits=mapRecords.filter(x=>x.entity_type==="bike_patrols"&&String(x.payload?.bike||"").trim()===bike).filter(x=>{const d=visitDate(x);return (!from||d>=from)&&(!to||d<=to);}).sort((a,b)=>visitDate(a).localeCompare(visitDate(b))||comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time));
   const located=visits.filter(x=>validCoordinatePair(x.payload?.lat,x.payload?.lng));
   const mapPoints=located.map(x=>({lat:Number(x.payload.lat),lng:Number(x.payload.lng),site:x.payload.site||x.payload.branch||x.payload.location||"موقع المرور",date:x.payload.patrol_date||visitDate(x),time:x.payload.patrol_time||""}));
   const mapJson=JSON.stringify(mapPoints).replace(/</g,"\\u003c");
