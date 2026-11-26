@@ -584,7 +584,7 @@ function mapPage(){
  const mapRecords=[...cache,...archivedMapRecords].filter(x=>!x.is_deleted);
  const today=new Date().toLocaleDateString("en-CA");
  area.innerHTML=pageHead("مرور الدراجات",'<button class="primary" id="openBikePatrolRecords">تسجيل مرور جديد</button><button class="secondary" id="mapToday">اليوم</button>')+
- '<div class="card"><p class="muted">يعرض التطبيق نقاط الوصول التي تم حفظ إحداثياتها مع مرور الدراجات. اختر التاريخ والدراجة لعرض خط سير الزيارات حسب التوقيت.</p><div class="form"><div class="field"><label>تاريخ المرور</label><input id="mapDate" type="date" value="'+today+'"></div><div class="field"><label>الدراجة</label><select id="mapBike"><option value="">كل الدراجات</option>'+[...new Set(cache.filter(x=>x.entity_type==="bike_patrols"&&!x.is_archived).map(x=>String(x.payload?.bike||"").trim()).filter(Boolean))].sort().map(v=>'<option>'+esc(v)+'</option>').join("")+'</select></div></div><div id="bikeRouteSummary"></div></div>';
+ '<div class="card"><p class="muted">يعرض التطبيق نقاط الوصول التي تم حفظ إحداثياتها مع مرور الدراجات. اختر التاريخ والدراجة لعرض خط سير الزيارات حسب التوقيت.</p><div class="form"><div class="field"><label>تاريخ المرور</label><input id="mapDate" type="date" value="'+today+'"></div><div class="field"><label>الدراجة</label><select id="mapBike"><option value="">كل الدراجات</option>'+[...new Set(mapRecords.filter(x=>x.entity_type==="bike_patrols").map(x=>String(x.payload?.bike||"").trim()).filter(Boolean))].sort().map(v=>'<option>'+esc(v)+'</option>').join("")+'</select></div></div><div id="bikeRouteSummary"></div></div>';
  const paint=()=>{
   const date=$("#mapDate").value,bike=$("#mapBike").value;
   const visits=mapRecords.filter(x=>x.entity_type==="bike_patrols"&&String(x.payload?.patrol_date||String(x.created_at||"").slice(0,10))===date&&(!bike||String(x.payload?.bike||"")===bike)).sort((a,b)=>comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time));
@@ -596,7 +596,7 @@ function mapPage(){
  };
  $("#openBikePatrolRecords").onclick=()=>render("bikepatrol");$("#mapDate").onchange=paint;$("#mapBike").onchange=paint;$("#mapToday").onclick=()=>{$("#mapDate").value=today;$("#mapBike").value="";paint();};paint();
 }
- })();
+ })().catch(error=>{console.error("DEEB map page load failed",error);if(area)area.innerHTML=pageHead("تعذر تحميل خريطة المرور")+'<div class="card notice">'+esc(error?.message||error)+'</div>';});
 }
 function renderBikeLeafletMap(targetId, points){
  const target=document.getElementById(targetId);if(!target)return;
@@ -656,7 +656,7 @@ function bikeMapsPage(){
  $("#openBikeMapReports").onclick=()=>render("bikeMapReports");
  paint();
 }
- })();
+ })().catch(error=>{console.error("DEEB bike maps page load failed",error);if(area)area.innerHTML=pageHead("تعذر تحميل خرائط الدراجات")+'<div class="card notice">'+esc(error?.message||error)+'</div>';});
 }
 function bikeMapReportsPage(){
  return (async()=>{
@@ -713,7 +713,7 @@ function bikeMapReportsPage(){
  ["bikeMapReportBike","bikeMapReportFrom","bikeMapReportTo"].forEach(id=>$("#"+id)?.addEventListener("change",autoArchiveMap));
  autoArchiveMap();
 }
- })();
+ })().catch(error=>{console.error("DEEB bike map report load failed",error);if(area)area.innerHTML=pageHead("تعذر تحميل تقرير خريطة الدراجة")+'<div class="card notice">'+esc(error?.message||error)+'</div>';});
 }
 async function reports(){
  area.innerHTML=pageHead("مركز التقارير")+'<div class="card">جارٍ تحميل التقارير والسجلات...</div>';
