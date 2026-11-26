@@ -523,7 +523,7 @@ for (const pageName of ["mapPage","bikeMapsPage","bikeMapReportsPage"]) {
   const source = start >= 0 ? appSource.slice(start,end) : "";
   if (!source.includes("await DebooDB.all({archived:true})") ||
       !source.includes("const mapRecords=[...cache,...archivedMapRecords].filter(x=>!x.is_deleted)") ||
-      !source.includes("mapRecords.filter(x=>x.entity_type===\\"bike_patrols\\"")) {
+      !source.includes('mapRecords.filter(x=>x.entity_type==="bike_patrols"')) {
     throw new Error("Historical bike map page must draw selected dates from active and archived patrol records: " + pageName);
   }
 }
