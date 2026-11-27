@@ -811,7 +811,7 @@ function bikeMapReportsPage(){
  $("#saveBikeMapReportImage").onclick=async()=>{if(!reportHtml){toast("اختر الدراجة أولًا.");return;}const button=$("#saveBikeMapReportImage"),native=window.DEEBNativePlugins?.FileExport;if(!native?.saveHtmlAsImages){toast("حفظ الصور متاح من تطبيق DEEB على أندرويد.");return;}button.disabled=true;const oldText=button.textContent;button.textContent="جارٍ تجهيز الصورة...";try{await archiveBikeMapReport();const result=await native.saveHtmlAsImages({html:reportHtml,name:"DEEB-bike-map-"+$("#bikeMapReportBike").value});if(result?.saved!==true||!Number.isInteger(result.count)||result.count<1)throw new Error("لم يؤكد النظام حفظ الصور.");toast("تم حفظ "+result.count+" صورة للتقرير.");}catch(e){toast("تعذر حفظ الصور: "+(e?.message||e));}finally{button.disabled=false;button.textContent=oldText;}};
  build();
  const autoArchiveMap=()=>queueMicrotask(()=>{if(!reportHtml||!$("#bikeMapReportBike").value)return;archiveBikeMapReport().catch(error=>toast("تعذر حفظ خريطة الدراجة تلقائيًا في الأرشيف: "+(error?.message||error)));});
- ["bikeMapReportBike","bikeMapReportFrom","bikeMapReportTo"].forEach(id=>$("#"+id)?.addEventListener("change",autoArchiveMap));
+ ["bikeMapReportBike","bikeMapReportPerson","bikeMapReportFrom","bikeMapReportTo"].forEach(id=>$("#"+id)?.addEventListener("change",()=>{build();autoArchiveMap();}));
  autoArchiveMap();
  })().catch(error=>{console.error("DEEB bike map report load failed",error);if(area)area.innerHTML=pageHead("تعذر تحميل تقرير خريطة الدراجة")+'<div class="card notice">'+esc(error?.message||error)+'</div>';});
 }
@@ -1128,9 +1128,10 @@ async function reports(){
   if(type==="bike_map"){
    let html=String(snapshot.html||item?.html||"");
    const bike=String(meta.bike||"");
+   const person=String(meta.person||"");
    const from=String(snapshot.from_date||item?.from_date||"");
    const to=String(snapshot.to_date||item?.to_date||"");
-   const visits=Array.isArray(meta.data)?meta.data.filter(x=>{const p=x.payload||{},d=String(p.patrol_date||x.created_at||"").slice(0,10);return String(p.bike||"").trim()===bike&&(!from||d>=from)&&(!to||d<=to);}).sort((a,b)=>String(a.payload?.patrol_date||a.created_at||"").localeCompare(String(b.payload?.patrol_date||b.created_at||""))||comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time)):[];
+   const visits=Array.isArray(meta.data)?meta.data.filter(x=>{const p=x.payload||{},d=String(p.patrol_date||x.created_at||"").slice(0,10);return String(p.bike||"").trim()===bike&&(!person||String(p.person||p.responsible||"").trim()===person)&&(!from||d>=from)&&(!to||d<=to);}).sort((a,b)=>String(a.payload?.patrol_date||a.created_at||"").localeCompare(String(b.payload?.patrol_date||b.created_at||""))||comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time)):[];
    if(!Array.isArray(meta.data))return html;
    const points=visits.filter(x=>validCoordinatePair(x.payload?.lat,x.payload?.lng)).map(x=>({number:visits.indexOf(x)+1,lat:Number(x.payload.lat),lng:Number(x.payload.lng),site:x.payload.site||x.payload.branch||x.payload.location||"موقع المرور",date:x.payload.patrol_date||String(x.created_at||"").slice(0,10),time:x.payload.patrol_time||""}));
    const json=JSON.stringify(points).replace(/</g,"\\u003c");
