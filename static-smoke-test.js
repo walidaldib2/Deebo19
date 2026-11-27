@@ -684,3 +684,23 @@ if (!settingsSource.includes('settingsHome') || !settingsSource.includes('id="se
 if (!appSource.includes('async function openBackupPage()') || !appSource.includes('else if(p==="backup")openBackupPage();')) throw new Error('Backup and restore must have their own page and route.');
 if (!appSource.includes('else if(p==="data")dataManagementPage();')) throw new Error('Basic data must have its own independent route.');
 if (appSource.includes('<button class="secondary" id="showArchive">الأرشيف العام</button>')) throw new Error('General Archive must be opened from its independent main navigation tile.');
+
+// Bike patrol records must consume the saved daily bike/rider shift assignment.
+for (const token of [
+  'function findBikeShiftAssignment(workDate,shift,bikeNumber)',
+  'payload.assignment_id=linked.record.id',
+  'payload.assigned_bike_id=linked.bike.id',
+  'payload.assigned_person_id=linked.person.id',
+  'payload.assignment_status=',
+  'person.dataset.autoAssignment',
+  'id="bikeAssignmentStatus"',
+  '["shift","الشفت","select","صباحي|مسائي|ليلي",1]'
+]) {
+  if (!appSource.includes(token)) throw new Error('Bike patrol shift-assignment integration is missing: '+token);
+}
+if (!appSource.includes('String(x.payload?.work_date||"").slice(0,10)===String(workDate).slice(0,10)') ||
+    !appSource.includes('String(x.payload?.shift||"")===String(shift)') ||
+    !appSource.includes('String(a.bike_id||"")===String(bike.id)')) {
+  throw new Error('Bike patrol assignment lookup must match the exact date, shift, and registered bike.');
+}
+
