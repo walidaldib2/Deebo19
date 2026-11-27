@@ -838,7 +838,7 @@ async function reports(){
  const rowsFor=d=>d.map(x=>({section:labels[x.entity_type]||x.entity_type,date:dayOf(x),shift:(x.payload&&(x.payload.shift||x.payload.shift_name))||"—",time:(x.payload&&(x.payload.patrol_time||x.payload.incident_time))||"",details:detailRows(x).filter(v=>!["id","created_at","updated_at","is_archived","archived_at"].includes(v[0])).map(v=>(reportKeyLabels[v[0]]||v[0])+": "+v[1]).join(" | ")}));
  const bikeGroupsFor=d=>{
   const source=d.filter(x=>x.entity_type==="bike_patrols");
-  const registry=data.filter(x=>x.entity_type==="bikes"&&!x.is_deleted).slice().sort((a,b)=>String(a.created_at||"").localeCompare(String(b.created_at||"")));
+  const registry=data.filter(x=>x.entity_type==="bikes"&&!x.is_archived).slice().sort((a,b)=>String(a.created_at||"").localeCompare(String(b.created_at||"")));
   const groups=new Map();
   const addBike=(bike,bikeRecord=null)=>{
    const number=String(bike||"").trim();
