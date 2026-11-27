@@ -104,17 +104,25 @@ window.DebooDB = (() => {
     return Number.isFinite(opts.limit)&&opts.limit>=0?data.slice(0,opts.limit):data;
   }
   function localDateISO(date=new Date()) { return [date.getFullYear(),String(date.getMonth()+1).padStart(2,"0"),String(date.getDate()).padStart(2,"0")].join("-"); }
+  function isValidWorkDate(value) {
+    const text=String(value||"").trim();
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(text))return false;
+    const date=new Date(text+"T00:00:00Z");
+    return !Number.isNaN(date.getTime())&&date.toISOString().slice(0,10)===text;
+  }
   function recordWorkDate(row) {
     const p=row.payload||{};
-    const value=p.work_date||p.patrol_date||p.incident_date||p.report_date||p.absence_date||p.handover_date||p.emergency_date||p.task_date;
-    if(/^\d{4}-\d{2}-\d{2}$/.test(String(value||"")))return String(value);
+    const candidates=[p.work_date,p.patrol_date,p.incident_date,p.report_date,p.absence_date,p.handover_date,p.emergency_date,p.task_date];
+    const value=candidates.find(isValidWorkDate);
+    if(value)return String(value);
     const created=String(row.created_at||"").slice(0,10);
-    return /^\d{4}-\d{2}-\d{2}$/.test(created)?created:"";
+    return isValidWorkDate(created)?created:"";
   }
   function shiftIdentity(payload={}) {
     const shift=String(payload.shift||payload.shift_name||"").trim();
-    const date=String(payload.work_date||payload.patrol_date||payload.incident_date||payload.report_date||payload.absence_date||payload.handover_date||payload.emergency_date||payload.task_date||"").trim();
-    return shift&&/^\d{4}-\d{2}-\d{2}$/.test(date)?{shift_name:shift,shift_key:date+"|"+shift}:{};
+    const dates=[payload.work_date,payload.patrol_date,payload.incident_date,payload.report_date,payload.absence_date,payload.handover_date,payload.emergency_date,payload.task_date];
+    const date=String(dates.find(isValidWorkDate)||"").trim();
+    return shift&&date?{shift_name:shift,shift_key:date+"|"+shift}:{};
   }
   async function archivePastDays(today=localDateISO()) {
     const shiftTypes=new Set(["daily_rosters","branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies","tasks","memos"]);
@@ -257,18 +265,8 @@ window.DebooDB = (() => {
     try{await createAutoBackup();}catch(error){console.warn("DEEB restored-item backup:",error);}
     return row;
   }
-  async function purgeExpiredDeleted(nowDate=new Date()) {
-    const cutoff=nowDate.getTime()-30*24*60*60*1000;
-    const expired=(await getAll("records")).filter(row=>row.is_deleted&&Date.parse(row.deleted_at||"")<=cutoff);
-    if(!expired.length)return 0;
-    const d=await openDB();
-    await new Promise((resolve,reject)=>{const tx=d.transaction(["records","audit_logs"],"readwrite"),records=tx.objectStore("records"),logs=tx.objectStore("audit_logs");
-      expired.forEach(old=>{records.delete(old.id);logs.put(makeAudit("permanent_delete",old.id,old,null,"حذف تلقائي بعد مرور 30 يومًا في المحذوفات"));});
-      tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("تعذر تنظيف المحذوفات المنتهية."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء تنظيف المحذوفات."));
-    });
-    try{await createAutoBackup();}catch(error){console.warn("DEEB expired-deleted backup:",error);}
-    return expired.length;
-  }
+  // Legacy compatibility only: deleted records are retained indefinitely and never purged by age.
+  async function purgeExpiredDeleted() { return 0; }
   async function unarchive(id,reason="استعادة سجل من الأرشيف") {
     const old=await get("records",id);if(!old)throw new Error("السجل غير موجود.");
     const row={...old,is_archived:false,updated_at:now()},d=await openDB(),auditItem=makeAudit("unarchive",id,old,row,reason),mutation=await prepareRecordMutation(row,"unarchive",{record:row,audit:auditItem},old);
@@ -332,17 +330,12 @@ window.DebooDB = (() => {
     const today=now().slice(0,10);
     const sameDay=existing.find(x=>x.date===today);
     const [records,audit_logs,approved_reports,report_archives,handover_versions,attachments]=await Promise.all([getAll("records"),getAll("audit_logs"),getAll("approved_reports"),getAll("report_archives"),getAll("handover_versions"),getAll("attachments")]);
-    const attachmentBytes=attachments.reduce((sum,x)=>sum+Number(x.size||0),0);
-    if(attachmentBytes>30*1024*1024)return {created:false,date:today,reason:"attachments-over-limit"};
     const snapshot={app:"DEEB",format:2,mode:"local",created_at:now(),records,audit_logs,approved_reports,report_archives,handover_versions,attachments};
     const item={id:sameDay?.id||uid(),date:today,created_at:now(),record_count:records.length,attachment_count:attachments.length,snapshot};
     const d=await openDB();
     await new Promise((resolve,reject)=>{
       const tx=d.transaction("automatic_backups","readwrite"),store=tx.objectStore("automatic_backups");
       store.put(item);
-      const keep=[...existing.filter(x=>x.id!==item.id),item].sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).slice(0,3);
-      const keepIds=new Set(keep.map(x=>x.id));
-      existing.filter(x=>!keepIds.has(x.id)).forEach(x=>store.delete(x.id));
       tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error("تعذر حفظ النسخة التلقائية."));tx.onabort=()=>reject(tx.error||new Error("تم إلغاء النسخة التلقائية."));
     });
     return {created:!sameDay,updated:!!sameDay,id:item.id,date:today,record_count:records.length,attachment_count:attachments.length};
@@ -398,17 +391,26 @@ window.DebooDB = (() => {
     if(current.records.length||current.attachments.length) await downloadBlob(new Blob([JSON.stringify(current,null,2)],{type:"application/json"}),"DEEB-before-restore.json");
     const d=await openDB();
     await new Promise((resolve,reject)=>{
-      const names=["records","audit_logs","approved_reports"];
-      if(Object.prototype.hasOwnProperty.call(obj,"report_archives"))names.push("report_archives");
-      names.push("handover_versions","attachments");
+      const names=["records","audit_logs","approved_reports","report_archives","handover_versions","attachments"];
       const tx=d.transaction(names,"readwrite");
-      for(const name of names) tx.objectStore(name).clear();
-      obj.records.forEach(x=>tx.objectStore("records").put(x));
-      obj.audit_logs.forEach(x=>tx.objectStore("audit_logs").put(x));
-      (obj.approved_reports||[]).forEach(x=>tx.objectStore("approved_reports").put(x));
-      if(Object.prototype.hasOwnProperty.call(obj,"report_archives"))(obj.report_archives||[]).forEach(x=>tx.objectStore("report_archives").put(x));
-      (obj.handover_versions||[]).forEach(x=>tx.objectStore("handover_versions").put(x));
-      preparedAttachments.forEach(x=>tx.objectStore("attachments").put(x));
+      const mergeRows=(name,rows,preferNewest=false)=>{
+        const store=tx.objectStore(name);
+        for(const incoming of rows||[]){
+          const request=store.get(incoming.id);
+          request.onsuccess=()=>{
+            const current=request.result;
+            if(!current||(preferNewest&&String(incoming.updated_at||"")>String(current.updated_at||"")))store.put(incoming);
+          };
+        }
+      };
+      // A restore is additive: never clear data that is absent from the selected backup.
+      // If the same record exists locally, keep whichever record has the newest update timestamp.
+      mergeRows("records",obj.records,true);
+      mergeRows("audit_logs",obj.audit_logs);
+      mergeRows("approved_reports",obj.approved_reports||[]);
+      mergeRows("report_archives",obj.report_archives||[]);
+      mergeRows("handover_versions",obj.handover_versions||[]);
+      mergeRows("attachments",preparedAttachments);
       tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error("تعذرت الاستعادة."));
     });
     await addAudit("restore",null,null,{count:obj.records.length},"استعادة نسخة احتياطية");

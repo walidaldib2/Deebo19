@@ -1,0 +1,27 @@
+name: DEEB retention regression tests
+
+on:
+  pull_request:
+    branches: [malek]
+  push:
+    branches: [fix/historical-record-retention]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  retention-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out proposed branch
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run complete project test suite
+        run: npm test

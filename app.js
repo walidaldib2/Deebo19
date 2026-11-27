@@ -107,11 +107,11 @@ async function authState(){
 }
 async function openApplication(){
  $("#authPanel").classList.add("hidden");$("#appRoot").classList.remove("hidden");
- try{const removed=await DebooDB.purgeExpiredDeleted();if(removed)console.info("DEEB permanently removed expired bike patrols:",removed);const result=await DebooDB.archivePastDays();if(result.archived)console.info("DEEB archived previous-day shift records:",result.archived);}catch(error){console.warn("DEEB automatic shift archive:",error);}
+ try{const result=await DebooDB.archivePastDays();if(result.archived)console.info("DEEB archived previous-day shift records:",result.archived);}catch(error){console.warn("DEEB automatic shift archive:",error);}
  await refresh();
  try{await DebooDB.createAutoBackup();}catch(error){console.warn("DEEB automatic backup:",error);}
  if(archiveTimer)clearInterval(archiveTimer);
- archiveTimer=setInterval(async()=>{try{const removed=await DebooDB.purgeExpiredDeleted();const result=await DebooDB.archivePastDays();if(removed||result.archived){await refresh();if(removed)console.info("DEEB permanently removed expired bike patrols:",removed);if(result.archived)console.info("DEEB archived previous-day shift records:",result.archived);}}catch(error){console.warn("DEEB automatic shift archive:",error);}},60000);
+ archiveTimer=setInterval(async()=>{try{const result=await DebooDB.archivePastDays();if(result.archived){await refresh();console.info("DEEB archived previous-day shift records:",result.archived);}}catch(error){console.warn("DEEB automatic shift archive:",error);}},60000);
  render("landing");consumeSharedLocation();consumeNativeShare();
 }
 function extractSharedCoordinates(value){
@@ -1396,18 +1396,18 @@ async function openArchivePage(){
 }
 async function openBackupPage(){
  area.innerHTML=pageHead("النسخ الاحتياطي والاستعادة", '<button class="secondary" id="backupHome">القائمة الرئيسية</button>')+`
- <div class="card"><h3>نسخة احتياطية خارجية</h3><p class="muted">نزّل ملف JSON يحتوي على بيانات التطبيق ومرفقاته، واحتفظ به خارج الهاتف في مكان آمن.</p><div class="actions"><button class="primary" id="backupBtn">إنشاء وتنزيل نسخة احتياطية</button><label class="secondary">استعادة نسخة JSON من ملف <input id="restoreFile" type="file" accept="application/json" hidden></label></div><p class="muted">الاستعادة تستبدل البيانات الحالية بمحتويات النسخة المختارة. أنشئ نسخة حديثة أولًا.</p></div>
- <div class="card"><h3>النسخ التلقائية على هذا الجهاز</h3><p class="muted">يحاول التطبيق إنشاء نسخة تلقائية يوميًا ويحتفظ بآخر 3 نسخ. النسخ المحلية لا تحمي عند فقد الهاتف أو حذف بيانات التطبيق.</p><div id="autoBackupArea" class="muted">جارٍ تحميل النسخ التلقائية...</div></div>`;
+ <div class="card"><h3>نسخة احتياطية خارجية</h3><p class="muted">نزّل ملف JSON يحتوي على بيانات التطبيق ومرفقاته، واحتفظ به خارج الهاتف في مكان آمن.</p><div class="actions"><button class="primary" id="backupBtn">إنشاء وتنزيل نسخة احتياطية</button><label class="secondary">استعادة نسخة JSON من ملف <input id="restoreFile" type="file" accept="application/json" hidden></label></div><p class="muted">الاستعادة تدمج السجلات الموجودة في النسخة مع بيانات الجهاز، ولا تمسح السجلات الأحدث أو السجلات غير الموجودة في الملف.</p></div>
+ <div class="card"><h3>النسخ التلقائية على هذا الجهاز</h3><p class="muted">يحفظ التطبيق نسخة تلقائية لكل يوم دون حذف النسخ القديمة بسبب مرور الوقت. النسخ المحلية لا تحمي عند فقد الهاتف أو حذف بيانات التطبيق؛ احتفظ بنسخة خارجية أيضًا.</p><div id="autoBackupArea" class="muted">جارٍ تحميل النسخ التلقائية...</div></div>`;
  $("#backupHome").onclick=()=>render("settings");
  $("#backupBtn").onclick=async()=>{const button=$("#backupBtn");button.disabled=true;try{const b=await DebooDB.backup();await DebooDB.downloadBlob(new Blob([JSON.stringify(b,null,2)],{type:"application/json"}),"DEEB-backup-"+new Date().toISOString().slice(0,10)+".json");toast("تم إنشاء النسخة الاحتياطية وحفظها في التنزيلات");}catch(e){toast("تعذر إنشاء النسخة الاحتياطية: "+(e.message||e));}finally{button.disabled=false;}};
- $("#restoreFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const obj=JSON.parse(await f.text());if(!confirm("سيتم استبدال السجلات الحالية بالنسخة المختارة. هل تريد المتابعة؟"))return;await DebooDB.restore(obj);await refresh();toast("اكتملت الاستعادة");openBackupPage();}catch(err){toast("فشلت الاستعادة: "+err.message)}};
+ $("#restoreFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const obj=JSON.parse(await f.text());if(!confirm("سيتم دمج سجلات النسخة مع بيانات الجهاز دون مسح السجلات الأخرى. هل تريد المتابعة؟"))return;await DebooDB.restore(obj);await refresh();toast("اكتملت الاستعادة");openBackupPage();}catch(err){toast("فشلت الاستعادة: "+err.message)}};
  try{
   const host=$("#autoBackupArea");
   const latest=await DebooDB.createAutoBackup();
   const backups=await DebooDB.automaticBackups();
-  const status=latest.reason==="attachments-over-limit"?"تخطى التطبيق النسخة التلقائية اليوم لأن حجم المرفقات تجاوز 30 ميجابايت.":latest.updated?"تم تحديث النسخة التلقائية لهذا اليوم.":latest.created?"تم إنشاء النسخة التلقائية لهذا اليوم.":"لم يتم تأكيد تحديث نسخة جديدة.";
+  const status=latest.updated?"تم تحديث النسخة التلقائية لهذا اليوم.":latest.created?"تم إنشاء النسخة التلقائية لهذا اليوم.":"لم يتم تأكيد تحديث نسخة جديدة.";
   host.innerHTML='<div class="notice">'+esc(status)+'</div>'+(backups.length?'<b>النسخ المحفوظة:</b>'+backups.map(x=>'<div class="notice">'+esc(x.date)+' — '+x.record_count+' سجل — '+x.attachment_count+' مرفق <button class="tiny" data-auto-restore="'+x.id+'">استعادة هذه النسخة</button></div>').join(""):"لا توجد نسخ تلقائية محفوظة.");
-  host.querySelectorAll("[data-auto-restore]").forEach(btn=>btn.onclick=async()=>{if(!confirm("سيتم استبدال بيانات العمل الحالية بهذه النسخة. هل لديك نسخة خارجية حديثة؟"))return;btn.disabled=true;try{await DebooDB.restoreAutoBackup(btn.dataset.autoRestore);await refresh();toast("تمت استعادة النسخة التلقائية.");openBackupPage();}catch(e){toast("تعذرت الاستعادة: "+e.message);}finally{btn.disabled=false;}});
+  host.querySelectorAll("[data-auto-restore]").forEach(btn=>btn.onclick=async()=>{if(!confirm("سيتم دمج النسخة مع بيانات الجهاز دون مسح السجلات الأخرى. هل تريد المتابعة؟"))return;btn.disabled=true;try{await DebooDB.restoreAutoBackup(btn.dataset.autoRestore);await refresh();toast("تمت استعادة النسخة التلقائية.");openBackupPage();}catch(e){toast("تعذرت الاستعادة: "+e.message);}finally{btn.disabled=false;}});
  }catch(e){host.textContent="تعذر تحميل النسخ التلقائية: "+e.message;}
 }
 function sectionPage(key){const section=sectionMenus[key];if(!section)throw new Error("القسم غير معروف: "+key);area.innerHTML=pageHead(section.title)+"<div class=\"tiles section-tiles\">"+section.items.map(item=>"<button class=\"tile\" type=\"button\" data-subpage=\""+item[0]+"\"><span>›</span><b>"+item[1]+"</b></button>").join("")+"</div>";area.querySelectorAll("[data-subpage]").forEach(button=>button.addEventListener("click",()=>render(button.dataset.subpage)));}

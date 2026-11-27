@@ -14,6 +14,7 @@ on:
       - feature/deeb-premium-gold-ui-2026-11-24
       - feature/deebo-team-sync-f378-2026-11-25
       - restore-0746-map-only-2026-11-27
+      - fix/historical-record-retention
 
 concurrency:
   group: deeb-android-apk-${{ github.event_name }}-${{ github.ref }}

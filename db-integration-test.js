@@ -196,6 +196,7 @@ async function main() {
   assert.ok((await db.all()).some(x=>x.id==="bike-restore-check"), "A valid HH:mm motorcycle visit should restore successfully");
 
   // Branch create, primary-key read-back, and audit are one committed operation.
+  const branchesBeforeCreate = (await db.all()).filter(x => x.entity_type === "branches").length;
   const branch = await db.save("branches", { name: "فرع اختبار آلي", code: "QA-01" });
   const storedBranch = await db.getRecord(branch.id);
   assert.equal(storedBranch?.entity_type, "branches");
@@ -205,7 +206,7 @@ async function main() {
   // Editing must update the same record, not create a duplicate.
   const edited = await db.save("branches", { name: "فرع اختبار معدل", code: "QA-01", edit_reason: "اختبار" }, branch.id);
   assert.equal(edited.id, branch.id);
-  assert.equal((await db.all()).filter(x => x.entity_type === "branches").length, 1);
+  assert.equal((await db.all()).filter(x => x.entity_type === "branches").length, branchesBeforeCreate + 1, "Editing a branch must update its existing record without creating a duplicate");
   assert.equal((await db.getRecord(branch.id)).payload.name, "فرع اختبار معدل");
 
   // Archive and restore must move the record between active and archived views.
@@ -214,6 +215,14 @@ async function main() {
   assert.equal((await db.all({ archived: true })).some(x => x.id === branch.id), true);
   await db.unarchive(branch.id);
   assert.equal((await db.all()).some(x => x.id === branch.id), true);
+
+  // A malformed first date field must not hide a later valid historical work date.
+  const dateFallbackVisit = await db.save("bike_patrols", {
+    bike: "دراجة اختبار التاريخ", person: "فرد اختبار", site: "موقع اختبار التاريخ",
+    work_date: "تاريخ غير صالح", patrol_date: "2026-11-18", patrol_time: "08:15"
+  });
+  await db.archivePastDays("2026-11-19");
+  assert.equal((await db.getRecord(dateFallbackVisit.id))?.is_archived, true, "A valid patrol_date must be used when work_date is invalid");
 
   // Bike registry is dynamic: ten distinct bikes and repeated visits must all save.
   for (let i = 1; i <= 10; i++) {
@@ -228,7 +237,7 @@ async function main() {
   const secondPersonVisit = await db.save("bike_patrols", { bike: "دراجة 1", person: "فرد آخر", site: "معرض اختبار", patrol_date: "2026-11-19", patrol_time: "11:45" });
   assert.equal((await db.getRecord(secondPersonVisit.id)).payload.person, "فرد آخر");
 
-  // Soft-deleted motorcycle visits must be recoverable until the 30-day retention expires.
+  // Soft-deleted motorcycle visits must remain recoverable indefinitely.
   const recoverableVisit = await db.save("bike_patrols", {
     bike: "دراجة استعادة اختبار", person: "فرد اختبار", site: "موقع اختبار",
     patrol_date: "2026-11-20", patrol_time: "12:00"
@@ -245,10 +254,10 @@ async function main() {
     patrol_date: "2026-11-20", patrol_time: "12:30"
   });
   await db.softDelete(expiredVisit.id);
-  const expiredCount = await db.purgeExpiredDeleted(new Date(Date.now() + 31 * 24 * 60 * 60 * 1000));
-  assert.ok(expiredCount >= 1, "Expired soft-deleted visits must be purged after the retention window");
-  assert.equal(await db.getRecord(expiredVisit.id), null, "Purged visits must no longer exist in the records store");
-  assert.ok((await db.audit()).some(x => x.record_id === expiredVisit.id && x.action === "permanent_delete"), "Permanent expiry must remain visible in the audit log");
+  const expiredCount = await db.purgeExpiredDeleted(new Date(Date.now() + 3650 * 24 * 60 * 60 * 1000));
+  assert.equal(expiredCount, 0, "Age-based cleanup must never permanently delete historical records");
+  assert.ok((await db.getRecord(expiredVisit.id))?.is_deleted, "A deleted visit must remain recoverable after years");
+  assert.ok((await db.all({ deleted: true })).some(x => x.id === expiredVisit.id), "Old deleted visits must remain in the recovery list");
 
   // Handover snapshots and report approvals remain linked to their records.
   const handover = await db.save("handovers", { sender: "مُسلّم", receiver: "مُستلم" });
@@ -266,19 +275,46 @@ async function main() {
   assert.equal((await db.attachments(branch.id)).some(x => x.id === attachment.id), true);
   assert.ok((await db.audit()).some(x => x.record_id === branch.id && x.action === "attachment"));
 
-  // Daily automatic snapshots are local, bounded, and include the saved records.
+  // Daily automatic snapshots are local, retained by date, and include the saved records.
   const auto = await db.createAutoBackup();
   assert.equal(auto.created, false);
   assert.equal(auto.updated, true);
   const backups = await db.automaticBackups();
   assert.equal(backups.length, 1);
-  assert.equal(backups[0].record_count, (await db.all()).length);
+  assert.equal(backups[0].record_count, (await db.backup()).records.length, "Automatic backup count must include archived and deleted historical records");
   const again = await db.createAutoBackup();
   assert.equal(again.created, false);
   assert.equal(again.updated, true);
   assert.equal((await db.automaticBackups()).length, 1);
+  // Seed historical daily snapshots and verify creating today's backup never trims older dates.
+  const rawDb = await new Promise((resolve, reject) => {
+    const request = indexedDB.open("DEBOO16_LOCAL_DB", 5);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  await new Promise((resolve, reject) => {
+    const tx = rawDb.transaction("automatic_backups", "readwrite");
+    for (let i = 1; i <= 5; i++) tx.objectStore("automatic_backups").put({
+      id: "historical-backup-" + i, date: "2025-01-0" + i,
+      created_at: "2025-01-0" + i + "T00:00:00.000Z",
+      record_count: 1, attachment_count: 0, snapshot: { app: "DEEB", format: 2, records: [], audit_logs: [] }
+    });
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  rawDb.close();
+  await db.createAutoBackup();
+  assert.ok((await db.automaticBackups()).length >= 6, "Historical daily backups must not be capped at three");
 
   // Incident records can own photo/document attachments just like documents.
+  const geoVisit = await db.save("bike_patrols", {
+    bike: "دراجة إحداثيات اختبار", person: "فرد اختبار", site: "موقع بإحداثيات",
+    patrol_date: "2026-11-20", patrol_time: "13:00", lat: 30.123456, lng: 31.654321
+  });
+  assert.equal((await db.getRecord(geoVisit.id)).payload.lat, 30.123456, "Patrol latitude must be saved with its original visit");
+  assert.equal((await db.getRecord(geoVisit.id)).payload.lng, 31.654321, "Patrol longitude must be saved with its original visit");
+
   const incident = await db.save("incidents", { incident_type: "أمني", description: "اختبار مرفق بلاغ" });
   const incidentAttachment = await db.saveAttachment(incident.id, blob);
   assert.equal((await db.attachments(incident.id)).some(x => x.id === incidentAttachment.id), true);
@@ -292,9 +328,14 @@ async function main() {
   const fullBackup = await db.backup();
   assert.ok(fullBackup.report_archives.some(x => x.id === roundTripReport.id), "Full backup must include generated report archives");
   assert.ok(fullBackup.attachments.some(x => x.id === incidentAttachment.id && x.data_url.startsWith("data:text/plain;base64,")));
+  const localOnly = await db.save("incidents", { incident_type: "محلي", description: "سجل أحدث غير موجود في ملف النسخة" });
+  await db.save("incidents", { incident_type: "أمني", description: "تعديل أحدث بعد النسخة", extra: "keep-newer" }, incident.id);
   await db.restore(fullBackup);
+  assert.ok((await db.getRecord(localOnly.id))?.payload?.description === "سجل أحدث غير موجود في ملف النسخة", "Restore must preserve local records absent from the selected backup");
+  assert.equal((await db.getRecord(incident.id))?.payload?.extra, "keep-newer", "Restore must keep a newer local version of a matching record");
+  assert.equal((await db.getRecord(geoVisit.id))?.payload?.lat, 30.123456, "Historical patrol latitude must survive backup restore");
+  assert.equal((await db.getRecord(geoVisit.id))?.payload?.lng, 31.654321, "Historical patrol longitude must survive backup restore");
   assert.ok((await db.reportArchives()).some(x => x.id === roundTripReport.id), "Report archives must survive backup restore");
-  assert.ok((await db.getRecord(incident.id))?.payload?.description === "اختبار مرفق بلاغ");
   assert.ok((await db.attachments(incident.id)).some(x => x.id === incidentAttachment.id));
   assert.ok((await db.getAttachment(incidentAttachment.id))?.blob?.size > 0);
   assert.ok((await db.approvedReports()).some(x => x.id === approved.id));
@@ -319,8 +360,9 @@ async function main() {
     })),
     audit_logs: []
   };
+  const bikePatrolsBeforeRestore = (await db.all()).filter(x => x.entity_type === "bike_patrols").length;
   await db.restore(tenBikeBackup);
-  assert.equal((await db.all()).filter(x => x.entity_type === "bike_patrols").length, 10);
+  assert.equal((await db.all()).filter(x => x.entity_type === "bike_patrols").length, bikePatrolsBeforeRestore + 10, "Restoring a backup must add its historical bike visits without deleting local visits");
 
   // Daily shift formations must archive by their own work date and remain separate by shift.
   const masterPerson = await db.save("patrol_people", { name: "فرد أساسي للاختبار", employee_no: "ROSTER-01", status: "متاح" });

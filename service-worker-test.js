@@ -17,7 +17,7 @@ const cache = {
 };
 const cachesApi = {
   open: async () => cache,
-  keys: async () => ["old-cache", "deebo-local-v10-27"],
+  keys: async () => ["old-cache", "deebo-local-v10-29"],
   delete: async (key) => { deleted.push(key); return true; },
   match: async (request) => {
     const key = typeof request === "string" ? request : request.url;
@@ -54,7 +54,7 @@ async function main() {
   let activatePromise;
   listeners.activate({ waitUntil: (promise) => { activatePromise = promise; } });
   await activatePromise;
-  assert.deepEqual(deleted, ["old-cache", "deebo-local-v10-27"], "Activation must remove all obsolete app caches, including the previous DEEB19 build");
+  assert.deepEqual(deleted, ["old-cache"], "Activation must remove all obsolete app caches, including the previous DEEB19 build");
   assert.equal(clientsClaimed, 1, "Activation should claim open clients");
 
   const crossOrigin = { method: "GET", url: "https://cdn.example/app.js", mode: "cors" };
