@@ -270,7 +270,7 @@ const serviceWorkerSourceForScannerExclusion = fs.readFileSync(path.join(root,'s
 const androidWorkflowSource = fs.readFileSync(path.join(root,'.github/workflows/android-apk.yml'),'utf8');
 if (!androidAssetsSource.includes('"scanner.js"') || !serviceWorkerSourceForScannerExclusion.includes('./scanner.js') || !html.includes('src="scanner.js"') || !app.includes('window.DEebScanner.render()')) throw new Error('CamScanner page must be bundled, cached, and reachable from app navigation');
 const scannerSource=fs.readFileSync(path.join(root,'scanner.js'),'utf8');
-for (const token of ['scannerAutoDetect','scannerPickCorners','scannerSavePdf','recognizePages','createReportFromOcr','DebooDB.save("written_reports"','workerPath:remote?']) if (!scannerSource.includes(token)) throw new Error('CamScanner workflow is missing '+token);
+for (const token of ['scannerAutoDetect','scannerPickCorners','scannerSavePdf','recognizePages','createReportFromOcr','DebooDB.save("written_reports"','workerPath:"./ocr/worker.min.js"']) if (!scannerSource.includes(token)) throw new Error('CamScanner workflow is missing '+token);
 if (!androidSetup.includes('["android:allowBackup", "false"]') || !androidSetup.includes('["android:usesCleartextTraffic", "false"]')) throw new Error('Android backup/network hardening is missing');
 const iconBuilder = fs.readFileSync(path.join(root,'prepare-android-icons.js'),'utf8');
 if (!iconBuilder.includes('ic_launcher_foreground.png') || !iconBuilder.includes('icon-512.png')) throw new Error('DEEB Play Store and adaptive launcher icon generation is missing');
