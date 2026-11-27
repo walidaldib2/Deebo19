@@ -120,8 +120,9 @@ window.DebooDB = (() => {
   }
   function shiftIdentity(payload={}) {
     const shift=String(payload.shift||payload.shift_name||"").trim();
-    const date=String(payload.work_date||payload.patrol_date||payload.incident_date||payload.report_date||payload.absence_date||payload.handover_date||payload.emergency_date||payload.task_date||"").trim();
-    return shift&&/^\d{4}-\d{2}-\d{2}$/.test(date)?{shift_name:shift,shift_key:date+"|"+shift}:{};
+    const dates=[payload.work_date,payload.patrol_date,payload.incident_date,payload.report_date,payload.absence_date,payload.handover_date,payload.emergency_date,payload.task_date];
+    const date=String(dates.find(isValidWorkDate)||"").trim();
+    return shift&&date?{shift_name:shift,shift_key:date+"|"+shift}:{};
   }
   async function archivePastDays(today=localDateISO()) {
     const shiftTypes=new Set(["daily_rosters","branch_patrols","bike_patrols","manager_rounds","incidents","written_reports","absences","handovers","emergencies","tasks","memos"]);
