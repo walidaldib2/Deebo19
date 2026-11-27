@@ -638,7 +638,8 @@ if(!liveHeatSource.includes('L.divIcon({className:"",html:') || !liveHeatSource.
 const heatReportStart=app.indexOf('const buildHeatReport=()=>');
 const heatReportEnd=app.indexOf('const archiveHeatReport=async()=>',heatReportStart);
 const heatReportSource=heatReportStart>=0&&heatReportEnd>heatReportStart?app.slice(heatReportStart,heatReportEnd):'';
-if(!heatReportSource.includes('title>DEEB | خريطة كثافة المرور') || !heatReportSource.includes('id="deebReportMap"') || !heatReportSource.includes('id="printBikeHeatMapReport"') || !heatReportSource.includes('id="saveBikeHeatMapPdf"') || !heatReportSource.includes('id="saveBikeHeatMapImage"') || !heatReportSource.includes('"+p.count+"</span>')) throw new Error('Heatmap must remain a standalone printable report with visible numbered markers and dedicated print, PDF, and image actions.');
+if(!heatReportSource.includes('title>DEEB | خريطة كثافة المرور') || !heatReportSource.includes('id="deebReportMap"') || !heatReportSource.includes('"+p.count+"</span>')) throw new Error('Standalone heatmap report must include visible numbered markers.');
+if(!app.includes('id="printBikeHeatMapReport"') || !app.includes('id="saveBikeHeatMapPdf"') || !app.includes('id="saveBikeHeatMapImage"') || !app.includes('id="archiveBikeHeatMapReport"')) throw new Error('Heatmap must expose its own print, PDF, image, and archive actions, separate from the low-hours report.');
 
 
 const customHoursStart=app.indexOf('const buildBikeCustomReport=()=>');
