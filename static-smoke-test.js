@@ -16,6 +16,14 @@ if(!bikeExportHandler.includes('let stage="بناء بيانات التقرير"
    !bikeExportHandler.includes('تعذر التقرير في مرحلة')) {
   throw new Error('Bike custom report export must identify whether report construction or native export failed.');
 }
+const customReportStart=app.indexOf('const buildBikeCustomReport=()=>{');
+const customReportEnd=app.indexOf('const archiveBikeCustomReport=',customReportStart);
+const customReportSource=customReportStart>=0&&customReportEnd>customReportStart?app.slice(customReportStart,customReportEnd):'';
+if(!customReportSource.includes('let hoursHeatmapHtml="",lowHourNumbers="";') ||
+   !customReportSource.includes('lowHourNumbers=\'<section class="low-hours-numbers"') ||
+   customReportSource.includes('const lowHourNumbers=')) {
+  throw new Error('Bike custom report must declare the low-hours HTML in the enclosing scope so the hours report can render without a ReferenceError.');
+}
 const vm = require('node:vm');
 for (const file of ['app.js','db.js','team-sync.js','preferences.js','sw.js','qrcode.js','biometric.bundle.js','native-plugins.bundle.js']) {
   const source = fs.readFileSync(path.join(root,file),'utf8');
