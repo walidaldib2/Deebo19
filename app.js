@@ -1124,7 +1124,7 @@ async function reports(){
    const json=JSON.stringify(points).replace(/</g,"\\u003c");
    if(html.includes("var pts="))html=html.replace(/var pts=\[[\s\S]*?\];function safe/, "var pts="+json+";function safe");
    const detailList=visits.map((x,i)=>{const p=x.payload||{},site=p.site||p.branch||p.location||"موقع المرور",coordinates=validCoordinatePair(p.lat,p.lng)?Number(p.lat).toFixed(6)+", "+Number(p.lng).toFixed(6):"الإحداثيات غير مسجلة";return '<li><b>'+esc(site)+'</b><small>'+esc(coordinates)+'</small></li>';}).join("");
-   if(html.includes('<div class="deeb-map-details">'))html=html.replace(/<ol>[\s\S]*?<\/ol>/,'<ol>'+detailList+'</ol>');
+   if(html.includes('<div class="deeb-map-details">'))html=html.replace(/<ol\b[^>]*>[\s\S]*?<\/ol>/,'<ol>'+detailList+'</ol>');
    return html;
   }
   let source=Array.isArray(snapshot.data)?snapshot.data:Array.isArray(meta.data)?meta.data:null;
