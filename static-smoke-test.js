@@ -103,9 +103,7 @@ const pdfExport=pdfExportStart>=0&&pdfExportEnd>pdfExportStart?androidSetup.slic
 for(const required of ['application/pdf','MediaStore.Downloads.EXTERNAL_CONTENT_URI','Environment.DIRECTORY_DOWNLOADS+"/DEEB"','document.writeTo(out)','PageInfo.Builder(595,842,i+1)','page.getCanvas().scale(595f/width,842f/height)','waitForReportResources(v,handler,30000']) if(!pdfExport.includes(required)) throw new Error('Direct PDF export must save a complete validated PDF in Downloads/DEEB: '+required);
 if(!app.includes('native.saveHtmlAsPdf({html,name:"DEEB-report"})') || !app.includes('native.saveHtmlAsPdf({html,name:"DEEB-archive-"+item.id})') || !app.includes('native.saveHtmlAsPdf({html:reportHtml,name:"DEEB-bike-map-"')) throw new Error('Current, archived and bike map reports must offer direct PDF file export');
 const printHandlerStart=androidSetup.indexOf('@PluginMethod public void printHtml');
-const printHandlerEnd=androidSetup.indexOf('
-  }
-}',printHandlerStart);
+const printHandlerEnd=androidSetup.indexOf('\n  }\n}',printHandlerStart);
 const printHandler=printHandlerStart>=0&&printHandlerEnd>printHandlerStart?androidSetup.slice(printHandlerStart,printHandlerEnd):'';
 if (!printHandler.includes('setJavaScriptEnabled(true)') || !printHandler.includes('createPrintDocumentAdapter(jobName)')) throw new Error('Android print WebView must use the native print adapter');
 if (!printHandler.includes('int height=webPageHeight;') || !printHandler.includes('int width=webWidth;') || printHandler.includes('contentCssHeight=Math.max(cssPageHeight,v.getContentHeight())')) throw new Error('Native report printing must keep a fixed A4 WebView viewport and let Android paginate the complete document');
