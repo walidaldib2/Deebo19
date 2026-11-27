@@ -583,9 +583,9 @@ function comparePatrolTimes(a,b){
 }
 function mapPage(){
  return (async()=>{
- const archivedMapRecords=await DebooDB.all({archived:true});
-// Map views include archived patrol entries so historical coordinates remain available.
- const mapRecords=[...cache,...archivedMapRecords].filter(x=>!x.is_deleted);
+ const [activeMapRecords,archivedMapRecords]=await Promise.all([DebooDB.all({archived:false}),DebooDB.all({archived:true})]);
+ // All map views read the complete persisted record set so daily and historical maps agree with reports.
+ const mapRecords=[...activeMapRecords,...archivedMapRecords].filter(x=>!x.is_deleted);
  const today=new Date().toLocaleDateString("en-CA");
  area.innerHTML=pageHead("مرور الدراجات",'<button class="primary" id="openBikePatrolRecords">تسجيل مرور جديد</button><button class="secondary" id="mapToday">اليوم</button>')+
  '<div class="card"><p class="muted">يعرض التطبيق نقاط الوصول التي تم حفظ إحداثياتها مع مرور الدراجات. اختر التاريخ والدراجة لعرض خط سير الزيارات حسب التوقيت.</p><div class="form"><div class="field"><label>تاريخ المرور</label><input id="mapDate" type="date" value="'+today+'"></div><div class="field"><label>الدراجة</label><select id="mapBike"><option value="">كل الدراجات</option>'+[...new Set(mapRecords.filter(x=>x.entity_type==="bike_patrols").map(x=>String(x.payload?.bike||"").trim()).filter(Boolean))].sort().map(v=>'<option>'+esc(v)+'</option>').join("")+'</select></div></div><div id="bikeRouteSummary"></div></div>';
