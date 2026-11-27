@@ -653,6 +653,16 @@ if(!customHoursSource.includes('title="تقرير أقل ساعات المرور
   throw new Error('The printable low-patrol-hours report must include both the hourly visit-count table and the weekday/hour heatmap.');
 }
 
+if (!customHoursSource.includes('const weekDays=new Map()') ||
+    !customHoursSource.includes('const cursor=new Date(from+"T12:00:00"),lastDay=new Date(to+"T12:00:00")') ||
+    !customHoursSource.includes('const shiftHours=[]') ||
+    !customHoursSource.includes('if(fromHour<=toHour){for(let h=fromHour;h<=toHour;h++)shiftHours.push(h);}else') ||
+    !customHoursSource.includes('const dayIndexes=[...new Set([...weekDays.values()])].sort') ||
+    !customHoursSource.includes('shiftHours.map(h=>') ||
+    !customHoursSource.includes("'+count+'</td>'")) {
+  throw new Error('Printed peak-hour heatmap must show only the selected period weekdays and shift hours, including zero-count days and hours.');
+}
+
 
 // Patrol gaps must use exact elapsed hours/minutes and include per-bike plus fleet-wide intervals.
 if (!app.includes('const fmt=m=>{if(m===null||m===undefined||!Number.isFinite(Number(m)))return "—";') ||
