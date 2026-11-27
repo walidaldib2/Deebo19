@@ -443,7 +443,8 @@ function renderEntity(type){
  $$("[data-employee-detail]").forEach(button=>button.addEventListener("click",()=>{currentEmployeeDetailId=button.dataset.employeeDetail;currentEdit=null;renderEntity(type);}));
  $("#employeeListBack")?.addEventListener("click",()=>{currentEmployeeDetailId=null;renderEntity(type);});
  $$("[data-employee-edit]").forEach(button=>button.addEventListener("click",()=>{const found=cache.find(x=>x.id===button.dataset.employeeEdit);if(found){currentEmployeeDetailId=found.id;currentEdit=found;renderEntity(type);$("#editor")?.scrollIntoView({behavior:"smooth"});}}));
- $$("[data-move-branch]").forEach(button=>button.addEventListener("click",()=>moveBranchOrder(button.dataset.moveBranch,Number(button.dataset.direction)||0)));\n $$("[data-move-bike]").forEach(button=>button.addEventListener("click",()=>moveBikeOrder(button.dataset.moveBike,Number(button.dataset.direction)||0).catch(error=>toast("تعذر حفظ ترتيب الدراجات: "+(error.message||error)))));
+ $$("[data-move-branch]").forEach(button=>button.addEventListener("click",()=>moveBranchOrder(button.dataset.moveBranch,Number(button.dataset.direction)||0)));
+ $("[data-move-bike]").forEach(button=>button.addEventListener("click",()=>moveBikeOrder(button.dataset.moveBike,Number(button.dataset.direction)||0).catch(error=>toast("تعذر حفظ ترتيب الدراجات: "+(error.message||error)))));
  $$("[data-change-branch-supervisor]").forEach(button=>button.addEventListener("click",()=>{
   const branch=button.dataset.changeBranchSupervisor,date=button.dataset.branchDate;
   const matches=cache.filter(x=>x.entity_type==="branch_patrols"&&!x.is_archived&&normalize(String(x.payload?.branch||"").trim()).replace(/\s+/g," ")===normalize(String(branch||"").trim()).replace(/\s+/g," ")&&String(x.payload?.patrol_date||"").slice(0,10)===date);
