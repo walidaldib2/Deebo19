@@ -210,7 +210,7 @@ if (!app.includes('$(\"#enableBiometric\").onclick=async()=>') || !app.includes(
 if (!app.includes('localStorage.removeItem(BIOMETRIC_KEY)') || !app.includes('سيفتح التطبيق مباشرة دون PIN أو بصمة')) throw new Error('Direct unlock / biometric reset flow is missing');
 if (!app.includes('يمكنك الدخول باستخدام PIN')) throw new Error('Biometric PIN fallback message is missing');
 if (!app.includes('function lockApplication()') || !app.includes('document.visibilityState==="hidden"') || !app.includes('window.addEventListener("pagehide",lockApplication)')) throw new Error('Automatic PIN lock hooks are missing');
-if (!sw.includes('deebo-local-v10-28') || sw.includes('deebo-local-v10-27')) throw new Error('Service worker cache version must advance to v10-28 so devices download the latest fixes');
+if (!sw.includes('deebo-local-v10-29') || sw.includes('deebo-local-v10-28')) throw new Error('Service worker cache version must advance to v10-29 so devices download the latest fixes');
 if (!db.includes('function localDateISO(date=new Date())') || !db.includes('function recordWorkDate(row)') || !db.includes('function shiftIdentity(payload={})') || !db.includes('is_archived:!!old?.is_archived') || !db.includes('shift_key')) throw new Error('Date/shift identity and archived-record edit preservation are required');
 if (!db.includes(String.raw`/^\d{4}-\d{2}-\d{2}$/`) || db.includes(String.raw`/^\\d{4}-\\d{2}-\\d{2}$/`)) throw new Error('Work-date validation must match real ISO calendar dates, not literal backslash characters');
 if (!db.includes('if(operationalTypes.has(type))') || !db.includes('"written_reports","absences","handovers","emergencies","tasks"')) throw new Error('Shift/date metadata must be limited to operational records, leaving master registries unchanged');
@@ -336,6 +336,10 @@ if(parsePatrolTime("25:99")!==null||parsePatrolTime("not a time")!==null)throw n
 if(!app.includes('sort((a,b)=>comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time))')||!app.includes('g.visits.sort((a,b)=>comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time))'))throw new Error("Map and branch report must both use the validated chronological parser");
 if (!app.includes('extractSharedCoordinates(raw+" "+locationUrl)') || !app.includes('form.elements.namedItem("lat").value=coords.lat.toFixed(6)') || !app.includes('form.elements.namedItem("lng").value=coords.lng.toFixed(6)')) throw new Error('Shared motorcycle location coordinates are not persisted into patrol records');
 if (!db.includes('try{await createAutoBackup();}catch(error){console.warn("DEEB automatic backup:",error);}') || !db.includes('updated:!!sameDay')) throw new Error('Daily automatic backup must refresh after record changes');
+if (!db.includes('async function purgeExpiredDeleted() { return 0; }') || db.includes('permanent_delete') || db.includes('.slice(0,3)')) throw new Error('Historical records and automatic backup snapshots must never be age-purged or capped at three copies');
+if (!db.includes('const candidates=[p.work_date,p.patrol_date,p.incident_date,p.report_date,p.absence_date,p.handover_date,p.emergency_date,p.task_date]') || !db.includes('candidates.find(isValidWorkDate)')) throw new Error('Work-date selection must skip invalid date fields and retain a later valid date');
+if (!db.includes('const mergeRows=(name,rows,preferNewest=false)=>') || db.includes('tx.objectStore(name).clear()')) throw new Error('Backup restore must merge data without clearing records missing from the selected backup');
+if (app.includes('purgeExpiredDeleted()')) throw new Error('Application startup and timer must never invoke age-based record deletion');
 
 if (!app.includes('id="monthlyReport"') || !app.includes('تقرير شهري')) throw new Error('Monthly report preset is missing');
 if (!app.includes('hasBikeReport=$("#reportType").value==="bike_patrols"&&cache.some(x=>x.entity_type==="bikes"&&!x.is_archived)')) throw new Error("Registered bikes with no visits must still be printable as empty reports");
@@ -485,7 +489,7 @@ if (!app.includes(sharedIdentity) || !app.includes('h1{position:relative!importa
 const backupPageStart=app.indexOf('async function openBackupPage(){');
 const backupPageEnd=app.indexOf('function render(p)',backupPageStart);
 const backupPageSource=backupPageStart>=0&&backupPageEnd>backupPageStart?app.slice(backupPageStart,backupPageEnd):'';
-if (!backupPageSource.includes('تم تحديث النسخة التلقائية لهذا اليوم') || !backupPageSource.includes('تجاوز 30 ميجابايت') || !backupPageSource.includes('DebooDB.createAutoBackup()')) throw new Error('Automatic backup status and attachment-size warning must be visible in the dedicated backup page');
+if (!backupPageSource.includes('تم تحديث النسخة التلقائية لهذا اليوم') || !backupPageSource.includes('لا يمسح السجلات الأحدث') || !backupPageSource.includes('DebooDB.createAutoBackup()')) throw new Error('Automatic backup history and non-destructive restore guidance must be visible in the dedicated backup page');
 
 const androidAssets = fs.readFileSync(path.join(root,'prepare-android.js'),'utf8');
 if (androidAssets.includes('"scanner.js"') || html.includes('src="scanner.js"') || sw.includes('./scanner.js')) throw new Error('Document scanner assets must not be staged or cached');
