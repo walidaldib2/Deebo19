@@ -667,7 +667,7 @@ function bikeMapsPage(){
  return (async()=>{
  const archivedMapRecords=await DebooDB.all({archived:true});
  const mapRecords=[...cache,...archivedMapRecords].filter(x=>!x.is_deleted);
- const bikes=[...new Set(mapRecords.filter(x=>x.entity_type==="bike_patrols").map(x=>String(x.payload?.bike||"").trim()).filter(Boolean).concat(orderedBikes(cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived)).map(x=>String(x.payload?.number||"").trim()).filter(Boolean)))];
+ const bikes=[...new Set(orderedBikes(cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived)).map(x=>String(x.payload?.number||"").trim()).filter(Boolean).concat(mapRecords.filter(x=>x.entity_type==="bike_patrols").map(x=>String(x.payload?.bike||"").trim()).filter(Boolean)))];
  const dateValue=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
  const todayDate=new Date(),today=dateValue(todayDate),yesterdayDate=new Date(todayDate);yesterdayDate.setDate(yesterdayDate.getDate()-1);const yesterday=dateValue(yesterdayDate);
  area.innerHTML=pageHead("خرائط الدراجات",'<button class="secondary" id="openBikeMapReports">تقارير خرائط الدراجات</button><button class="primary" id="openBikePatrolRecords">تسجيل مرور جديد</button>')+
@@ -704,7 +704,7 @@ function bikeMapReportsPage(){
  return (async()=>{
  const archivedMapRecords=await DebooDB.all({archived:true});
  const mapRecords=[...cache,...archivedMapRecords].filter(x=>!x.is_deleted);
- const bikes=[...new Set(mapRecords.filter(x=>x.entity_type==="bike_patrols").map(x=>String(x.payload?.bike||"").trim()).filter(Boolean).concat(orderedBikes(cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived)).map(x=>String(x.payload?.number||"").trim()).filter(Boolean)))];
+ const bikes=[...new Set(orderedBikes(cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived)).map(x=>String(x.payload?.number||"").trim()).filter(Boolean).concat(mapRecords.filter(x=>x.entity_type==="bike_patrols").map(x=>String(x.payload?.bike||"").trim()).filter(Boolean)))];
  const today=new Date().toLocaleDateString("en-CA"),monthStart=[new Date().getFullYear(),String(new Date().getMonth()+1).padStart(2,"0"),"01"].join("-");
  area.innerHTML=pageHead("خرائط الدراجات",'<button class="secondary" id="backToBikeMaps">خرائط الدراجات</button><button class="primary" id="printBikeMapReport">طباعة التقرير</button><button class="secondary" id="saveBikeMapArchive">حفظ في الأرشيف</button><button class="secondary" id="saveBikeMapReportPdf">حفظ PDF</button><button class="secondary" id="saveBikeMapReportImage">حفظ التقرير صورة</button>')+
  '<div class="card"><p class="muted">خريطة مرور مستقلة لكل دراجة، بنفس بيانات وتصميم تقرير المرور الأصلي. تظهر الخريطة بدل جدول المرور، ولا يتم تعديل التقرير الأصلي.</p><div class="form"><div class="field"><label>الدراجة</label><select id="bikeMapReportBike"><option value="">اختر الدراجة</option>'+bikes.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("")+'</select></div><div class="field"><label>من تاريخ</label><input id="bikeMapReportFrom" type="date" value="'+monthStart+'"></div><div class="field"><label>إلى تاريخ</label><input id="bikeMapReportTo" type="date" value="'+today+'"></div></div><div id="bikeMapReportPreview"><div class="empty">اختر الدراجة لإعداد الخريطة.</div></div></div>';
