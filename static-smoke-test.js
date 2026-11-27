@@ -1,10 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 const root = __dirname;
-const required = ['index.html','app.js','db.js','team-sync.js','style.css','sw.js','manifest.json','icon.svg','qrcode.js','capacitor.config.json','package.json','biometric.bundle.js','prepare-android.js','configure-android-share.js','prepare-android-icons.js','document-tools.js'];
+const required = ['index.html','app.js','db.js','team-sync.js','style.css','sw.js','manifest.json','icon.svg','qrcode.js','capacitor.config.json','package.json','biometric.bundle.js','prepare-android.js','configure-android-share.js','prepare-android-icons.js','document-tools.js','powerpoint-editor.js'];
 const missing = required.filter(f => !fs.existsSync(path.join(root,f)));
 if (missing.length) throw new Error('Missing required files: '+missing.join(', '));
 const documentToolsSource = fs.readFileSync(path.join(root,'document-tools.js'),'utf8');
+const powerpointEditorSource = fs.readFileSync(path.join(root,'powerpoint-editor.js'),'utf8');
+for (const feature of ['pptAddSlide','pptAddText','pptAddImage','pptExport','localStorage','exportPptx','pptUndo','pptRedo','pptDuplicate']) if (!powerpointEditorSource.includes(feature)) throw new Error('PowerPoint editor missing capability: '+feature);
+new vm.Script(powerpointEditorSource,{filename:'powerpoint-editor.js'});
 if (!documentToolsSource.includes('deebPptDensity') || !documentToolsSource.includes('deebPptFont') || !documentToolsSource.includes('deebPptTheme') || !documentToolsSource.includes('deebPptCover') || !documentToolsSource.includes('pptOptions.density') || !documentToolsSource.includes('brightness') || !documentToolsSource.includes('contrast') || !documentToolsSource.includes('نسخ الصفحة') || !documentToolsSource.includes('إلغاء القص')) throw new Error('PowerPoint export settings and scanner page enhancement controls are required');
 if (!documentToolsSource.includes('p.crop') ||
     !documentToolsSource.includes('قص من اليسار') ||
@@ -23,6 +26,7 @@ for (const file of ['app.js','db.js','team-sync.js','preferences.js','sw.js','qr
 for (const f of ['qrcode.js','db.js','team-sync.js','biometric.bundle.js','app.js']) if (!html.includes(`src="${f}"`)) throw new Error('index.html does not load '+f);
 // Reuse the database source loaded at the top of this smoke test.
 // Reuse the app source loaded at the top of this smoke test.
+if (!html.includes('src="powerpoint-editor.js"') || !fs.readFileSync(path.join(root,'sw.js'),'utf8').includes('./powerpoint-editor.js')) throw new Error('PowerPoint editor must load and remain available offline');
 if (!html.includes('src="document-tools.js"') || !fs.readFileSync(path.join(root,'sw.js'),'utf8').includes('./document-tools.js')) throw new Error('PowerPoint and document scanner tools must load and remain available offline');
 const toolsSource=fs.readFileSync(path.join(root,'document-tools.js'),'utf8');
 for (const feature of ['exportPowerPoint','exportScannedPdf','capture="environment"','أبيض وأسود','image/jpeg','application/pdf','application/vnd.openxmlformats-officedocument.presentationml.presentation','saveAttachment(id,file)','deebAttachTarget','deebAttachPdf']) if (!toolsSource.includes(feature)) throw new Error('Document tools missing required capability: '+feature);
