@@ -799,10 +799,12 @@ async function reports(){
    const sites=g.visits.map(v=>{
     const p=v.payload||{},site=String(p.site||p.branch||p.location||"غير محدد").trim();
     const lat=String(p.lat??"").trim(),lng=String(p.lng??"").trim(),locationUrl=String(p.location_url??"").trim();const coordinates=validCoordinatePair(lat,lng)?("خط العرض: "+lat+" | خط الطول: "+lng):(locationUrl||"—");
-    return {site,entries:[{date:dayOf(v),time:String(p.patrol_time||"—"),coordinates,notes:String(p.notes||"").trim()}],times:[String(p.patrol_time||"—")]};
+    const person=String(p.person||p.responsible||"").trim()||"غير مسجل";
+    return {site,entries:[{date:dayOf(v),time:String(p.patrol_time||"—"),person,coordinates,notes:String(p.notes||"").trim()}],times:[String(p.patrol_time||"—")+" | فرد المرور: "+person]};
    });
    const persons=[...new Set(g.visits.map(v=>String(v.payload?.person||v.payload?.responsible||"").trim()).filter(Boolean))];
-   return {date:g.date,bike:g.bike,reportNumber:registrationOrder.get(normalize(g.bike))||index+1,person:persons.join("، ")||"—",code:bp.code||"—",type:bp.type||bp.description||"—",visits:g.visits,sites};
+   const reportPerson=persons.length===1?persons[0]:persons.length>1?"الأسماء موضحة بجوار كل زيارة":"غير مسجل";
+   return {date:g.date,bike:g.bike,reportNumber:registrationOrder.get(normalize(g.bike))||index+1,person:reportPerson,code:bp.code||"—",type:bp.type||bp.description||"—",visits:g.visits,sites};
   });
   return result;
  };
@@ -938,7 +940,7 @@ async function reports(){
     const pages=Array.from({length:pageCount},(_,page)=>entries.slice(page*maxRowsPerPage,(page+1)*maxRowsPerPage));
     return pages.map((pageRows,pageIndex)=>{
      const siteRows=pageRows.map(v=>{
-      const patrol=esc(v.time||"—");
+      const patrol=esc((v.time||"—")+" | فرد المرور: "+(v.person||"غير مسجل"));
       const coordinates=esc(v.coordinates||"—").replace(/\n/g,"<br>");
       return '<tr><td>'+esc(v.site)+'</td><td class="bike-patrol-times">'+patrol+'</td><td class="bike-coordinates">'+coordinates+'</td></tr>';
      }).join("")+Array.from({length:Math.max(0,20-pageRows.length)},()=>'<tr class="bike-empty-row"><td> </td><td> </td><td> </td></tr>').join("");
