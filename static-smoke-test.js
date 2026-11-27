@@ -4,6 +4,13 @@ const root = __dirname;
 const required = ['index.html','app.js','db.js','team-sync.js','style.css','sw.js','manifest.json','icon.svg','qrcode.js','capacitor.config.json','package.json','biometric.bundle.js','prepare-android.js','configure-android-share.js','prepare-android-icons.js','document-tools.js'];
 const missing = required.filter(f => !fs.existsSync(path.join(root,f)));
 if (missing.length) throw new Error('Missing required files: '+missing.join(', '));
+const documentToolsSource = fs.readFileSync(path.join(root,'document-tools.js'),'utf8');
+if (!documentToolsSource.includes('p.crop') ||
+    !documentToolsSource.includes('قص من اليسار') ||
+    !documentToolsSource.includes('قص من الأعلى') ||
+    !documentToolsSource.includes('type="screen16x9"')) {
+  throw new Error('Scanner must provide manual crop controls and PowerPoint must use widescreen 16:9 slides.');
+}
 const html = fs.readFileSync(path.join(root,'index.html'),'utf8');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
