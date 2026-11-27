@@ -6,6 +6,8 @@ const missing = required.filter(f => !fs.existsSync(path.join(root,f)));
 if (missing.length) throw new Error('Missing required files: '+missing.join(', '));
 const documentToolsSource = fs.readFileSync(path.join(root,'document-tools.js'),'utf8');
 const powerpointEditorSource = fs.readFileSync(path.join(root,'powerpoint-editor.js'),'utf8');
+if (!powerpointEditorSource.includes('addEventListener("focus",snap)') || !powerpointEditorSource.includes("function queueSave()") || !powerpointEditorSource.includes("draw();queueSave()") || !powerpointEditorSource.includes("draw();save()")) throw new Error("PowerPoint editor must snapshot edits at control focus and autosave changes without one undo entry per keystroke.");
+
 for (const feature of ['pptAddSlide','pptAddText','pptAddImage','pptExport','localStorage','exportPptx','pptUndo','pptRedo','pptDuplicate']) if (!powerpointEditorSource.includes(feature)) throw new Error('PowerPoint editor missing capability: '+feature);
 
 if (!documentToolsSource.includes('rotated image') && (!documentToolsSource.includes('angle===90') || !documentToolsSource.includes('angle===180') || !documentToolsSource.includes('angle===270') || !documentToolsSource.includes('p.rot=0'))) throw new Error('Rotating a scanned page must normalize image orientation and transform crop coordinates for 90/180/270 degrees.');
