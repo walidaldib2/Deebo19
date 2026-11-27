@@ -215,6 +215,14 @@ async function main() {
   await db.unarchive(branch.id);
   assert.equal((await db.all()).some(x => x.id === branch.id), true);
 
+  // A malformed first date field must not hide a later valid historical work date.
+  const dateFallbackVisit = await db.save("bike_patrols", {
+    bike: "دراجة اختبار التاريخ", person: "فرد اختبار", site: "موقع اختبار التاريخ",
+    work_date: "تاريخ غير صالح", patrol_date: "2026-11-18", patrol_time: "08:15"
+  });
+  await db.archivePastDays("2026-11-19");
+  assert.equal((await db.getRecord(dateFallbackVisit.id))?.is_archived, true, "A valid patrol_date must be used when work_date is invalid");
+
   // Bike registry is dynamic: ten distinct bikes and repeated visits must all save.
   for (let i = 1; i <= 10; i++) {
     await db.save("bike_patrols", { bike: "دراجة " + i, patrol_date: "2026-11-19", patrol_time: "10:" + String(i).padStart(2,"0") });
@@ -228,7 +236,7 @@ async function main() {
   const secondPersonVisit = await db.save("bike_patrols", { bike: "دراجة 1", person: "فرد آخر", site: "معرض اختبار", patrol_date: "2026-11-19", patrol_time: "11:45" });
   assert.equal((await db.getRecord(secondPersonVisit.id)).payload.person, "فرد آخر");
 
-  // Soft-deleted motorcycle visits must be recoverable until the 30-day retention expires.
+  // Soft-deleted motorcycle visits must remain recoverable indefinitely.
   const recoverableVisit = await db.save("bike_patrols", {
     bike: "دراجة استعادة اختبار", person: "فرد اختبار", site: "موقع اختبار",
     patrol_date: "2026-11-20", patrol_time: "12:00"
