@@ -245,10 +245,10 @@ async function main() {
     patrol_date: "2026-11-20", patrol_time: "12:30"
   });
   await db.softDelete(expiredVisit.id);
-  const expiredCount = await db.purgeExpiredDeleted(new Date(Date.now() + 31 * 24 * 60 * 60 * 1000));
-  assert.ok(expiredCount >= 1, "Expired soft-deleted visits must be purged after the retention window");
-  assert.equal(await db.getRecord(expiredVisit.id), null, "Purged visits must no longer exist in the records store");
-  assert.ok((await db.audit()).some(x => x.record_id === expiredVisit.id && x.action === "permanent_delete"), "Permanent expiry must remain visible in the audit log");
+  const expiredCount = await db.purgeExpiredDeleted(new Date(Date.now() + 3650 * 24 * 60 * 60 * 1000));
+  assert.equal(expiredCount, 0, "Age-based cleanup must never permanently delete historical records");
+  assert.ok((await db.getRecord(expiredVisit.id))?.is_deleted, "A deleted visit must remain recoverable after years");
+  assert.ok((await db.all({ deleted: true })).some(x => x.id === expiredVisit.id), "Old deleted visits must remain in the recovery list");
 
   // Handover snapshots and report approvals remain linked to their records.
   const handover = await db.save("handovers", { sender: "مُسلّم", receiver: "مُستلم" });
@@ -266,7 +266,7 @@ async function main() {
   assert.equal((await db.attachments(branch.id)).some(x => x.id === attachment.id), true);
   assert.ok((await db.audit()).some(x => x.record_id === branch.id && x.action === "attachment"));
 
-  // Daily automatic snapshots are local, bounded, and include the saved records.
+  // Daily automatic snapshots are local, retained by date, and include the saved records.
   const auto = await db.createAutoBackup();
   assert.equal(auto.created, false);
   assert.equal(auto.updated, true);
@@ -277,6 +277,26 @@ async function main() {
   assert.equal(again.created, false);
   assert.equal(again.updated, true);
   assert.equal((await db.automaticBackups()).length, 1);
+  // Seed historical daily snapshots and verify creating today's backup never trims older dates.
+  const rawDb = await new Promise((resolve, reject) => {
+    const request = indexedDB.open("DEBOO16_LOCAL_DB", 5);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  await new Promise((resolve, reject) => {
+    const tx = rawDb.transaction("automatic_backups", "readwrite");
+    for (let i = 1; i <= 5; i++) tx.objectStore("automatic_backups").put({
+      id: "historical-backup-" + i, date: "2025-01-0" + i,
+      created_at: "2025-01-0" + i + "T00:00:00.000Z",
+      record_count: 1, attachment_count: 0, snapshot: { app: "DEEB", format: 2, records: [], audit_logs: [] }
+    });
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  rawDb.close();
+  await db.createAutoBackup();
+  assert.ok((await db.automaticBackups()).length >= 6, "Historical daily backups must not be capped at three");
 
   // Incident records can own photo/document attachments just like documents.
   const incident = await db.save("incidents", { incident_type: "أمني", description: "اختبار مرفق بلاغ" });
@@ -292,9 +312,12 @@ async function main() {
   const fullBackup = await db.backup();
   assert.ok(fullBackup.report_archives.some(x => x.id === roundTripReport.id), "Full backup must include generated report archives");
   assert.ok(fullBackup.attachments.some(x => x.id === incidentAttachment.id && x.data_url.startsWith("data:text/plain;base64,")));
+  const localOnly = await db.save("incidents", { incident_type: "محلي", description: "سجل أحدث غير موجود في ملف النسخة" });
+  await db.save("incidents", { incident_type: "أمني", description: "تعديل أحدث بعد النسخة", extra: "keep-newer" }, incident.id);
   await db.restore(fullBackup);
+  assert.ok((await db.getRecord(localOnly.id))?.payload?.description === "سجل أحدث غير موجود في ملف النسخة", "Restore must preserve local records absent from the selected backup");
+  assert.equal((await db.getRecord(incident.id))?.payload?.extra, "keep-newer", "Restore must keep a newer local version of a matching record");
   assert.ok((await db.reportArchives()).some(x => x.id === roundTripReport.id), "Report archives must survive backup restore");
-  assert.ok((await db.getRecord(incident.id))?.payload?.description === "اختبار مرفق بلاغ");
   assert.ok((await db.attachments(incident.id)).some(x => x.id === incidentAttachment.id));
   assert.ok((await db.getAttachment(incidentAttachment.id))?.blob?.size > 0);
   assert.ok((await db.approvedReports()).some(x => x.id === approved.id));
