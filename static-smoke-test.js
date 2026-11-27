@@ -25,7 +25,7 @@ if (!documentToolsSource.includes('createWorker(["ara","eng"],1,') || !documentT
 if (!androidPrepareForOcr.includes('language + ".traineddata"') || !androidPrepareForOcr.includes('tesseract-core-relaxedsimd-lstm.wasm.js')) throw new Error("Android OCR preparation must include dynamically named language data and the Tesseract core loader.");
 
 const powerpointEditorSource = fs.readFileSync(path.join(root,'powerpoint-editor.js'),'utf8');
-if (!powerpointEditorSource.includes('addEventListener("focus",snap)') || !powerpointEditorSource.includes("function queueSave()") || !powerpointEditorSource.includes("draw();queueSave()") || !powerpointEditorSource.includes("draw();save()")) throw new Error("PowerPoint editor must snapshot edits at control focus and autosave changes without one undo entry per keystroke.");
+if (!powerpointEditorSource.includes('addEventListener("focus",snap)') || !powerpointEditorSource.includes("function queueSave()") || !powerpointEditorSource.includes("draw();queueSave()") || !powerpointEditorSource.includes("n.onpointerup=function(){n.onpointermove=null;save()}")) throw new Error("PowerPoint editor must snapshot control edits, debounce autosave, and save completed drag operations.");
 
 for (const feature of ['pptAddSlide','pptAddText','pptAddImage','pptExport','localStorage','exportPptx','pptUndo','pptRedo','pptDuplicate','pptTable','pptChart','function createEditableTable()','function createEditableChart()','function addMany(items)','accent1="D6A743"']) if (!powerpointEditorSource.includes(feature)) throw new Error('PowerPoint editor missing capability: '+feature);
 
