@@ -1428,31 +1428,59 @@ async function bikeAnalyticsPage(){
  const visits=records.filter(r=>r.entity_type==="bike_patrols"&&r.payload?.patrol_date&&r.payload?.patrol_time);
  const today=localISODate();
  const dateShift=(date,days)=>{const d=new Date(date+"T12:00:00");d.setDate(d.getDate()+days);return localISODate(d);};
- const rangeFor=mode=>mode==="day"?[today,today]:mode==="week"?[dateShift(today,-6),today]:[dateShift(today,-29),today];
- const minuteOf=value=>{const m=String(value||"").match(/(\\d{1,2}):(\\d{2})/);return m?Number(m[1])*60+Number(m[2]):null;};
- const hourOf=value=>{const n=minuteOf(value);return n===null?null:Math.floor(n/60);};
+ const monthStart=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),"01"].join("-");};
+ const rangeFor=mode=>mode==="day"?[today,today]:mode==="week"?[dateShift(today,-6),today]:[monthStart(),today];
+ const normalizeDigits=value=>String(value??"").replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d));
+ const timeParts=value=>{
+  const raw=normalizeDigits(value).trim();
+  const m=raw.match(/(\d{1,2}):(\d{2})/);
+  if(!m)return null;
+  let hour=Number(m[1]),minute=Number(m[2]);
+  if(hour>23||minute>59)return null;
+  const pm=/(م|مساء|pm)/i.test(raw),am=/(ص|صباح|am)/i.test(raw);
+  if(pm&&hour<12)hour+=12;
+  if(am&&hour===12)hour=0;
+  return {hour,minute,total:hour*60+minute};
+ };
+ const dateTimeOf=row=>{
+  const date=String(row.payload?.patrol_date||"").slice(0,10),t=timeParts(row.payload?.patrol_time);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!t)return null;
+  const [y,m,d]=date.split("-").map(Number);
+  const value=new Date(y,m-1,d,t.hour,t.minute,0,0);
+  return Number.isFinite(value.getTime())?value:null;
+ };
  const escHtml=esc;
  const renderStats=mode=>{
-  const [from,to]=rangeFor(mode),filtered=visits.filter(r=>String(r.payload.patrol_date).slice(0,10)>=from&&String(r.payload.patrol_date).slice(0,10)<=to);
-  const names=[...new Set(registry.map(r=>String(r.payload?.number||"").trim()).filter(Boolean).concat(filtered.map(r=>String(r.payload?.bike||"").trim()).filter(Boolean)))];
+  const [from,to]=rangeFor(mode);
+  const filtered=visits.filter(r=>String(r.payload.patrol_date).slice(0,10)>=from&&String(r.payload.patrol_date).slice(0,10)<=to);
+  const bikeKey=value=>normalize(value).replace(/\s+/g," ");
+  const bikeNames=new Map();
+  registry.forEach(r=>{const n=String(r.payload?.number||"").trim();if(n)bikeNames.set(bikeKey(n),n);});
+  filtered.forEach(r=>{const n=String(r.payload?.bike||"").trim();if(n&&!bikeNames.has(bikeKey(n)))bikeNames.set(bikeKey(n),n);});
+  const names=[...bikeNames.values()];
   const perBike=names.map(name=>{
-   const list=filtered.filter(r=>String(r.payload?.bike||"").trim()===name).sort((a,b)=>(String(a.payload.patrol_date)+" "+String(a.payload.patrol_time)).localeCompare(String(b.payload.patrol_date)+" "+String(b.payload.patrol_time)));
-   const hours=Array(24).fill(0);list.forEach(r=>{const h=hourOf(r.payload.patrol_time);if(h!==null&&h>=0&&h<24)hours[h]++;});
+   const list=filtered.filter(r=>bikeKey(r.payload?.bike)===bikeKey(name)).sort((a,b)=>{
+    const da=dateTimeOf(a),db=dateTimeOf(b);return (da?.getTime()??0)-(db?.getTime()??0);
+   });
+   const hours=Array(24).fill(0);
+   list.forEach(r=>{const t=timeParts(r.payload.patrol_time);if(t)hours[t.hour]++;});
    const peak=Math.max(0,...hours),peakHour=peak?hours.indexOf(peak):null;
-   const gaps=[];for(let i=1;i<list.length;i++){const a=Date.parse(list[i-1].payload.patrol_date+"T"+String(list[i-1].payload.patrol_time).slice(0,5)),b=Date.parse(list[i].payload.patrol_date+"T"+String(list[i].payload.patrol_time).slice(0,5));if(Number.isFinite(a)&&Number.isFinite(b)&&b>=a)gaps.push((b-a)/60000);}
+   const gaps=[];
+   for(let i=1;i<list.length;i++){const a=dateTimeOf(list[i-1]),b=dateTimeOf(list[i]);if(a&&b&&b>=a)gaps.push((b-a)/60000);}
    const avg=gaps.length?gaps.reduce((x,y)=>x+y,0)/gaps.length:null,max=gaps.length?Math.max(...gaps):null;
    return {name,count:list.length,peakHour,peak,avg,max};
   });
-  const total=filtered.length,peakHours=Array(24).fill(0);filtered.forEach(r=>{const h=hourOf(r.payload.patrol_time);if(h!==null&&h>=0&&h<24)peakHours[h]++;});
+  const peakHours=Array(24).fill(0);
+  filtered.forEach(r=>{const t=timeParts(r.payload.patrol_time);if(t)peakHours[t.hour]++;});
   const allPeak=Math.max(0,...peakHours),allPeakHour=allPeak?peakHours.indexOf(allPeak):null;
   const fmt=m=>m===null?"—":(m>=60?(m/60).toFixed(1)+" ساعة":Math.round(m)+" دقيقة");
   const rowsHtml=perBike.map(x=>'<tr><td>'+escHtml(x.name)+'</td><td>'+x.count+'</td><td>'+(x.peakHour===null?"—":String(x.peakHour).padStart(2,"0")+":00 ("+x.peak+")")+'</td><td>'+fmt(x.avg)+'</td><td>'+fmt(x.max)+'</td></tr>').join("");
   const maxCount=Math.max(1,...perBike.map(x=>x.count));
   const bars=perBike.map(x=>'<div class="notice" style="margin:8px 0"><b>'+escHtml(x.name)+'</b> — '+x.count+' زيارة<div style="height:8px;background:var(--border);border-radius:8px;overflow:hidden;margin-top:6px"><div style="height:8px;width:'+Math.round(x.count/maxCount*100)+'%;background:var(--primary);border-radius:8px"></div></div></div>').join("");
   const host=$("#bikeAnalyticsContent");if(!host)return;
-  host.innerHTML='<div class="stats-grid">'+stats([["إجمالي الزيارات",total],["عدد الدراجات",names.length],["ساعة الذروة للأسطول",allPeakHour===null?"—":String(allPeakHour).padStart(2,"0")+":00"],["زيارات ساعة الذروة",allPeak]])+'</div><div class="card"><h3>مقارنة عدد الزيارات</h3>'+(bars||'<p class="muted">لا توجد زيارات في الفترة المحددة.</p>')+'</div><div class="card"><h3>تحليل كل دراجة</h3><div class="table-wrap"><table><thead><tr><th>الدراجة</th><th>الزيارات</th><th>ساعة الذروة</th><th>متوسط الفاصل بين الزيارات</th><th>أطول فترة بين زيارتين</th></tr></thead><tbody>'+(rowsHtml||'<tr><td colspan="5">لا توجد سجلات مرور في الفترة.</td></tr>')+'</tbody></table></div><p class="muted">الفواصل محسوبة بين زيارتين مسجلتين متتاليتين فقط؛ لا تُحتسب فترات ما قبل أول زيارة أو بعد آخر زيارة كخمول.</p></div>';
+  host.innerHTML='<div class="stats-grid">'+stats([["إجمالي الزيارات",filtered.length],["عدد الدراجات",names.length],["ساعة الذروة للأسطول",allPeakHour===null?"—":String(allPeakHour).padStart(2,"0")+":00"],["زيارات ساعة الذروة",allPeak]])+'</div><div class="card"><h3>مقارنة عدد الزيارات</h3>'+(bars||'<p class="muted">لا توجد زيارات في الفترة المحددة.</p>')+'</div><div class="card"><h3>تحليل كل دراجة</h3><div class="table-wrap"><table><thead><tr><th>الدراجة</th><th>الزيارات</th><th>ساعة الذروة</th><th>متوسط الفاصل بين الزيارات</th><th>أطول فترة بين زيارتين</th></tr></thead><tbody>'+(rowsHtml||'<tr><td colspan="5">لا توجد سجلات مرور في الفترة.</td></tr>')+'</tbody></table></div><p class="muted">الفواصل محسوبة بين زيارتين مسجلتين متتاليتين فقط؛ لا تُحتسب فترات ما قبل أول زيارة أو بعد آخر زيارة كخمول. يُعرض الشهر الحالي من أوله حتى اليوم.</p></div>';
  };
- area.innerHTML=pageHead("إحصائيات وتحليل مرور الدراجات")+'<div class="card"><div class="field"><label for="bikeAnalyticsRange">الفترة الزمنية</label><select id="bikeAnalyticsRange"><option value="day">اليوم</option><option value="week">آخر 7 أيام</option><option value="month">آخر 30 يومًا</option></select></div><div id="bikeAnalyticsContent"></div></div>';
+ area.innerHTML=pageHead("إحصائيات وتحليل مرور الدراجات")+'<div class="card"><div class="field"><label for="bikeAnalyticsRange">الفترة الزمنية</label><select id="bikeAnalyticsRange"><option value="day">اليوم</option><option value="week">آخر 7 أيام</option><option value="month">الشهر الحالي</option></select></div><div id="bikeAnalyticsContent"></div></div>';
  $("#bikeAnalyticsRange").addEventListener("change",e=>renderStats(e.target.value));renderStats("day");
 }
 function sectionPage(key){const section=sectionMenus[key];if(!section)throw new Error("القسم غير معروف: "+key);area.innerHTML=pageHead(section.title)+"<div class=\"tiles section-tiles\">"+section.items.map(item=>"<button class=\"tile\" type=\"button\" data-subpage=\""+item[0]+"\"><span>›</span><b>"+item[1]+"</b></button>").join("")+"</div>";area.querySelectorAll("[data-subpage]").forEach(button=>button.addEventListener("click",()=>render(button.dataset.subpage)));}
