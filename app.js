@@ -1549,14 +1549,19 @@ async function bikeAnalyticsPage(){
    ...siteHourRows.slice(0,12).map(x=>({kind:"site",title:"لا يوجد تسجيل للموقع في ساعة محددة",detail:x.site+" — الساعة "+String(x.hour).padStart(2,"0")+":00"}))
   ];
   const monitorHtml='<div class="card"><h3>شاشة المتابعة الرقابية</h3><p class="muted">مؤشرات مبنية على الزيارات المحفوظة فقط. عبارة «لم يُسجل» لا تعني بالضرورة عدم حدوث مرور فعلي.</p><div class="stats-grid">'+stats([["فواصل 30 دقيقة فأكثر",sameDayGaps.length],["أقل ساعة تسجيلًا",lowHours.length?String(lowHours[0].hour).padStart(2,"0")+":00":"—"],["مواقع ضمن التحليل",siteRows.length],["ملاحظات رقابية",monitoringAlerts.length]])+'</div><h4>الملاحظات والتنبيهات</h4><div class="notice-list">'+(monitoringAlerts.length?monitoringAlerts.map(x=>'<div class="notice" style="margin:7px 0"><b>'+esc(x.title)+'</b><div>'+esc(x.detail)+'</div></div>').join(""):'<p class="muted">لا توجد ملاحظات ضمن البيانات المسجلة لهذه الفترة.</p>')+'</div><h4>أقل ساعات التسجيل</h4><div class="table-wrap"><table><thead><tr><th>الساعة</th><th>عدد الزيارات المسجلة</th></tr></thead><tbody>'+lowHours.map(x=>'<tr><td>'+String(x.hour).padStart(2,"0")+':00</td><td>'+x.count+'</td></tr>').join("")+'</tbody></table></div><h4>المواقع التي لا يظهر لها مرور مسجل في ساعات معينة</h4><div class="table-wrap"><table><thead><tr><th>الموقع</th><th>الساعة</th><th>الزيارات</th></tr></thead><tbody>'+(siteHourRows.slice(0,30).map(x=>'<tr><td>'+esc(x.site)+'</td><td>'+String(x.hour).padStart(2,"0")+':00</td><td>0</td></tr>').join("")||'<tr><td colspan="3">لا توجد بيانات كافية.</td></tr>')+'</tbody></table></div><p class="muted">فواصل عدم التسجيل محسوبة بين زيارتين متتاليتين في اليوم نفسه للدراجة نفسها، ولا تشمل ما قبل أول زيارة أو بعد آخر زيارة.</p></div>';
-  host.insertAdjacentHTML("beforeend",monitorHtml+'<div class="card" id="bikeCustomReportCard"><h3>طباعة تقرير مخصص</h3><p class="muted">اختَر المعلومة التي تريد طباعتها والفترة المطلوبة. لن يتغير أي قالب تقرير موجود.</p><div class="form-grid"><div class="field"><label>نوع التقرير</label><select id="bikeCustomReportType"><option value="gaps">فترات عدم تسجيل المرور</option><option value="hours">أقل ساعات المرور</option><option value="site">متابعة موقع حسب الساعة</option><option value="bike">نشاط دراجة محددة</option><option value="all">ملخص شاشة المتابعة</option></select></div><div class="field"><label>الدراجة</label><select id="bikeCustomReportBike"><option value="">كل الدراجات</option>'+names.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join("")+'</select></div><div class="field"><label>الموقع</label><select id="bikeCustomReportSite"><option value="">كل المواقع</option>'+siteRows.map(x=>'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>').join("")+'</select></div><div class="field"><label>من ساعة</label><select id="bikeCustomReportFromHour">'+Array.from({length:24},(_,h)=>'<option value="'+h+'">'+String(h).padStart(2,"0")+':00</option>').join("")+'</select></div><div class="field"><label>إلى ساعة</label><select id="bikeCustomReportToHour">'+Array.from({length:24},(_,h)=>'<option value="'+h+'">'+String(h).padStart(2,"0")+':00</option>').join("")+'</select></div></div><div class="actions"><button class="primary" id="printBikeCustomReport">تجهيز وطباعة التقرير المحدد</button></div></div>');
-  $("#printBikeCustomReport").onclick=async()=>{
+  host.insertAdjacentHTML("beforeend",monitorHtml+'<div class="card" id="bikeCustomReportCard"><h3>طباعة تقرير مخصص</h3><p class="muted">اختَر المعلومة التي تريد طباعتها والفترة المطلوبة. لن يتغير أي قالب تقرير موجود.</p><div class="form-grid"><div class="field"><label>نوع التقرير</label><select id="bikeCustomReportType"><option value="gaps">فترات عدم تسجيل المرور</option><option value="hours">أقل ساعات المرور</option><option value="site">متابعة موقع حسب الساعة</option><option value="bike">نشاط دراجة محددة</option><option value="all">ملخص شاشة المتابعة</option></select></div><div class="field"><label>الدراجة</label><select id="bikeCustomReportBike"><option value="">كل الدراجات</option>'+names.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join("")+'</select></div><div class="field"><label>الموقع</label><select id="bikeCustomReportSite"><option value="">كل المواقع</option>'+siteRows.map(x=>'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>').join("")+'</select></div><div class="field"><label>من ساعة</label><select id="bikeCustomReportFromHour">'+Array.from({length:24},(_,h)=>'<option value="'+h+'">'+String(h).padStart(2,"0")+':00</option>').join("")+'</select></div><div class="field"><label>إلى ساعة</label><select id="bikeCustomReportToHour">'+Array.from({length:24},(_,h)=>'<option value="'+h+'">'+String(h).padStart(2,"0")+':00</option>').join("")+'</select></div></div><div class="actions"><button class="primary" id="printBikeCustomReport">طباعة التقرير</button><button class="secondary" id="pdfBikeCustomReport">حفظ PDF</button><button class="secondary" id="imageBikeCustomReport">حفظ صورة</button><button class="secondary" id="archiveBikeCustomReport">حفظ في الأرشيف</button></div></div>');
+  let customReportHtml="",customReportArchivePromise=null,customReportArchiveKey="";
+  const buildBikeCustomReport=()=>{
    const type=$("#bikeCustomReportType").value,bike=$("#bikeCustomReportBike").value,site=$("#bikeCustomReportSite").value;
    const fromHour=Number($("#bikeCustomReportFromHour").value),toHour=Number($("#bikeCustomReportToHour").value);
    const inHours=t=>t&&((fromHour<=toHour)?(t.hour>=fromHour&&t.hour<=toHour):(t.hour>=fromHour||t.hour<=toHour));
-   const customHourCounts=Array(24).fill(0);filtered.forEach(r=>{const p=r.payload||{},t=timeParts(p.patrol_time),rowBike=String(p.bike||"").trim(),rowSite=String(p.site||p.branch||p.location||"موقع غير محدد").trim();if(!t||!inHours(t)||(bike&&rowBike!==bike)||(site&&normalize(rowSite)!==normalize(site)))return;customHourCounts[t.hour]++;});const hourRows=customHourCounts.map((count,h)=>({hour:h,count})).filter(x=>inHours({hour:x.hour})).sort((a,b)=>a.count-b.count||a.hour-b.hour);
+   const matchesFilters=r=>{const p=r.payload||{},t=timeParts(p.patrol_time),rowBike=String(p.bike||"").trim(),rowSite=String(p.site||p.branch||p.location||"موقع غير محدد").trim();return !!t&&inHours(t)&&(!bike||rowBike===bike)&&(!site||normalize(rowSite)===normalize(site));};
+   const selected=filtered.filter(matchesFilters);
+   const customHourCounts=Array(24).fill(0);selected.forEach(r=>{const t=timeParts(r.payload?.patrol_time);if(t)customHourCounts[t.hour]++;});
+   const hourRows=customHourCounts.map((count,h)=>({hour:h,count})).filter(x=>inHours({hour:x.hour})).sort((a,b)=>a.count-b.count||a.hour-b.hour);
    const stamp=new Date().toLocaleDateString("ar-EG",{day:"2-digit",month:"long",year:"numeric"});
-   let title="تقرير متابعة الدراجات",sectionTitle="",rows=[],columns=[],summary=[];
+   const fmtDateTime=d=>d.toLocaleString("ar-EG",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit",hour12:true});
+   let title="",sectionTitle="",columns=[],rows=[],summary=[];
    if(type==="gaps"){
     title="تقرير فترات عدم تسجيل المرور";sectionTitle="الفواصل الزمنية بين الزيارات المسجلة";
     const data=sameDayGaps.filter(g=>(!bike||g.bike===bike)&&inHours({hour:g.from.getHours()}));
@@ -1564,50 +1569,69 @@ async function bikeAnalyticsPage(){
     rows=data.map(g=>[g.bike,fmtDateTime(g.from),fmtDateTime(g.to),fmt(g.minutes)]);
     summary=[["عدد الفواصل",data.length],["أقل فاصل",data.length?fmt(Math.min(...data.map(x=>x.minutes))):"—"],["أطول فاصل",data.length?fmt(Math.max(...data.map(x=>x.minutes))):"—"]];
    }else if(type==="hours"){
-    title="تقرير أقل ساعات المرور";sectionTitle="ترتيب جميع الساعات حسب عدد الزيارات المسجلة";
+    title="تقرير أقل ساعات المرور";sectionTitle="جميع الساعات حسب عدد الزيارات المسجلة";
     columns=["الساعة","عدد الزيارات المسجلة"];
     rows=hourRows.map(x=>[String(x.hour).padStart(2,"0")+":00",x.count]);
     summary=[["الساعات المشمولة",hourRows.length],["أقل عدد زيارات",hourRows.length?Math.min(...hourRows.map(x=>x.count)):"—"],["أعلى عدد زيارات",hourRows.length?Math.max(...hourRows.map(x=>x.count)):"—"]];
    }else if(type==="site"){
     title="تقرير متابعة موقع حسب الساعة";sectionTitle="تفاصيل المرور المسجل للموقع";
-    const data=filtered.filter(r=>(!site||String(r.payload?.site||r.payload?.branch||r.payload?.location||"")===site)&&(!bike||String(r.payload?.bike||"")===bike)&&inHours(timeParts(r.payload?.patrol_time))).sort((a,b)=>(dateTimeOf(a)||0)-(dateTimeOf(b)||0));
+    const data=selected.filter(r=>!site||normalize(String(r.payload?.site||r.payload?.branch||r.payload?.location||""))===normalize(site)).sort((a,b)=>(dateTimeOf(a)||0)-(dateTimeOf(b)||0));
     columns=["التاريخ","الوقت","الموقع","الدراجة","القائم بالمرور"];
     rows=data.map(r=>[r.payload.patrol_date||"",r.payload.patrol_time||"",r.payload.site||r.payload.branch||r.payload.location||"",r.payload.bike||"",r.payload.person||"غير مسجل"]);
     summary=[["عدد الزيارات",data.length],["الموقع",site||"كل المواقع"],["الدراجة",bike||"كل الدراجات"]];
-    if(!rows.length)rows=[["لا توجد زيارات مسجلة في الساعات المحددة","","","",""]];
    }else if(type==="bike"){
     title="تقرير نشاط الدراجة";sectionTitle="سجل الزيارات المسجلة";
-    const data=filtered.filter(r=>(!bike||String(r.payload?.bike||"")===bike)&&inHours(timeParts(r.payload?.patrol_time))).sort((a,b)=>(dateTimeOf(a)||0)-(dateTimeOf(b)||0));
+    const data=selected.sort((a,b)=>(dateTimeOf(a)||0)-(dateTimeOf(b)||0));
     columns=["التاريخ","الوقت","الدراجة","الموقع","القائم بالمرور"];
     rows=data.map(r=>[r.payload.patrol_date||"",r.payload.patrol_time||"",r.payload.bike||"",r.payload.site||r.payload.branch||r.payload.location||"",r.payload.person||"غير مسجل"]);
     summary=[["عدد الزيارات",data.length],["الدراجة",bike||"كل الدراجات"],["الفترة",from+" إلى "+to]];
-    if(!rows.length)rows=[["لا توجد زيارات مسجلة في الساعات المحددة","","","",""]];
    }else{
     title="ملخص شاشة المتابعة الرقابية";sectionTitle="الملاحظات والتنبيهات";
     columns=["نوع الملاحظة","التفاصيل"];
     rows=monitoringAlerts.map(x=>[x.title,x.detail]);
     summary=[["فواصل 30 دقيقة فأكثر",sameDayGaps.length],["مواقع ضمن التحليل",siteRows.length],["ملاحظات رقابية",monitoringAlerts.length]];
-    if(!rows.length)rows=[["لا توجد ملاحظات","لا توجد ملاحظات ضمن السجلات المحددة."]];
    }
-   if(!rows.length)rows=[["لا توجد بيانات مسجلة","","","",""]];
-   const escCell=v=>esc(String(v??"—"));
-   const table='<table><thead><tr>'+columns.map(x=>'<th>'+escCell(x)+'</th>').join("")+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+row.map((v,i)=>'<td'+(i===0&&row.length>2?'':'')+'>'+escCell(v)+'</td>').join("")+'</tr>').join("")+'</tbody></table>';
-   const meta='<div class="bike-meta"><div><span>الفترة</span><b>'+escCell(from+" إلى "+to)+'</b></div><div><span>نطاق الساعات</span><b>'+String(fromHour).padStart(2,"0")+":00 إلى "+String(toHour).padStart(2,"0")+':00</b></div><div><span>الدراجة</span><b>'+escCell(bike||"كل الدراجات")+'</b></div><div><span>الموقع</span><b>'+escCell(site||"كل المواقع")+'</b></div><div><span>تاريخ إصدار التقرير</span><b>'+escCell(stamp)+'</b></div><div><span>مصدر البيانات</span><b>سجلات DEEB المحفوظة</b></div></div>';
-   const summaryHtml=summary.map(x=>'<div><span>'+escCell(x[0])+'</span><b>'+escCell(x[1])+'</b></div>').join("");
-   if(type==="hours"){
-    const counts=Array.from({length:24},(_,hour)=>({hour,count:Number(peakHours[hour]||0)})).filter(x=>inHours({hour:x.hour}));
-    body='<table><thead><tr><th>الساعة</th><th>عدد الزيارات المسجلة</th></tr></thead><tbody>'+(counts.length?counts.map(x=>'<tr><td>'+String(x.hour).padStart(2,"0")+':00</td><td>'+x.count+'</td></tr>').join(""):'<tr><td colspan="2">لا توجد ساعات ضمن النطاق المحدد</td></tr>')+'</tbody></table>';
-   }
-   if(!body || !body.includes("<table")) body='<p class="note">لا توجد سجلات مطابقة للفترة والفلاتر المحددة.</p>'+body;
-   const html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DEEB | '+escCell(title)+'</title><style>*{box-sizing:border-box}body{direction:rtl;font-family:Tahoma,Arial,sans-serif;color:#10275b;margin:0;padding:12mm;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.head{border-bottom:3px solid #c99a32;padding-bottom:10px;display:flex;justify-content:space-between;align-items:center}.brand{font:900 34px Georgia;color:#073b28}.tag{color:#073b28;font-weight:bold}.heading{margin:14px 0;padding:12px;background:#fbf4e6;border:1px solid #c99a32;text-align:center}.heading h1{margin:0;background:#760f25;color:#fff;border:2px solid #c99a32;padding:9px;font-size:22px}table{width:100%;border-collapse:collapse;margin-top:12px}th{background:#073b28;color:#fff}th,td{border:1px solid #c99a32;padding:8px;text-align:center}tr:nth-child(even){background:#fbf4e6}.note{margin-top:12px;color:#073b28;font-size:12px}@page{size:A4 portrait;margin:8mm}</style></head><body><div class="head"><div><div class="brand">DEEB</div><b>تقارير رسمي</b></div><div class="tag">نظام متابعة التشغيل والدوريات</div></div><div class="heading"><h1>'+escCell(title)+'</h1></div><p>الفترة: '+escCell(from)+' إلى '+escCell(to)+'</p>'+body+'<p class="note">يعرض التقرير ما هو محفوظ في سجلات DEEB فقط. «لم يُسجل مرور» لا تعني الجزم بعدم حدوثه.</p></body></html>';
-   const reportKey=[type,bike,site,from,to,fromHour,toHour,filtered.map(r=>r.id+":"+r.updated_at).join("|")].join("::");
-   let reportHash=2166136261;for(let i=0;i<reportKey.length;i++){reportHash^=reportKey.charCodeAt(i);reportHash=Math.imul(reportHash,16777619);}
-   await DebooDB.archiveReport({title,report_type:"bike_custom_"+type,from_date:from,to_date:to,html,dedupe_key:"deeb-bike-custom-"+(reportHash>>>0).toString(16),meta:{bike,site,from_hour:fromHour,to_hour:toHour,record_count:filtered.length,records:filtered.map(r=>({id:r.id,created_at:r.created_at,payload:r.payload||{}}))}});
-   const native=window.DEEBNativePlugins?.FileExport;
-   if(!native?.printHtml)throw new Error("خدمة الطباعة الأصلية غير متاحة في هذه النسخة. لن يتم فتح Chrome.");
-   const result=await native.printHtml({html});
-   if(result?.started!==true)throw new Error("لم تبدأ خدمة الطباعة على الجهاز.");
-   toast("تم إرسال التقرير إلى خدمة الطباعة المعتمدة.");
+   if(!rows.length)rows=[["لا توجد بيانات مسجلة ضمن الفلاتر المحددة"]];
+   const cell=v=>esc(String(v??"—"));
+   const table='<table class="report-table"><thead><tr>'+columns.map(x=>'<th>'+cell(x)+'</th>').join("")+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+row.map(v=>'<td>'+cell(v)+'</td>').join("")+'</tr>').join("")+'</tbody></table>';
+   const metrics=summary.map(x=>'<div class="metric"><span>'+cell(x[0])+'</span><b>'+cell(x[1])+'</b></div>').join("");
+   const period=from+" إلى "+to,range=String(fromHour).padStart(2,"0")+":00 إلى "+String(toHour).padStart(2,"0")+":00";
+   const meta='<div class="overview"><div class="overview-item"><span>الفترة</span><b>'+cell(period)+'</b></div><div class="overview-item"><span>نطاق الساعات</span><b>'+cell(range)+'</b></div><div class="overview-item"><span>الدراجة</span><b>'+cell(bike||"كل الدراجات")+'</b></div><div class="overview-item"><span>الموقع</span><b>'+cell(site||"كل المواقع")+'</b></div><div class="overview-item"><span>تاريخ الإصدار</span><b>'+cell(stamp)+'</b></div><div class="overview-item"><span>مصدر البيانات</span><b>سجلات DEEB المحفوظة</b></div></div>';
+   customReportHtml='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DEEB | '+cell(title)+'</title><style>*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}html,body{margin:0;background:#fff;color:#10275b;font:14px/1.8 Tahoma,Arial,sans-serif;direction:rtl}.sheet{width:204mm;max-width:100%;margin:0 auto;padding:4mm 3mm 0}.brand{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #c99a32;padding:4px 0 8px;margin:2mm 0 12px}.brand-left{display:flex;align-items:center;gap:12px}.brand-name{font:bold 34px Georgia;color:#073b28}.official-tag{font-size:15px;font-weight:800;color:#10275b}.brand-tag{font-weight:800;color:#073b28}h1{position:relative;text-align:center;color:#fff;font-weight:900;background:linear-gradient(90deg,#650b1c,#8b1429 50%,#650b1c);border:3px solid #c99a32;border-radius:32px;padding:9px 18px;margin:12px 0}.subtitle{text-align:center;color:#073b28;font-weight:700}.overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:12px 0}.overview-item,.metric{background:#fbf4e6;border:1.5px solid #c99a32;padding:8px;text-align:center;border-radius:5px;min-width:0}.overview-item span,.metric span{display:block;color:#073b28;font-weight:800}.overview-item b,.metric b{display:block;color:#10275b;font-weight:800;overflow-wrap:anywhere}.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:10px 0}.section-title{color:#fff;background:#073b28;border-right:5px solid #c99a32;padding:8px 12px;margin:14px 0 8px;font-weight:900}.report-table{width:100%;border-collapse:collapse;table-layout:auto;margin:8px 0}.report-table th{background:#073b28;color:#fff;border:1.5px solid #c99a32;padding:7px 5px}.report-table td{border:1.5px solid #c99a32;padding:7px 5px;text-align:center;color:#000;font-weight:700;overflow-wrap:anywhere}.report-table tbody tr:nth-child(even){background:#f6ead2}.footer{display:flex;justify-content:space-between;gap:10px;border-top:3px solid #c99a32;margin-top:14px;padding-top:8px;color:#10275b;font-weight:800}.note{margin-top:10px;color:#073b28;font-size:12px}@page{size:A4 portrait;margin:2mm 3mm 1mm}@media print{html,body{width:auto;margin:0}.sheet{width:204mm;max-width:204mm;margin:0 auto;padding:4mm 3mm 0}.report-table tr{break-inside:avoid;page-break-inside:avoid}}@media(max-width:600px){.overview,.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.brand-tag{font-size:11px}.report-table th,.report-table td{font-size:11px;padding:5px 3px}}</style></head><body><main class="sheet"><div class="brand"><div class="brand-left"><div class="brand-name">DEEB</div><div class="official-tag">تقارير رسمي</div></div><div class="brand-tag">نظام متابعة التشغيل والدوريات</div></div><h1>'+cell(title)+'</h1><p class="subtitle">'+cell(sectionTitle)+'</p>'+meta+'<div class="metrics">'+metrics+'</div><h2 class="section-title">تفاصيل التقرير</h2>'+table+'<p class="note">يعرض التقرير ما هو محفوظ في سجلات DEEB فقط. «لم يُسجل مرور» لا تعني الجزم بعدم حدوثه.</p><div class="footer"><span>تم إنشاء هذا التقرير بواسطة DEEB</span><span>اعتماد المسؤول: __________________</span></div></main></body></html>';
+   return {type,bike,site,fromHour,toHour,title,html:customReportHtml,selected};
+  };
+  const archiveBikeCustomReport=async()=>{
+   const data=buildBikeCustomReport();
+   const key=[data.type,data.bike,data.site,from,to,data.fromHour,data.toHour,data.selected.map(r=>r.id+":"+r.updated_at).join("|")].join("::");
+   if(key===customReportArchiveKey&&customReportArchivePromise)return customReportArchivePromise;
+   let hash=2166136261;for(let i=0;i<key.length;i++){hash^=key.charCodeAt(i);hash=Math.imul(hash,16777619);}
+   customReportArchiveKey=key;
+   customReportArchivePromise=DebooDB.archiveReport({title:data.title,report_type:"bike_custom_"+data.type,from_date:from,to_date:to,html:data.html,dedupe_key:"deeb-bike-custom-"+(hash>>>0).toString(16),meta:{bike:data.bike,site:data.site,from_hour:data.fromHour,to_hour:data.toHour,record_count:data.selected.length,records:data.selected.map(r=>({id:r.id,created_at:r.created_at,payload:r.payload||{}}))}}).catch(error=>{customReportArchiveKey="";customReportArchivePromise=null;throw error;});
+   return customReportArchivePromise;
+  };
+  const withCustomReportButton=async(buttonId,action)=>{
+   const button=$("#"+buttonId);if(!button)return;const old=button.textContent;button.disabled=true;
+   try{const data=buildBikeCustomReport();await archiveBikeCustomReport();await action(data);toast("تم تجهيز التقرير بنجاح.");}
+   catch(error){toast("تعذر تجهيز التقرير: "+(error?.message||error));}
+   finally{button.disabled=false;button.textContent=old;}
+  };
+  $("#printBikeCustomReport").onclick=()=>withCustomReportButton("printBikeCustomReport",async data=>{
+   const native=window.DEEBNativePlugins?.FileExport;if(!native?.printHtml)throw new Error("خدمة الطباعة الأصلية غير متاحة في هذه النسخة.");
+   const result=await native.printHtml({html:data.html});if(result?.started!==true)throw new Error("لم تبدأ خدمة الطباعة على الجهاز.");
+  });
+  $("#pdfBikeCustomReport").onclick=()=>withCustomReportButton("pdfBikeCustomReport",async data=>{
+   const native=window.DEEBNativePlugins?.FileExport;if(!native?.saveHtmlAsPdf)throw new Error("حفظ PDF المباشر غير متاح في هذه النسخة.");
+   const result=await native.saveHtmlAsPdf({html:data.html,name:"DEEB-bike-custom-"+data.type+"-"+from+"-"+to});if(result?.saved!==true)throw new Error("لم يؤكد النظام حفظ ملف PDF.");
+  });
+  $("#imageBikeCustomReport").onclick=()=>withCustomReportButton("imageBikeCustomReport",async data=>{
+   const native=window.DEEBNativePlugins?.FileExport;if(!native?.saveHtmlAsImages)throw new Error("حفظ الصورة متاح من تطبيق DEEB على أندرويد.");
+   const result=await native.saveHtmlAsImages({html:data.html,name:"DEEB-bike-custom-"+data.type+"-"+from+"-"+to});if(result?.saved!==true||!Number.isInteger(result.count)||result.count<1)throw new Error("لم يؤكد النظام حفظ الصورة.");
+  });
+  $("#archiveBikeCustomReport").onclick=async()=>{
+   const button=$("#archiveBikeCustomReport"),old=button.textContent;button.disabled=true;
+   try{await archiveBikeCustomReport();toast("تم حفظ التقرير المحدد في الأرشيف.");}
+   catch(error){toast("تعذر حفظ التقرير: "+(error?.message||error));}
+   finally{button.disabled=false;button.textContent=old;}
   };
   renderBikeSiteHeatMap("bikeSiteHeatMap",geoPoints);
   let heatReportHtml="",heatArchivePromise=null,heatArchiveKey="";
