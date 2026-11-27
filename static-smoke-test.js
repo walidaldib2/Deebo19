@@ -651,7 +651,7 @@ if(!app.includes('id="printBikeHeatMapReport"') || !app.includes('id="saveBikeHe
 const customActionStart=app.indexOf('const withCustomReportButton=async(buttonId,action)=>');
 const customActionEnd=app.indexOf('$("#printBikeCustomReport").onclick',customActionStart);
 const customActionSource=customActionStart>=0&&customActionEnd>customActionStart?app.slice(customActionStart,customActionEnd):'';
-if(!customActionSource.includes('try{await archiveBikeCustomReport();') ||
+if(!customActionSource.includes('try{await archiveBikeCustomReport(data);') ||
    !customActionSource.includes('catch(archiveError)') ||
    !customActionSource.includes('await action(data)') ||
    customActionSource.indexOf('await action(data)')<customActionSource.indexOf('catch(archiveError)')) {
@@ -659,7 +659,7 @@ if(!customActionSource.includes('try{await archiveBikeCustomReport();') ||
 }
 
 const customHoursStart=app.indexOf('const buildBikeCustomReport=()=>');
-const customHoursEnd=app.indexOf('const archiveBikeCustomReport=async()=>',customHoursStart);
+const customHoursEnd=app.indexOf('const archiveBikeCustomReport=async(reportData=null)=>',customHoursStart);
 const customHoursSource=customHoursStart>=0&&customHoursEnd>customHoursStart?app.slice(customHoursStart,customHoursEnd):'';
 if(!customHoursSource.includes('title="تقرير أقل ساعات المرور"') ||
    !customHoursSource.includes('columns=["الساعة","عدد الزيارات المسجلة"]') ||
