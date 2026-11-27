@@ -1649,15 +1649,21 @@ async function bikeAnalyticsPage(){
   };
   const withCustomReportButton=async(buttonId,action)=>{
    const button=$("#"+buttonId);if(!button)return;const old=button.textContent;button.disabled=true;
+   let stage="بناء بيانات التقرير";
    try{
     const data=buildBikeCustomReport();
     let archiveWarning="";
+    stage="حفظ نسخة الأرشيف";
     try{await archiveBikeCustomReport();}
     catch(archiveError){console.error("DEEB custom report archive failed; continuing with requested export",archiveError);archiveWarning=" التقرير جاهز، لكن تعذر حفظه في الأرشيف.";}
+    stage="تنفيذ التصدير";
     await action(data);
     toast(archiveWarning?"تم تجهيز التقرير بنجاح؛"+archiveWarning:"تم تجهيز التقرير بنجاح.");
-   }catch(error){console.error("DEEB custom report preparation failed",error);toast("تعذر تجهيز التقرير: "+(error?.message||error));}
-   finally{button.disabled=false;button.textContent=old;}
+   }catch(error){
+    console.error("DEEB custom report failed at "+stage,error);
+    const detail=error?.message||String(error||"خطأ غير محدد");
+    toast("تعذر التقرير في مرحلة "+stage+": "+detail);
+   }finally{button.disabled=false;button.textContent=old;}
   };
   $("#printBikeCustomReport").onclick=()=>withCustomReportButton("printBikeCustomReport",async data=>{
    const native=window.DEEBNativePlugins?.FileExport;if(!native?.printHtml)throw new Error("خدمة الطباعة الأصلية غير متاحة في هذه النسخة.");
