@@ -6,6 +6,7 @@ const CORE = [
   "./style.css",
   "./app.js",
   "./document-tools.js",
+  "./scanner.js",
   "./ocr/tesseract.min.js",
   "./ocr/worker.min.js",
   "./ocr/core/tesseract-core.wasm.js",
