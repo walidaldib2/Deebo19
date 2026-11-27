@@ -1603,16 +1603,17 @@ async function bikeAnalyticsPage(){
    let hoursHeatmapHtml="";
    if(type==="hours"){
     const selectedHeat=Array.from({length:7},()=>Array(24).fill(0));
-    selected.forEach(r=>{
-     const p=r.payload||{},t=timeParts(p.patrol_time),date=String(p.patrol_date||"").slice(0,10);
-     if(!t||!/^\\d{4}-\\d{2}-\\d{2}$/.test(date))return;
-     const d=new Date(date+"T12:00:00");
-     if(!Number.isNaN(d.getTime()))selectedHeat[d.getDay()][t.hour]++;
-    });
+    const selectedDates=[...new Set(selected.map(r=>String(r.payload?.patrol_date||"").slice(0,10)).filter(d=>/^\\d{4}-\\d{2}-\\d{2}$/.test(d)))].sort();
+    const weekDays=new Map();
+    selectedDates.forEach(date=>{const d=new Date(date+"T12:00:00");if(!Number.isNaN(d.getTime()))weekDays.set(date,d.getDay());});
+    selected.forEach(r=>{const p=r.payload||{},t=timeParts(p.patrol_time),date=String(p.patrol_date||"").slice(0,10);if(!t||!weekDays.has(date)||!inHours(t))return;selectedHeat[weekDays.get(date)][t.hour]++;});
+    const shiftHours=[];
+    if(fromHour<=toHour){for(let h=fromHour;h<=toHour;h++)shiftHours.push(h);}else{for(let h=fromHour;h<24;h++)shiftHours.push(h);for(let h=0;h<=toHour;h++)shiftHours.push(h);}
     const maxSelectedHeat=Math.max(1,...selectedHeat.flat());
-    const hourHead=Array.from({length:24},(_,h)=>'<th style="min-width:6mm;padding:2px 0;background:#073b28;color:#fff;font-size:7px">'+String(h).padStart(2,"0")+'</th>').join("");
-    const hourBody=selectedHeat.map((day,h)=>'<tr><th style="white-space:nowrap;padding:3px 5px;background:#073b28;color:#fff;font-size:8px">'+cell(dayNames[h])+'</th>'+day.map(count=>'<td style="min-width:6mm;padding:3px 0;text-align:center;border:1px solid #c99a32;font-size:8px;font-weight:800;background:rgba(139,20,41,'+(count?(.12+.78*count/maxSelectedHeat):.035)+');color:'+(count/maxSelectedHeat>.55?'#fff':'#10275b')+'">'+(count||"·")+'</td>').join("")+'</tr>').join("");
-    hoursHeatmapHtml='<section style="margin:12px 0 16px;page-break-inside:avoid;break-inside:avoid"><h2 style="margin:0 0 6px;padding:7px 10px;background:#073b28;color:#fff;border-right:5px solid #c99a32;font-size:14px">الخريطة الحرارية لساعات المرور</h2><p style="margin:0 0 6px;color:#073b28;font-size:10px">عدد الزيارات المسجلة حسب يوم الأسبوع والساعة؛ اللون الأغمق يعني عددًا أكبر.</p><div style="width:100%;overflow:visible"><table style="width:100%;table-layout:fixed;border-collapse:collapse;direction:rtl"><thead><tr><th style="width:13mm;padding:3px;background:#073b28;color:#fff;font-size:8px">اليوم / الساعة</th>'+hourHead+'</tr></thead><tbody>'+hourBody+'</tbody></table></div><p style="margin:5px 0 0;color:#073b28;font-size:9px">الخريطة مبنية على السجلات المطابقة لفلاتر هذا التقرير فقط.</p></section>';
+    const dayIndexes=[...new Set([...weekDays.values()])].sort((x,y)=>x-y);
+    const hourHead=shiftHours.map(h=>'<th style="min-width:9mm;padding:3px 2px;background:#073b28;color:#fff;font-size:8px">'+String(h).padStart(2,"0")+":00</th>").join("");
+    const hourBody=dayIndexes.map(day=>'<tr><th style="white-space:nowrap;padding:4px 6px;background:#073b28;color:#fff;font-size:9px">'+cell(dayNames[day])+'</th>'+shiftHours.map(h=>{const count=selectedHeat[day][h];return '<td style="min-width:9mm;padding:4px 2px;text-align:center;border:1px solid #c99a32;font-size:9px;font-weight:800;background:rgba(139,20,41,'+(count?(.12+.78*count/maxSelectedHeat):.035)+');color:'+(count/maxSelectedHeat>.55?'#fff':'#10275b')+'">'+count+'</td>';}).join("")+'</tr>').join("");
+    hoursHeatmapHtml='<section style="margin:12px 0 16px;page-break-inside:avoid;break-inside:avoid"><h2 style="margin:0 0 6px;padding:7px 10px;background:#073b28;color:#fff;border-right:5px solid #c99a32;font-size:14px">الخريطة الحرارية لساعات المرور</h2><p style="margin:0 0 6px;color:#073b28;font-size:10px">أيام الفترة المختارة فقط: '+cell(period)+' — ساعات الشفت: '+cell(range)+'؛ كل خلية تعرض عدد الزيارات المسجلة، واللون الأغمق يعني كثافة أعلى.</p><div style="width:100%;overflow:visible"><table style="width:100%;table-layout:fixed;border-collapse:collapse;direction:rtl"><thead><tr><th style="width:18mm;padding:4px;background:#073b28;color:#fff;font-size:8px">اليوم / الساعة</th>'+hourHead+'</tr></thead><tbody>'+hourBody+'</tbody></table></div><p style="margin:5px 0 0;color:#073b28;font-size:9px">الخريطة تعرض الأيام التي تقع داخل الفترة المحددة فقط، وساعات الشفت المحددة فقط، وبالاعتماد على السجلات المطابقة لفلاتر التقرير.</p></section>';
    }
    const cell=v=>esc(String(v??"—"));
    const table='<table class="report-table"><thead><tr>'+columns.map(x=>'<th>'+cell(x)+'</th>').join("")+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+row.map(v=>'<td>'+cell(v)+'</td>').join("")+'</tr>').join("")+'</tbody></table>';
