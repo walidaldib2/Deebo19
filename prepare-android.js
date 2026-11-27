@@ -41,13 +41,14 @@ async function main() {
   fs.copyFileSync(worker, path.join(ocrRoot, "worker.min.js"));
   fs.copyFileSync(api, path.join(ocrRoot, "tesseract.min.js"));
   for (const name of fs.readdirSync(coreDir)) {
-    if (/^tesseract-core.*\\.(?:js|wasm)$/.test(name)) {
+    if (/^tesseract-core.*\.(?:js|wasm)$/.test(name)) {
       fs.copyFileSync(path.join(coreDir, name), path.join(ocrRoot, "core", name));
     }
   }
   const requiredCore = [
     "tesseract-core.wasm.js", "tesseract-core-simd.wasm.js",
-    "tesseract-core-lstm.wasm.js", "tesseract-core-simd-lstm.wasm.js"
+    "tesseract-core-lstm.wasm.js", "tesseract-core-simd-lstm.wasm.js",
+    "tesseract-core-relaxedsimd.wasm.js", "tesseract-core-relaxedsimd-lstm.wasm.js"
   ];
   for (const name of requiredCore) {
     if (!fs.existsSync(path.join(ocrRoot, "core", name))) throw new Error("Missing Tesseract core asset: " + name);
