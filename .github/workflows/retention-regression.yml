@@ -3,6 +3,8 @@ name: DEEB retention regression tests
 on:
   pull_request:
     branches: [malek]
+  push:
+    branches: [fix/historical-record-retention]
   workflow_dispatch:
 
 permissions:
