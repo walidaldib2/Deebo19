@@ -1639,8 +1639,14 @@ async function bikeAnalyticsPage(){
   };
   const withCustomReportButton=async(buttonId,action)=>{
    const button=$("#"+buttonId);if(!button)return;const old=button.textContent;button.disabled=true;
-   try{const data=buildBikeCustomReport();await archiveBikeCustomReport();await action(data);toast("تم تجهيز التقرير بنجاح.");}
-   catch(error){toast("تعذر تجهيز التقرير: "+(error?.message||error));}
+   try{
+    const data=buildBikeCustomReport();
+    let archiveWarning="";
+    try{await archiveBikeCustomReport();}
+    catch(archiveError){console.error("DEEB custom report archive failed; continuing with requested export",archiveError);archiveWarning=" التقرير جاهز، لكن تعذر حفظه في الأرشيف.";}
+    await action(data);
+    toast(archiveWarning?"تم تجهيز التقرير بنجاح؛"+archiveWarning:"تم تجهيز التقرير بنجاح.");
+   }catch(error){console.error("DEEB custom report preparation failed",error);toast("تعذر تجهيز التقرير: "+(error?.message||error));}
    finally{button.disabled=false;button.textContent=old;}
   };
   $("#printBikeCustomReport").onclick=()=>withCustomReportButton("printBikeCustomReport",async data=>{
