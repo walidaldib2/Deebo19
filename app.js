@@ -1647,8 +1647,8 @@ async function bikeAnalyticsPage(){
    customReportBuildStep="اكتمل بناء التقرير";
    return {type,bike,site,fromHour,toHour,title,html:customReportHtml,selected};
   };
-  const archiveBikeCustomReport=async()=>{
-   const data=buildBikeCustomReport();
+  const archiveBikeCustomReport=async(reportData=null)=>{
+   const data=reportData||buildBikeCustomReport();
    const key=[data.type,data.bike,data.site,from,to,data.fromHour,data.toHour,data.selected.map(r=>r.id+":"+r.updated_at).join("|")].join("::");
    if(key===customReportArchiveKey&&customReportArchivePromise)return customReportArchivePromise;
    let hash=2166136261;for(let i=0;i<key.length;i++){hash^=key.charCodeAt(i);hash=Math.imul(hash,16777619);}
@@ -1663,7 +1663,7 @@ async function bikeAnalyticsPage(){
     const data=buildBikeCustomReport();
     let archiveWarning="";
     stage="حفظ نسخة الأرشيف";
-    try{await archiveBikeCustomReport();}
+    try{await archiveBikeCustomReport(data);}
     catch(archiveError){console.error("DEEB custom report archive failed; continuing with requested export",archiveError);archiveWarning=" التقرير جاهز، لكن تعذر حفظه في الأرشيف.";}
     stage="تنفيذ التصدير";
     await action(data);
