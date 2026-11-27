@@ -11,7 +11,7 @@ bikes:[["number","رقم الدراجة","text",1],["code","كود الدراج�
 patrol_sites:[["name","اسم المكان","text",1],["site_type","نوع المكان","select","مخزن|معرض|مركز خدمة",1],["address","العنوان / الوصف","text"],["lat","خط العرض","number"],["lng","خط الطول","number"],["notes","ملاحظات","textarea"]],
 managers:[["name","اسم المدير","text",1],["department","القسم","text"],["phone","رقم التواصل","tel"],["branches","الفروع التابعة","text"]],
 branch_patrols:[["branch","الفرع","text",1],["supervisor","المشرف","text",1],["responsible","المسؤول","text"],["patrol_date","تاريخ المرور","date",1],["patrol_time","ساعة المرور","time",1],["condition","حالة الفرع","select","جيد|ملاحظات|مخالفة|مغلق"],["notes","الملاحظات","textarea"]],
-bike_patrols:[["bike","الدراجة","text",1],["person","اسم الفرد القائم بالمرور","text",1],["patrol_date","تاريخ المرور","date",1],["site_type","نوع المكان","select","مخزن|معرض|مركز خدمة",1],["site","تفاصيل المكان","text",1],["patrol_time","توقيت الوصول","time",1],["location_url","رابط موقع واتساب","url"],["lat","خط العرض","number"],["lng","خط الطول","number"],["notes","ملاحظات","textarea"]],
+bike_patrols:[["shift","الشفت","select","صباحي|مسائي|ليلي",1],["bike","الدراجة","text",1],["person","اسم الفرد القائم بالمرور","text",1],["patrol_date","تاريخ المرور","date",1],["site_type","نوع المكان","select","مخزن|معرض|مركز خدمة",1],["site","تفاصيل المكان","text",1],["patrol_time","توقيت الوصول","time",1],["location_url","رابط موقع واتساب","url"],["lat","خط العرض","number"],["lng","خط الطول","number"],["notes","ملاحظات","textarea"]],
 manager_rounds:[["manager","مدير القسم","text",1],["department","القسم","text"],["branches","الفروع التي تمت زيارتها","text"],["patrol_date","تاريخ المرور","date",1],["patrol_time","توقيت المرور","time",1],["result","نتيجة المرور","textarea"]],
 incidents:[["incident_type","نوع البلاغ","select","أمني|تشغيلي|فني|إداري|حادث|أخرى",1],["incident_date","تاريخ البلاغ","date",1],["incident_time","وقت البلاغ","time",1],["branch","الفرع / الموقع","text"],["responsible","المسؤول","text"],["priority","الأولوية","select","عاجل|مرتفع|متوسط|منخفض"],["status","الحالة","select","جديد|قيد المعالجة|بانتظار إجراء|مغلق"],["description","وصف البلاغ","textarea",1],["lat","خط العرض","number"],["lng","خط الطول","number"],["action_taken","الإجراءات المتخذة","textarea"]],
 tasks:[["title","عنوان المهمة","text",1],["responsible","المسؤول","text"],["branch","الفرع","text"],["start_date","تاريخ البداية","date"],["due_date","تاريخ النهاية","date"],["priority","الأولوية","select","عاجل|مرتفع|متوسط|منخفض"],["status","الحالة","select","جديدة|جارية|مكتملة|متأخرة"],["progress","نسبة الإنجاز %","number"],["notes","ملاحظات","textarea"]],
@@ -410,6 +410,28 @@ function renderEntity(type){
   renderEntity(type);
  });
  bindAutocomplete();
+ if(type==="bike_patrols"){
+  const form=$("#recordForm"),bike=form?.elements.namedItem("bike"),person=form?.elements.namedItem("person"),date=form?.elements.namedItem("patrol_date"),shift=form?.elements.namedItem("shift");
+  const status=document.createElement("small");status.id="bikeAssignmentStatus";status.className="muted";status.style.display="block";status.style.marginTop="6px";
+  person?.closest(".field")?.appendChild(status);
+  const syncBikeAssignment=()=>{
+   if(!form||!bike||!person||!date||!shift)return;
+   const linked=findBikeShiftAssignment(date.value,shift.value,bike.value);
+   if(linked){
+    if(!person.value||person.dataset.autoAssignment==="1"){
+     person.value=String(linked.person.payload?.name||"");
+     person.dataset.autoAssignment="1";
+    }
+    status.textContent=person.value===String(linked.person.payload?.name||"")?"تم ربط الراكب بتوزيع الشفت المحفوظ.":"يوجد راكب محدد لهذا الشفت؛ الاختيار الحالي مختلف ويمكنك تغييره يدويًا.";
+   }else{
+    if(person.dataset.autoAssignment==="1"){person.value="";person.dataset.autoAssignment="";}
+    status.textContent="لا يوجد توزيع محفوظ لهذه الدراجة في التاريخ والشفت المحددين؛ يمكنك اختيار الفرد يدويًا أو حفظ التوزيع أولًا.";
+   }
+  };
+  [bike,date,shift].forEach(el=>el?.addEventListener("change",syncBikeAssignment));
+  person?.addEventListener("change",()=>{person.dataset.autoAssignment="";syncBikeAssignment();});
+  syncBikeAssignment();
+ }
  $("#branchPatrolDateFilter")?.addEventListener("change",event=>{selectedBranchPatrolDate=event.target.value;renderEntity("branch_patrols");});
  bindPatrolLocationInput(type);
  bindLocationCapture(type);
@@ -500,6 +522,20 @@ function renderEntity(type){
   if(["daily_rosters","bike_shift_assignments"].includes(type)&&(!payload.work_date||!payload.shift)){toast("حدد تاريخ الشفت ونوعه.");return;}
   if(type==="bike_shift_assignments"&&(!payload.assignments.length||payload.assignments.some(a=>!a.person_id))){toast("اختَر الفرد الراكب لكل دراجة مسجلة قبل الحفظ.");return;}
   if(type==="bike_patrols"&&!payload.patrol_date){const oldDate=currentEdit?.payload?.patrol_date||String(currentEdit?.payload?.patrol_time||"").slice(0,10);const now=new Date();payload.patrol_date=oldDate||[now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0")].join("-");}
+  if(type==="bike_patrols"){
+   const linked=findBikeShiftAssignment(payload.patrol_date,payload.shift,payload.bike);
+   if(linked){
+    payload.assignment_id=linked.record.id;
+    payload.assigned_bike_id=linked.bike.id;
+    payload.assigned_person_id=linked.person.id;
+    payload.assignment_status=String(payload.person||"")===String(linked.person.payload?.name||"")?"مرتبط بتوزيع الشفت":"تغيير يدوي عن توزيع الشفت";
+   }else{
+    payload.assignment_id="";
+    payload.assigned_bike_id="";
+    payload.assigned_person_id="";
+    payload.assignment_status="لا يوجد توزيع محفوظ مطابق للشفت";
+   }
+  }
   if(type==="branches"&&!payload.name){if(status)status.textContent="اكتب اسم الفرع أولًا.";toast("اسم الفرع مطلوب.");form.elements.namedItem("name")?.focus();return;}
   const files=[...($("#documentFiles")?.files||[])];
   const oversizedFile=files.find(file=>file.size>15*1024*1024);
@@ -577,6 +613,20 @@ function comparePatrolTimes(a,b){
  if(av!==null&&bv===null)return -1;
  if(av===null&&bv!==null)return 1;
  return String(a||"").localeCompare(String(b||""),"ar");
+}
+function findBikeShiftAssignment(workDate,shift,bikeNumber){
+ if(!workDate||!shift||!bikeNumber)return null;
+ const bikes=cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived);
+ const bike=bikes.find(x=>String(x.payload?.number||"").trim()===String(bikeNumber).trim());
+ if(!bike)return null;
+ const assignments=cache.filter(x=>x.entity_type==="bike_shift_assignments"&&!x.is_archived&&String(x.payload?.work_date||"").slice(0,10)===String(workDate).slice(0,10)&&String(x.payload?.shift||"")===String(shift));
+ for(const record of assignments){
+  const item=(Array.isArray(record.payload?.assignments)?record.payload.assignments:[]).find(a=>String(a.bike_id||"")===String(bike.id));
+  if(!item)continue;
+  const person=cache.find(x=>x.id===item.person_id&&x.entity_type==="patrol_people"&&!x.is_archived);
+  if(person)return {record,bike,person};
+ }
+ return null;
 }
 function mapPage(){
  return (async()=>{
