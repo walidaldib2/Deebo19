@@ -1,6 +1,6 @@
 {
-  "appId": "com.deebo19.fieldops",
-  "appName": "DEEB19",
+  "appId": "com.deebo19.fieldops.dev",
+  "appName": "DEEB19 تطوير",
   "webDir": "www",
   "bundledWebRuntime": false,
   "android": {
