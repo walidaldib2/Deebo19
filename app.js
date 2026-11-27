@@ -773,7 +773,8 @@ async function reports(){
  const rowsFor=d=>d.map(x=>({section:labels[x.entity_type]||x.entity_type,date:dayOf(x),shift:(x.payload&&(x.payload.shift||x.payload.shift_name))||"—",time:(x.payload&&(x.payload.patrol_time||x.payload.incident_time))||"",details:detailRows(x).filter(v=>!["id","created_at","updated_at","is_archived","archived_at"].includes(v[0])).map(v=>(reportKeyLabels[v[0]]||v[0])+": "+v[1]).join(" | ")}));
  const bikeGroupsFor=d=>{
   const source=d.filter(x=>x.entity_type==="bike_patrols");
-  const registry=orderedBikes(data.filter(x=>x.entity_type==="bikes"&&!x.is_archived));
+  const registry=data.filter(x=>x.entity_type==="bikes"&&!x.is_archived);
+  const orderedRegistry=orderedBikes(registry);
   const groups=new Map();
   const addBike=(bike,bikeRecord=null)=>{
    const number=String(bike||"").trim();
@@ -782,8 +783,8 @@ async function reports(){
    if(!groups.has(key))groups.set(key,{date:"",bike:number,bikeRecord,visits:[]});
    else if(bikeRecord&&!groups.get(key).bikeRecord)groups.get(key).bikeRecord=bikeRecord;
   };
-  registry.forEach(row=>addBike(row.payload?.number,row));
-  const registrationOrder=new Map(registry.map((row,index)=>[normalize(row.payload?.number),index+1]));
+  orderedRegistry.forEach(row=>addBike(row.payload?.number,row));
+  const registrationOrder=new Map(orderedRegistry.map((row,index)=>[normalize(row.payload?.number),index+1]));
   source.forEach(x=>{
    const p=x.payload||{},bike=String(p.bike||"غير محدد").trim();
    addBike(bike);
