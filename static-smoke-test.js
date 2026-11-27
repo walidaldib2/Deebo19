@@ -358,8 +358,7 @@ if (!app.includes('function mapPage()') || !app.includes('function bikeMapsPage(
 if (!app.includes('function patrolTimeMinutes(value)') || !app.includes('comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time)')) throw new Error('Map and branch patrol lists must sort 24-hour, Arabic AM/PM, and Arabic-digit times chronologically');
 if (!app.includes('js.addEventListener("load",draw,{once:true})') || !app.includes('js.addEventListener("error",()=>{const current=document.getElementById(targetId)')) throw new Error("Bike map loader must handle both first load and an already-loading Leaflet script");
 if (!app.includes('raw.match(/^(\\d{4})[-/.](\\d{1,2})[-/.](\\d{1,2})/)') || !app.includes('raw.match(/^(\\d{1,2})[-/.](\\d{1,2})[-/.](\\d{4})/)')) throw new Error("Bike map date parser must recognize ISO and day-first dates");
-const timeParserSource=app.match(/function patrolTimeMinutes\(value\)\{[\s\S]*?
-\}/)?.[0];
+const timeParserSource=app.match(/function patrolTimeMinutes\(value\)\{[\s\S]*?\n\}/)?.[0];
 if(!timeParserSource)throw new Error("Patrol time parser could not be extracted for behavior tests");
 const parsePatrolTime=new Function(timeParserSource+";return patrolTimeMinutes;")();
 for(const [input,expected] of [["01:00 PM",780],["12:00 AM",0],["١:٠٥ م",785],["۲۳:۴۵",1425],["00:15",15]])if(parsePatrolTime(input)!==expected)throw new Error("Patrol time parser returned an incorrect chronological value for "+input);
