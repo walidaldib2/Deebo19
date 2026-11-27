@@ -638,30 +638,43 @@ function loadDeebFlyoverAssets(){
 
 function renderBikeSiteHeatMap(targetId,points){
  const target=document.getElementById(targetId);if(!target)return;
- if(!points.length){target.innerHTML='<div class="empty">لا توجد إحداثيات محفوظة لزيارات هذه الفترة؛ تظهر الخريطة عند تسجيل مواقع المرور بإحداثيات صحيحة.</div>';return;}
+ if(!points.length){target.innerHTML='<div class="empty">لا توجد إحداثيات محفوظة لزيارات هذه الفترة.</div>';return;}
  const draw=()=>{
   const el=document.getElementById(targetId);if(!window.L||!el||el.dataset.mapReady==="1")return;
+  if(!window.L.heatLayer){
+   if(!renderBikeSiteHeatMap.heatPromise){
+    renderBikeSiteHeatMap.heatPromise=new Promise((resolve,reject)=>{
+     const js=document.createElement("script");js.src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js";
+     js.onload=()=>window.L&&window.L.heatLayer?resolve():reject(new Error("heat plugin unavailable"));
+     js.onerror=()=>reject(new Error("heat plugin failed"));document.head.appendChild(js);
+    });
+   }
+   renderBikeSiteHeatMap.heatPromise.then(draw).catch(()=>{const box=document.getElementById(targetId);if(box)box.innerHTML='<div class="notice">تعذر تحميل طبقة الكثافة الحرارية.</div>';});
+   return;
+  }
   el.dataset.mapReady="1";
   const map=L.map(el,{scrollWheelZoom:false});
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(map);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(map);
   const clusters=[];
-  const distance=(a,b)=>{const rad=v=>v*Math.PI/180,dLat=rad(a.lat-b.lat),dLng=rad(a.lng-b.lng),v=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLng/2)**2;return 6371000*2*Math.atan2(Math.sqrt(v),Math.sqrt(1-v));};
-  points.forEach(p=>{let c=clusters.find(x=>distance(x,p)<=60);if(!c){c={lat:p.lat,lng:p.lng,count:0,sites:new Map(),bikes:new Map(),records:[]};clusters.push(c);}c.count++;c.records.push(p);c.sites.set(p.site,(c.sites.get(p.site)||0)+1);c.bikes.set(p.bike,(c.bikes.get(p.bike)||0)+1);});
+  const distance=(a,b)=>{const rad=v=>v*Math.PI/180,dl=rad(a.lat-b.lat),dn=rad(a.lng-b.lng),v=Math.sin(dl/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dn/2)**2;return 6371000*2*Math.atan2(Math.sqrt(v),Math.sqrt(1-v));};
+  points.forEach(p=>{let c=clusters.find(x=>distance(x,p)<=60);if(!c){c={lat:p.lat,lng:p.lng,count:0,sites:new Map(),bikes:new Map()};clusters.push(c);}c.count++;c.sites.set(p.site,(c.sites.get(p.site)||0)+1);c.bikes.set(p.bike,(c.bikes.get(p.bike)||0)+1);});
   const max=Math.max(1,...clusters.map(c=>c.count));
+  const heatPoints=points.map(p=>[p.lat,p.lng,Math.max(.12,Math.min(1,(clusters.find(c=>distance(c,p)<=60)?.count||1)/max))]);
+  L.heatLayer(heatPoints,{radius:34,blur:30,maxZoom:17,minOpacity:.16,gradient:{0.18:"#b9c9bb",0.38:"#8fae9b",0.62:"#d6bd78",0.82:"#bd865d",1:"#8d5260"}}).addTo(map);
   clusters.forEach(c=>{
-   const intensity=c.count/max,siteLines=[...c.sites.entries()].sort((a,b)=>b[1]-a[1]).map(([n,v])=>'<div>'+safe(n)+' — '+v+' زيارة</div>').join("");
-   const bikeLines=[...c.bikes.entries()].sort((a,b)=>b[1]-a[1]).map(([n,v])=>'<div>'+safe(n)+': '+v+'</div>').join("");
-   // Keep the base map readable: use small, muted, translucent density halos instead of opaque red markers.
-   const color=intensity>.66?"#9b7650":intensity>.33?"#789486":"#b6a477";
-   L.circleMarker([c.lat,c.lng],{radius:5+Math.round(7*intensity),color:"#526b61",weight:1,opacity:.55,fillColor:color,fillOpacity:.14+.18*intensity}).addTo(map).bindPopup('<b>إجمالي المرور: '+c.count+'</b>'+siteLines+'<hr><b>حسب الدراجة</b>'+bikeLines);
+   const siteLines=[...c.sites.entries()].sort((x,y)=>y[1]-x[1]).map(([n,v])=>'<div>'+safe(n)+' — '+v+' زيارة</div>').join("");
+   const bikeLines=[...c.bikes.entries()].sort((x,y)=>y[1]-x[1]).map(([n,v])=>'<div>'+safe(n)+': '+v+'</div>').join("");
+   L.circleMarker([c.lat,c.lng],{radius:3,color:"#526b61",weight:1,opacity:.25,fillOpacity:0}).addTo(map).bindPopup('<b>إجمالي المرور: '+c.count+'</b>'+siteLines+'<hr><b>حسب الدراجة</b>'+bikeLines);
   });
-  const bounds=L.latLngBounds(clusters.map(c=>[c.lat,c.lng]));map.fitBounds(bounds.pad(.2),{maxZoom:15});setTimeout(()=>map.invalidateSize(),150);
-  function safe(v){return String(v||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+  map.fitBounds(L.latLngBounds(clusters.map(c=>[c.lat,c.lng])).pad(.2),{maxZoom:15});
+  setTimeout(()=>map.invalidateSize(),150);
+  function safe(v){return String(v||"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");}
  };
  if(window.L){draw();return;}
  if(!document.getElementById("deebLeafletCss")){const css=document.createElement("link");css.id="deebLeafletCss";css.rel="stylesheet";css.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";document.head.appendChild(css);}
  let js=document.getElementById("deebLeafletJs");if(!js){js=document.createElement("script");js.id="deebLeafletJs";js.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";document.head.appendChild(js);}
- js.addEventListener("load",draw,{once:true});js.addEventListener("error",()=>{const el=document.getElementById(targetId);if(el)el.innerHTML='<div class="notice">تعذر تحميل خريطة المواقع. تحقق من الاتصال بالإنترنت.</div>';},{once:true});
+ js.addEventListener("load",draw,{once:true});
+ js.addEventListener("error",()=>{const el=document.getElementById(targetId);if(el)el.innerHTML='<div class="notice">تعذر تحميل خريطة المواقع.</div>';},{once:true});
 }
 
 function renderBikeFlyoverMap(targetId,points){
