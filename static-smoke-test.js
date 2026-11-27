@@ -1,11 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 const root = __dirname;
-const required = ['index.html','app.js','db.js','team-sync.js','style.css','sw.js','manifest.json','icon.svg','qrcode.js','capacitor.config.json','package.json','biometric.bundle.js','prepare-android.js','configure-android-share.js','prepare-android-icons.js','document-tools.js','powerpoint-editor.js'];
+const required = ['index.html','app.js','db.js','team-sync.js','style.css','sw.js','manifest.json','icon.svg','qrcode.js','capacitor.config.json','package.json','biometric.bundle.js','prepare-android.js','configure-android-share.js','prepare-android-icons.js','document-tools.js','powerpoint-editor.js','scanner.js'];
 const missing = required.filter(f => !fs.existsSync(path.join(root,f)));
 if (missing.length) throw new Error('Missing required files: '+missing.join(', '));
 const androidPrepareSource = fs.readFileSync(path.join(root,'prepare-android.js'),'utf8');
-for (const asset of ['document-tools.js','powerpoint-editor.js']) {
+for (const asset of ['document-tools.js','powerpoint-editor.js','scanner.js']) {
   if (!androidPrepareSource.includes('"'+asset+'"')) throw new Error('Android www preparation must copy '+asset);
 }
 const documentToolsSource = fs.readFileSync(path.join(root,'document-tools.js'),'utf8');
@@ -75,7 +75,7 @@ const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
 if (!app.includes('<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>') || !app.includes('<selection pane="bottomLeft" activeCell="A2" sqref="A2"/>')) throw new Error('Excel exports must freeze the first header row while preserving right-to-left navigation.');
 const vm = require('node:vm');
 new vm.Script(powerpointEditorSource,{filename:'powerpoint-editor.js'});
-for (const file of ['app.js','db.js','team-sync.js','preferences.js','sw.js','qrcode.js','biometric.bundle.js','native-plugins.bundle.js','document-tools.js']) {
+for (const file of ['app.js','db.js','team-sync.js','preferences.js','sw.js','qrcode.js','biometric.bundle.js','native-plugins.bundle.js','document-tools.js','scanner.js']) {
   const source = fs.readFileSync(path.join(root,file),'utf8');
   new vm.Script(source,{filename:file});
 }
@@ -83,7 +83,9 @@ for (const f of ['qrcode.js','db.js','team-sync.js','biometric.bundle.js','app.j
 // Reuse the database source loaded at the top of this smoke test.
 // Reuse the app source loaded at the top of this smoke test.
 if (!html.includes('src="powerpoint-editor.js"') || !fs.readFileSync(path.join(root,'sw.js'),'utf8').includes('./powerpoint-editor.js')) throw new Error('PowerPoint editor must load and remain available offline');
-if (!html.includes('src="document-tools.js"') || !fs.readFileSync(path.join(root,'sw.js'),'utf8').includes('./document-tools.js')) throw new Error('PowerPoint and document scanner tools must load and remain available offline');
+if (!html.includes('src="document-tools.js"') || !fs.readFileSync(path.join(root,'sw.js'),'utf8').includes('./document-tools.js')) throw new Error('PowerPoint and document tools must load and remain available offline');
+if (!html.includes('src="scanner.js"') || !fs.readFileSync(path.join(root,'sw.js'),'utf8').includes('./scanner.js')) throw new Error('CamScanner module must load and remain available offline on Android.');
+if (!app.includes('window.DEebScanner.render()') || !app.includes('window.DEEBPowerPointEditor.open()') || !html.includes('data-page="officeTools"')) throw new Error('Office tools navigation must expose scanner and PowerPoint sections.');
 const toolsSource=fs.readFileSync(path.join(root,'document-tools.js'),'utf8');
 for (const feature of ['exportPowerPoint','exportScannedPdf','capture="environment"','أبيض وأسود','image/jpeg','application/pdf','application/vnd.openxmlformats-officedocument.presentationml.presentation','saveAttachment(id,file)','deebAttachTarget','deebAttachPdf','brand:"D6A743",title:"F0D58D",body:"F5F3EF"','DEEB19 الثابتة','background:#D6A743;color:#0A1729']) if (!toolsSource.includes(feature)) throw new Error('Document tools missing required capability: '+feature);
 if (!db.includes('DB_VERSION = 5') || !db.includes('"report_archives"') || !db.includes('async function archiveReport') || !db.includes('async function reportArchives')) throw new Error('Persistent report archive storage and API are required');
@@ -266,10 +268,9 @@ const scannerBridgeSource = fs.readFileSync(path.join(root,'native-plugins-entry
 const androidAssetsSource = fs.readFileSync(path.join(root,'prepare-android.js'),'utf8');
 const serviceWorkerSourceForScannerExclusion = fs.readFileSync(path.join(root,'sw.js'),'utf8');
 const androidWorkflowSource = fs.readFileSync(path.join(root,'.github/workflows/android-apk.yml'),'utf8');
-if (scannerBridgeSource.includes('DocumentScanner') || androidAssetsSource.includes('"scanner.js"') || serviceWorkerSourceForScannerExclusion.includes('./scanner.js') || androidWorkflowSource.includes('scanner.js') || androidSetup.includes('const documentScannerPlugin =') || androidSetup.includes('@CapacitorPlugin(name = "DocumentScanner")') || androidSetup.includes('implementation "com.google.android.gms:play-services-mlkit-document-scanner')) throw new Error('Document scanning must be fully excluded from the app bundle, Android plugins, dependencies, and service-worker cache');
-if (androidSetup.includes('saveScannedPdf') || androidSetup.includes('scannedPdfStoragePermissionCallback')) throw new Error('Unused scanner PDF export code must not remain in the native file plugin');
-const appScannerSource = app;
-if (html.includes('src="scanner.js"') || html.includes('data-page="scanner"') || appScannerSource.includes('DEEBNativePlugins?.DocumentScanner') || appScannerSource.includes('window.DEebScanner')) throw new Error('Document scanner must remain removed from the user interface and navigation');
+if (!androidAssetsSource.includes('"scanner.js"') || !serviceWorkerSourceForScannerExclusion.includes('./scanner.js') || !html.includes('src="scanner.js"') || !app.includes('window.DEebScanner.render()')) throw new Error('CamScanner page must be bundled, cached, and reachable from app navigation');
+const scannerSource=fs.readFileSync(path.join(root,'scanner.js'),'utf8');
+for (const token of ['scannerAutoDetect','scannerPickCorners','scannerSavePdf','recognizePages','createReportFromOcr','DebooDB.save("written_reports"','workerPath:remote?']) if (!scannerSource.includes(token)) throw new Error('CamScanner workflow is missing '+token);
 if (!androidSetup.includes('["android:allowBackup", "false"]') || !androidSetup.includes('["android:usesCleartextTraffic", "false"]')) throw new Error('Android backup/network hardening is missing');
 const iconBuilder = fs.readFileSync(path.join(root,'prepare-android-icons.js'),'utf8');
 if (!iconBuilder.includes('ic_launcher_foreground.png') || !iconBuilder.includes('icon-512.png')) throw new Error('DEEB Play Store and adaptive launcher icon generation is missing');
@@ -559,7 +560,7 @@ const backupPageSource=backupPageStart>=0&&backupPageEnd>backupPageStart?app.sli
 if (!backupPageSource.includes('تم تحديث النسخة التلقائية لهذا اليوم') || !backupPageSource.includes('تجاوز 30 ميجابايت') || !backupPageSource.includes('DebooDB.createAutoBackup()')) throw new Error('Automatic backup status and attachment-size warning must be visible in the dedicated backup page');
 
 const androidAssets = fs.readFileSync(path.join(root,'prepare-android.js'),'utf8');
-if (androidAssets.includes('"scanner.js"') || html.includes('src="scanner.js"') || sw.includes('./scanner.js')) throw new Error('Document scanner assets must not be staged or cached');
+if (!androidAssets.includes('"scanner.js"') || !html.includes('src="scanner.js"') || !sw.includes('./scanner.js')) throw new Error('Document scanner assets must be staged and cached.');
 
 const readableRules = [
   'const readableReportHtml=html=>html.replace("</style>"',
