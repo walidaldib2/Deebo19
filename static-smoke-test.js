@@ -313,8 +313,7 @@ if (!app.includes('locationUrl=String(p.location_url??"").trim()') || !app.inclu
 if (!app.includes('const displayRows=visible.flatMap') || !app.includes('continuation:i>0,visits:g.visits.slice(i*5,(i+1)*5)') || !app.includes('g.branch+(g.continuation?" — استكمال":"")')) throw new Error('Branch patrol continuation rows beyond five visits are missing from the screen or reports');
 if (!app.includes('تقرير متابعة الفروع') || !app.includes('data:') && !app.includes('branchGroupsFor(d)')) throw new Error('Branch report matrix is missing');
 const branchPrintStart=app.indexOf('const groups=branchGroupsFor(d),slots=5,title=',app.indexOf('const printHtml='));
-const branchPrintEnd=app.indexOf('
-  }',branchPrintStart);
+const branchPrintEnd=app.indexOf('\n  }',branchPrintStart);
 const branchPrint=branchPrintStart>=0&&branchPrintEnd>branchPrintStart?app.slice(branchPrintStart,branchPrintEnd):'';
 if (!branchPrint.includes('const pageSize=10') || !branchPrint.includes('height:19mm!important') || !branchPrint.includes('break-inside:avoid!important;page-break-inside:avoid!important')) throw new Error('Branch follow-up PDF must use ten rows per page, preserve 19mm row height, and avoid row splits');
 if (!branchPrint.includes('<th>الموقع</th><th>المشرف</th>') || !branchPrint.includes("<th>متابعة ") || branchPrint.includes('<th>اليوم والتاريخ</th>')) throw new Error('Branch reports must show location, supervisor and five follow-ups without a duplicate date column');
@@ -471,9 +470,7 @@ if (!app.includes('@page branch-followup{size:A4 portrait;margin:2mm 3mm 1mm 3mm
 if (branchPrint.includes('class="branch-page-number"') || branchPrint.includes("pageNumbering(269)")) throw new Error("Branch PDF must not show numbering at the bottom of any page");
 if (!app.includes('const pageNumber=""')) throw new Error("Bike patrol reports must omit page numbering entirely");
 const bikePrintStart=app.indexOf('if($("#reportType").value==="bike_patrols"){ '.trim(),app.indexOf("const printHtml="));
-const bikePrintEnd=app.indexOf('
-  }
-  const rows=rowsFor(d)',bikePrintStart);
+const bikePrintEnd=app.indexOf('\n  }\n  const rows=rowsFor(d)',bikePrintStart);
 const bikePrint=app.slice(bikePrintStart,bikePrintEnd);
 if (!bikePrint.includes('<th>الموقع</th><th>توقيت المرور</th><th>الإحداثيات</th>') || bikePrint.includes('<th>التاريخ</th>') || !bikePrint.includes('class="bike-meta-date"><span>التاريخ</span><b>') || !bikePrint.includes('class="bike-meta-total"')) throw new Error('Bike report must show the report date once in the header and keep the table to three columns');
 if (bikePrint.includes('<th>ملاحظات</th>') || bikePrint.includes('<td class="bike-notes">')) throw new Error('Bike patrol report must not render the removed notes column or cells');
@@ -608,8 +605,7 @@ for (const page of menuEntries) {
   }
 }
 const dataPageStart = appSource.indexOf('function dataManagementPage()');
-const dataPageEnd = appSource.indexOf('
-function emergencyPage()', dataPageStart);
+const dataPageEnd = appSource.indexOf('\nfunction emergencyPage()', dataPageStart);
 const dataPageSource = dataPageStart >= 0 && dataPageEnd > dataPageStart ? appSource.slice(dataPageStart, dataPageEnd) : '';
 if (!dataPageSource.includes('pageHead("البيانات الأساسية"') || !/id=\\?"backSystem\\?"/.test(dataPageSource) || !dataPageSource.includes('رجوع للقائمة الرئيسية') || !dataPageSource.includes('render("landing")')) {
   throw new Error('Master-data page title or return-to-main-menu navigation is missing.');
