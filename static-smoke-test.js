@@ -700,6 +700,8 @@ for (const token of [
   'payload.assigned_bike_id=linked.bike.id',
   'payload.assigned_person_id=linked.person.id',
   'payload.assignment_status=',
+  'showBikeAssignment?"<th>ربط الشفت</th>":""',
+  'سجل قديم / غير مرتبط بتوزيع محفوظ',
   'person.dataset.autoAssignment',
   'status.id="bikeAssignmentStatus"',
   '["shift","الشفت","select","صباحي|مسائي|ليلي",1]'
