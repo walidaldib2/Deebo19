@@ -29,7 +29,7 @@ function scannerMarkup(){
  $("#scannerCanvas").onclick=canvasPick;
  $("#scannerAddPage").onclick=addPage;$("#scannerSavePdf").onclick=savePdf;$("#scannerSaveImages").onclick=saveImages;$("#scannerClear").onclick=clearPages;renderPages();
 }
-async async function ensureOcrEngine(){
+async function ensureOcrEngine(){
  if(window.Tesseract?.createWorker)return window.Tesseract;
  if(window.__deebOcrLoading)return window.__deebOcrLoading;
  window.__deebOcrLoading=new Promise((resolve,reject)=>{
