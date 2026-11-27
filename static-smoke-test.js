@@ -4,6 +4,10 @@ const root = __dirname;
 const required = ['index.html','app.js','db.js','team-sync.js','style.css','sw.js','manifest.json','icon.svg','qrcode.js','capacitor.config.json','package.json','biometric.bundle.js','prepare-android.js','configure-android-share.js','prepare-android-icons.js','document-tools.js','powerpoint-editor.js'];
 const missing = required.filter(f => !fs.existsSync(path.join(root,f)));
 if (missing.length) throw new Error('Missing required files: '+missing.join(', '));
+const androidPrepareSource = fs.readFileSync(path.join(root,'prepare-android.js'),'utf8');
+for (const asset of ['document-tools.js','powerpoint-editor.js']) {
+  if (!androidPrepareSource.includes('"'+asset+'"')) throw new Error('Android www preparation must copy '+asset);
+}
 const documentToolsSource = fs.readFileSync(path.join(root,'document-tools.js'),'utf8');
 const powerpointEditorSource = fs.readFileSync(path.join(root,'powerpoint-editor.js'),'utf8');
 if (!powerpointEditorSource.includes('addEventListener("focus",snap)') || !powerpointEditorSource.includes("function queueSave()") || !powerpointEditorSource.includes("draw();queueSave()") || !powerpointEditorSource.includes("draw();save()")) throw new Error("PowerPoint editor must snapshot edits at control focus and autosave changes without one undo entry per keystroke.");
@@ -23,6 +27,13 @@ if (!documentToolsSource.includes('p.crop') ||
 }
 if (!powerpointEditorSource.includes('type:"shape"') || !powerpointEditorSource.includes('type:"text"')) throw new Error('PowerPoint tables and charts must use editable native slide elements.');
 const html = fs.readFileSync(path.join(root,'index.html'),'utf8');
+for (const asset of ['document-tools.js','powerpoint-editor.js']) {
+  if (!html.includes('<script src="'+asset+'"></script>')) throw new Error('Application entry point must load '+asset);
+}
+const serviceWorkerSource = fs.readFileSync(path.join(root,'sw.js'),'utf8');
+for (const asset of ['document-tools.js','powerpoint-editor.js']) {
+  if (!serviceWorkerSource.includes('"./'+asset+'"')) throw new Error('Offline cache must include '+asset);
+}
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
 if (!app.includes('<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>') || !app.includes('<selection pane="bottomLeft" activeCell="A2" sqref="A2"/>')) throw new Error('Excel exports must freeze the first header row while preserving right-to-left navigation.');
