@@ -631,6 +631,18 @@ function pageGroupsDataTypes() {
 }
 
 
+const customHoursStart=app.indexOf('const buildBikeCustomReport=()=>');
+const customHoursEnd=app.indexOf('const archiveBikeCustomReport=async()=>',customHoursStart);
+const customHoursSource=customHoursStart>=0&&customHoursEnd>customHoursStart?app.slice(customHoursStart,customHoursEnd):'';
+if(!customHoursSource.includes('title="تقرير أقل ساعات المرور"') ||
+   !customHoursSource.includes('columns=["الساعة","عدد الزيارات المسجلة"]') ||
+   !customHoursSource.includes('rows=hourRows.map') ||
+   !customHoursSource.includes('const selectedHeat=Array.from({length:7},()=>Array(24).fill(0))') ||
+   !customHoursSource.includes("'<div class=\"metrics\">'+metrics+'</div>'+hoursHeatmapHtml+'<h2 class=\"section-title\">تفاصيل التقرير</h2>'+table+")) {
+  throw new Error('The printable low-patrol-hours report must include both the hourly visit-count table and the weekday/hour heatmap.');
+}
+
+
 // General Archive must be an independent main-navigation destination with searchable archived content.
 if (!html.includes('data-page="archive"') || !app.includes('p==="archive"') || !app.includes('async function openArchivePage(){') || !app.includes('const open=$("#showArchive");') || !app.includes('back.textContent="القائمة الرئيسية"')) {
   throw new Error('General Archive must open independently from the main navigation.');
