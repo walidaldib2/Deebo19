@@ -196,6 +196,7 @@ async function main() {
   assert.ok((await db.all()).some(x=>x.id==="bike-restore-check"), "A valid HH:mm motorcycle visit should restore successfully");
 
   // Branch create, primary-key read-back, and audit are one committed operation.
+  const branchesBeforeCreate = (await db.all()).filter(x => x.entity_type === "branches").length;
   const branch = await db.save("branches", { name: "فرع اختبار آلي", code: "QA-01" });
   const storedBranch = await db.getRecord(branch.id);
   assert.equal(storedBranch?.entity_type, "branches");
@@ -205,7 +206,7 @@ async function main() {
   // Editing must update the same record, not create a duplicate.
   const edited = await db.save("branches", { name: "فرع اختبار معدل", code: "QA-01", edit_reason: "اختبار" }, branch.id);
   assert.equal(edited.id, branch.id);
-  assert.equal((await db.all()).filter(x => x.entity_type === "branches").length, 1);
+  assert.equal((await db.all()).filter(x => x.entity_type === "branches").length, branchesBeforeCreate + 1, "Editing a branch must update its existing record without creating a duplicate");
   assert.equal((await db.getRecord(branch.id)).payload.name, "فرع اختبار معدل");
 
   // Archive and restore must move the record between active and archived views.
