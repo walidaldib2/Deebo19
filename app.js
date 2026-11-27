@@ -1609,7 +1609,14 @@ async function bikeAnalyticsPage(){
    const cell=v=>esc(String(v??"—"));
    const period=from+" إلى "+to,range=String(fromHour).padStart(2,"0")+":00 إلى "+String(toHour).padStart(2,"0")+":00";
    let hoursHeatmapHtml="";
-   if(type==="heat"||type==="hours"){
+   if(type==="hours"){
+    const selectedHours=hourRows;
+    const maxLowHourCount=Math.max(1,...selectedHours.map(x=>x.count));
+    const lowHourHeaders=selectedHours.map(x=>'<th style="padding:5px 3px;background:#073b28;color:#fff;font-size:9px">'+String(x.hour).padStart(2,"0")+':00</th>').join("");
+    const lowHourCells=selectedHours.map(x=>'<td style="padding:8px 4px;text-align:center;border:1px solid #c99a32;font-size:11px;font-weight:900;background:rgba(139,20,41,'+(x.count?(.12+.78*x.count/maxLowHourCount):.035)+');color:'+(x.count/maxLowHourCount>.55?'#fff':'#10275b')+'">'+x.count+'</td>').join("");
+    hoursHeatmapHtml='<section style="margin:12px 0 16px;page-break-inside:avoid;break-inside:avoid"><h2 style="margin:0 0 6px;padding:7px 10px;background:#073b28;color:#fff;border-right:5px solid #c99a32;font-size:14px">أقل ساعات المرور — توزيع الزيارات</h2><p style="margin:0 0 6px;color:#073b28;font-size:10px">يعرض كل ساعة داخل النطاق المحدد، وبنفس ترتيب الأقل تسجيلًا إلى الأعلى. عدد الأعمدة يساوي عدد الساعات المختارة.</p><div style="width:100%;overflow:visible"><table style="width:100%;table-layout:fixed;border-collapse:collapse;direction:rtl"><thead><tr>'+lowHourHeaders+'</tr></thead><tbody><tr>'+lowHourCells+'</tr></tbody></table></div><p style="margin:5px 0 0;color:#073b28;font-size:9px">المربعات الحمراء تعرض عدد الزيارات المسجلة في كل ساعة؛ اللون الأغمق يعني عددًا أكبر.</p></section>';
+   }
+   if(type==="heat"){
     const selectedHeat=Array.from({length:7},()=>Array(24).fill(0));
     const weekDays=new Map();
     const cursor=new Date(from+"T12:00:00"),lastDay=new Date(to+"T12:00:00");
