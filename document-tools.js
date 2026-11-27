@@ -26,8 +26,8 @@ function init(){if(document.getElementById("deebToolsButton"))return;var st=docu
     msg("جاري تحميل محرك التعرف المحلي...");
     worker=await window.Tesseract.createWorker(["ara","eng"],1,{
       workerPath:"./ocr/worker.min.js",
-      langPath:"./ocr/lang",
-      corePath:"./ocr/core",
+      langPath:"./lang",
+      corePath:"./core",
       gzip:false,
       logger:function(event){if(event&&event.status)msg("OCR: "+event.status+(event.progress!=null?" "+Math.round(event.progress*100)+"%":""))}
     });
