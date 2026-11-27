@@ -54,6 +54,7 @@ jobs:
           npm test
           node --check app.js
           node --check document-tools.js
+          node --check scanner.js
           node --check db.js
           node --check qrcode.js
           node --check sw.js
