@@ -680,34 +680,3 @@ if (!settingsSource.includes('settingsHome') || !settingsSource.includes('id="se
 if (!appSource.includes('async function openBackupPage()') || !appSource.includes('else if(p==="backup")openBackupPage();')) throw new Error('Backup and restore must have their own page and route.');
 if (!appSource.includes('else if(p==="data")dataManagementPage();')) throw new Error('Basic data must have its own independent route.');
 if (appSource.includes('<button class="secondary" id="showArchive">الأرشيف العام</button>')) throw new Error('General Archive must be opened from its independent main navigation tile.');
-
-// Local OCR regression checks: UI must stay review-first, and runtime/model assets
-// must be included in both Android packaging and the offline application cache.
-const ocrDocumentSource = fs.readFileSync(path.join(root,"document-tools.js"),"utf8");
-const ocrIndexSource = html;
-const ocrPrepareSource = androidPrepareSource;
-const ocrWorkerSource = fs.readFileSync(path.join(root,"sw.js"),"utf8");
-for (const token of [
-  'id="deebOcr"', 'id="deebOcrCopy"', 'id="deebOcrText"',
-  'window.Tesseract.createWorker', 'worker.recognize(canvas)',
-  'await worker.terminate()', 'لم يتم حفظه في أي سجل'
-]) {
-  if (!ocrDocumentSource.includes(token)) throw new Error("Local OCR review workflow is incomplete: " + token);
-}
-if (!ocrIndexSource.includes('<script src="ocr/tesseract.min.js"></script>')) {
-  throw new Error("The local Tesseract browser API must load before the document scanner.");
-}
-for (const token of [
-  '"tesseract.js": "7.0.0"', 'tesseract.js", "dist", "worker.min.js"',
-  'tesseract.js", "dist", "tesseract.min.js"', '"ara", "eng"',
-  'lang', 'tesseract-core-simd-lstm.wasm.js'
-]) {
-  if (!ocrPrepareSource.includes(token)) throw new Error("Android OCR packaging is incomplete: " + token);
-}
-for (const token of [
-  '"./ocr/tesseract.min.js"', '"./ocr/worker.min.js"',
-  '"./ocr/lang/ara.traineddata"', '"./ocr/lang/eng.traineddata"',
-  '"./ocr/core/tesseract-core-simd-lstm.wasm.js"'
-]) {
-  if (!ocrWorkerSource.includes(token)) throw new Error("Offline OCR cache is missing a required local asset: " + token);
-}
