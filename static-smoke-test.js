@@ -8,6 +8,7 @@ const documentToolsSource = fs.readFileSync(path.join(root,'document-tools.js'),
 const powerpointEditorSource = fs.readFileSync(path.join(root,'powerpoint-editor.js'),'utf8');
 for (const feature of ['pptAddSlide','pptAddText','pptAddImage','pptExport','localStorage','exportPptx','pptUndo','pptRedo','pptDuplicate']) if (!powerpointEditorSource.includes(feature)) throw new Error('PowerPoint editor missing capability: '+feature);
 
+if (!documentToolsSource.includes('data-crop-handle') && !documentToolsSource.includes('dataset.cropHandle')) throw new Error('Scanner must provide direct touch crop handles on the document preview.');
 if (!documentToolsSource.includes('deebPptDensity') || !documentToolsSource.includes('deebPptFont') || !documentToolsSource.includes('deebPptTheme') || !documentToolsSource.includes('deebPptCover') || !documentToolsSource.includes('pptOptions.density') || !documentToolsSource.includes('brightness') || !documentToolsSource.includes('contrast') || !documentToolsSource.includes('نسخ الصفحة') || !documentToolsSource.includes('إلغاء القص')) throw new Error('PowerPoint export settings and scanner page enhancement controls are required');
 if (!documentToolsSource.includes('p.crop') ||
     !documentToolsSource.includes('قص من اليسار') ||
