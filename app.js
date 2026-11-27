@@ -1475,7 +1475,7 @@ function render(p){
   else if(p==="bikeShiftAssignments")singleSectionPage("توزيع شفت مرور الدراجات","bike_shift_assignments");
   else if(p==="bikeMapReports")bikeMapReportsPage();
   else if(p==="bikeData")singleSectionPage("بيانات الدراجات","bikes");
-  else if(p==="bikeAnalytics")bikeAnalyticsPage().catch(error=>{console.error(error);area.innerHTML=pageHead("تعذر تحليل مرور الدراجات") '+'<div class="card notice">'+esc(error.message||error)+'</div>';});
+  else if(p==="bikeAnalytics")bikeAnalyticsPage().catch(error=>{console.error(error);area.innerHTML=pageHead("تعذر تحليل مرور الدراجات")+'<div class="card notice">'+esc(error.message||error)+'</div>';});
   else if(p==="bikepatrol")bikePatrolPage();
   else if(p==="reports")reports().catch(error=>{console.error("DEEB reports load failed:",error);area.innerHTML=pageHead("تعذر تحميل التقارير والسجلات")+'<div class="card notice">'+esc(error?.message||error)+'</div>';});
   else if(p==="employees")singleSectionPage("سجل الموظفين","employees");
