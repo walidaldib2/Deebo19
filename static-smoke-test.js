@@ -624,7 +624,7 @@ const pptSource = fs.readFileSync(path.join(root,"powerpoint-editor.js"),"utf8")
 for (const token of ["pptManager","pptNew","pptSearch","renderManager","openDeck","إعادة تسمية","نسخة","حذف العرض"]) { if (!pptSource.includes(token)) throw new Error("PowerPoint presentation management is missing: "+token); }
 if (!pptSource.includes("launch.onclick=showManager") || !pptSource.includes('el("pptExit").onclick=function(){save();showManager()}')) throw new Error("PowerPoint must return to the presentation library after editing.");
 
-for (const token of ["pptTemplateType","pptCreateTemplate","function makeTemplate(kind)","تقرير إداري","اجتماع العمل","عنوان البرنامج التدريبي","خطة العمل","localStorage.setItem(KEY,JSON.stringify(all))","bg:\"#0A1729\"","color:\"#F0D58D\"","color:\"#D6A743\"","DEEB19  •  "]) { if (!pptSource.includes(token)) throw new Error("PowerPoint built-in template capability is missing: "+token); }
+for (const token of ["pptTemplateType","pptCreateTemplate","function makeTemplate(kind)","تقرير إداري","اجتماع العمل","عنوان البرنامج التدريبي","خطة العمل","localStorage.setItem(KEY,JSON.stringify(all))","bg:\"#0A1729\"","color:\"#F0D58D\"","var gold=\"#D6A743\"","DEEB19  •  "]) { if (!pptSource.includes(token)) throw new Error("PowerPoint built-in template capability is missing: "+token); }
 
 // General Archive must be an independent main-navigation destination with searchable archived content.
 if (!html.includes('data-page="archive"') || !app.includes('p==="archive"') || !app.includes('async function openArchivePage(){') || !app.includes('const open=$("#showArchive");') || !app.includes('back.textContent="القائمة الرئيسية"')) {
