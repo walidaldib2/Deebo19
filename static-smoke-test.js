@@ -12,7 +12,7 @@ const documentToolsSource = fs.readFileSync(path.join(root,'document-tools.js'),
 const packageJson = JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
 if (packageJson.dependencies['tesseract.js'] !== '7.0.0') throw new Error('Local OCR engine version must remain pinned to 7.0.0.');
 const androidPrepareForOcr = fs.readFileSync(path.join(root,'prepare-android.js'),'utf8');
-for (const token of ['worker.min.js','tesseract.min.js','ara.traineddata','eng.traineddata','tesseract-core-simd-lstm.wasm.js','tesseract-core-relaxedsimd-lstm.wasm.js','tesseract-core-relaxedsimd-lstm.wasm','tessdata_fast']) {
+for (const token of ['worker.min.js','tesseract.min.js','language + ".traineddata"','tesseract-core-simd-lstm.wasm.js','tesseract-core-relaxedsimd-lstm.wasm.js','tesseract-core-relaxedsimd-lstm.wasm','tessdata_fast']) {
   if (!androidPrepareForOcr.includes(token)) throw new Error('Android OCR preparation is missing: '+token);
 }
 for (const token of ['deebOcr','deebOcrText','deebOcrCopy','createWorker(["ara","eng"]','workerPath:"./ocr/worker.min.js"','langPath:"./lang"','corePath:"./core"','لم يتم حفظه في أي سجل']) {
