@@ -631,6 +631,16 @@ function pageGroupsDataTypes() {
 }
 
 
+const liveHeatStart=app.indexOf('function renderBikeSiteHeatMap(');
+const liveHeatEnd=app.indexOf('function renderBikeFlyoverMap(',liveHeatStart);
+const liveHeatSource=liveHeatStart>=0&&liveHeatEnd>liveHeatStart?app.slice(liveHeatStart,liveHeatEnd):'';
+if(!liveHeatSource.includes('L.divIcon({className:"",html:') || !liveHeatSource.includes('"+c.count+"</span>') || !liveHeatSource.includes('width:34px;height:34px') || !liveHeatSource.includes('border:3px solid #f3d37a')) throw new Error('Live heatmap must show clear, high-contrast numbered visit-count markers at every 60m cluster.');
+const heatReportStart=app.indexOf('const buildHeatReport=()=>');
+const heatReportEnd=app.indexOf('const archiveHeatReport=async()=>',heatReportStart);
+const heatReportSource=heatReportStart>=0&&heatReportEnd>heatReportStart?app.slice(heatReportStart,heatReportEnd):'';
+if(!heatReportSource.includes('title>DEEB | خريطة كثافة المرور') || !heatReportSource.includes('id="deebReportMap"') || !heatReportSource.includes('id="printBikeHeatMapReport"') || !heatReportSource.includes('id="saveBikeHeatMapPdf"') || !heatReportSource.includes('id="saveBikeHeatMapImage"') || !heatReportSource.includes('"+p.count+"</span>')) throw new Error('Heatmap must remain a standalone printable report with visible numbered markers and dedicated print, PDF, and image actions.');
+
+
 const customHoursStart=app.indexOf('const buildBikeCustomReport=()=>');
 const customHoursEnd=app.indexOf('const archiveBikeCustomReport=async()=>',customHoursStart);
 const customHoursSource=customHoursStart>=0&&customHoursEnd>customHoursStart?app.slice(customHoursStart,customHoursEnd):'';
