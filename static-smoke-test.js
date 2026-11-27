@@ -657,7 +657,8 @@ const customHoursEnd=app.indexOf('const archiveBikeCustomReport=async()=>',custo
 const customHoursSource=customHoursStart>=0&&customHoursEnd>customHoursStart?app.slice(customHoursStart,customHoursEnd):'';
 if(!customHoursSource.includes('title="تقرير أقل ساعات المرور"') ||
    !customHoursSource.includes('columns=["الساعة","عدد الزيارات المسجلة"]') ||
-   !customHoursSource.includes('rows=hourRows.map') ||
+   !customHoursSource.includes('const lowHourRows=hourRows.slice(0,5)') ||
+   !customHoursSource.includes('rows=lowHourRows.map') ||
    !customHoursSource.includes('if(type==="heat"){') ||
    !customHoursSource.includes('title="تقرير الخريطة الحرارية لساعات الذروة"') ||
    !app.includes('<option value="heat">الخريطة الحرارية لساعات الذروة</option>')) {
