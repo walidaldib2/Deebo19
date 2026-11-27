@@ -12,7 +12,7 @@ const documentToolsSource = fs.readFileSync(path.join(root,'document-tools.js'),
 const packageJson = JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
 if (packageJson.dependencies['tesseract.js'] !== '7.0.0') throw new Error('Local OCR engine version must remain pinned to 7.0.0.');
 const androidPrepareForOcr = fs.readFileSync(path.join(root,'prepare-android.js'),'utf8');
-for (const token of ['worker.min.js','tesseract.min.js','ara.traineddata','eng.traineddata','tesseract-core-simd-lstm.wasm.js','tessdata_fast']) {
+for (const token of ['worker.min.js','tesseract.min.js','ara.traineddata','eng.traineddata','tesseract-core-simd-lstm.wasm.js','tesseract-core-relaxedsimd-lstm.wasm.js','tessdata_fast']) {
   if (!androidPrepareForOcr.includes(token)) throw new Error('Android OCR preparation is missing: '+token);
 }
 for (const token of ['deebOcr','deebOcrText','deebOcrCopy','createWorker(["ara","eng"]','workerPath:"./ocr/worker.min.js"','langPath:"./ocr/lang"','corePath:"./ocr/core"','لم يتم حفظه في أي سجل']) {
@@ -52,7 +52,7 @@ for (const asset of ['document-tools.js','powerpoint-editor.js']) {
   if (!html.includes('<script src="'+asset+'"></script>')) throw new Error('Application entry point must load '+asset);
 }
 const offlineAssetCacheSource = fs.readFileSync(path.join(root,'sw.js'),'utf8');
-for (const asset of ['ocr/tesseract.min.js','ocr/worker.min.js','ocr/core/tesseract-core-simd-lstm.wasm.js','ocr/lang/ara.traineddata','ocr/lang/eng.traineddata']) {
+for (const asset of ['ocr/tesseract.min.js','ocr/worker.min.js','ocr/core/tesseract-core-simd-lstm.wasm.js','ocr/core/tesseract-core-relaxedsimd-lstm.wasm.js','ocr/lang/ara.traineddata','ocr/lang/eng.traineddata']) {
   if (!offlineAssetCacheSource.includes('"./'+asset+'"')) throw new Error('Offline cache must include local OCR asset '+asset);
 }
 for (const asset of ['document-tools.js','powerpoint-editor.js']) {
