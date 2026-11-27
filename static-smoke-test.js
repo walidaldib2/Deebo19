@@ -7,6 +7,9 @@ if (missing.length) throw new Error('Missing required files: '+missing.join(', '
 const html = fs.readFileSync(path.join(root,'index.html'),'utf8');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
+const patrolDateResolver=app.match(/const dayOf=x=>\{const p=x\.payload\|\|\{\};const specific=([\s\S]*?)return String\(specific\|\|p\.work_date\|\|x\.created_at\|\|""\)\.slice\(0,10\);\};/);
+if(!patrolDateResolver || !patrolDateResolver[1].includes('p.patrol_date') || !patrolDateResolver[1].includes('p.incident_date') || !patrolDateResolver[1].includes('p.report_date')) throw new Error('Report date filtering must prioritize each patrol record\'s own patrol_date over a generic work_date so historical branch and bike follow-ups remain visible.');
+
 const vm = require('node:vm');
 for (const file of ['app.js','db.js','team-sync.js','preferences.js','sw.js','qrcode.js','biometric.bundle.js','native-plugins.bundle.js']) {
   const source = fs.readFileSync(path.join(root,file),'utf8');
