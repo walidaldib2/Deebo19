@@ -11,6 +11,8 @@ const assets = [
   "qrcode.js",
   "biometric.bundle.js",
   "native-plugins.bundle.js",
+  "document-tools.js",
+  "powerpoint-editor.js",
   "style.css",
   "preferences.css",
   "preferences.js",
