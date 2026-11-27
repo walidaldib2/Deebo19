@@ -7,7 +7,7 @@ if (missing.length) throw new Error('Missing required files: '+missing.join(', '
 const documentToolsSource = fs.readFileSync(path.join(root,'document-tools.js'),'utf8');
 const powerpointEditorSource = fs.readFileSync(path.join(root,'powerpoint-editor.js'),'utf8');
 for (const feature of ['pptAddSlide','pptAddText','pptAddImage','pptExport','localStorage','exportPptx','pptUndo','pptRedo','pptDuplicate']) if (!powerpointEditorSource.includes(feature)) throw new Error('PowerPoint editor missing capability: '+feature);
-new vm.Script(powerpointEditorSource,{filename:'powerpoint-editor.js'});
+
 if (!documentToolsSource.includes('deebPptDensity') || !documentToolsSource.includes('deebPptFont') || !documentToolsSource.includes('deebPptTheme') || !documentToolsSource.includes('deebPptCover') || !documentToolsSource.includes('pptOptions.density') || !documentToolsSource.includes('brightness') || !documentToolsSource.includes('contrast') || !documentToolsSource.includes('نسخ الصفحة') || !documentToolsSource.includes('إلغاء القص')) throw new Error('PowerPoint export settings and scanner page enhancement controls are required');
 if (!documentToolsSource.includes('p.crop') ||
     !documentToolsSource.includes('قص من اليسار') ||
@@ -19,6 +19,7 @@ const html = fs.readFileSync(path.join(root,'index.html'),'utf8');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
 const vm = require('node:vm');
+new vm.Script(powerpointEditorSource,{filename:'powerpoint-editor.js'});
 for (const file of ['app.js','db.js','team-sync.js','preferences.js','sw.js','qrcode.js','biometric.bundle.js','native-plugins.bundle.js','document-tools.js']) {
   const source = fs.readFileSync(path.join(root,file),'utf8');
   new vm.Script(source,{filename:file});
