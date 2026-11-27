@@ -1612,7 +1612,7 @@ async function bikeAnalyticsPage(){
    if(!rows.length)rows=[["لا توجد بيانات مسجلة ضمن الفلاتر المحددة"]];
    const cell=v=>esc(String(v??"—"));
    const period=from+" إلى "+to,range=String(fromHour).padStart(2,"0")+":00 إلى "+String(toHour).padStart(2,"0")+":00";
-   let hoursHeatmapHtml="";
+   let hoursHeatmapHtml="",lowHourNumbers="";
    customReportBuildStep="تجهيز أعمدة تقرير أقل ساعات المرور";
    if(type==="hours"){
     const selectedHours=hourRows;
@@ -1620,7 +1620,7 @@ async function bikeAnalyticsPage(){
     const lowHourHeaders=selectedHours.map(x=>'<th style="height:15mm;padding:7px 3px;background:#073b28;color:#fff;border:2px solid #c99a32;font-size:15px;font-weight:900">'+String(x.hour).padStart(2,"0")+':00</th>').join("");
     const lowHourCells=selectedHours.map(x=>'<td style="height:52mm;padding:12px 4px;text-align:center;vertical-align:middle;border:2px solid #c99a32;font-size:27px;line-height:1.2;font-weight:900;background:rgba(139,20,41,'+(x.count?(.18+.78*x.count/maxLowHourCount):.06)+');color:'+(x.count/maxLowHourCount>.55?'#fff':'#10275b')+'">'+x.count+'</td>').join("");
     const lowHourNumberRows=selectedHours.map((x,i)=>'<tr><td style="width:14%;text-align:center;font-weight:900">'+(i+1)+'</td><td style="text-align:center;font-weight:900">'+String(x.hour).padStart(2,"0")+':00</td><td style="text-align:center;font-weight:900">'+x.count+'</td></tr>').join("");
-    const lowHourNumbers='<section class="low-hours-numbers" style="margin:6px 0 10px;page-break-inside:avoid;break-inside:avoid"><h2 class="section-title" style="margin:5px 0">ترتيب الساعات بالأرقام — من الأقل إلى الأعلى</h2><table class="report-table" style="margin:4px 0"><thead><tr><th>الترتيب</th><th>الساعة</th><th>عدد الزيارات المسجلة</th></tr></thead><tbody>'+lowHourNumberRows+'</tbody></table></section>';
+    lowHourNumbers='<section class="low-hours-numbers" style="margin:6px 0 10px;page-break-inside:avoid;break-inside:avoid"><h2 class="section-title" style="margin:5px 0">ترتيب الساعات بالأرقام — من الأقل إلى الأعلى</h2><table class="report-table" style="margin:4px 0"><thead><tr><th>الترتيب</th><th>الساعة</th><th>عدد الزيارات المسجلة</th></tr></thead><tbody>'+lowHourNumberRows+'</tbody></table></section>';
     hoursHeatmapHtml='<section class="low-hours-visual" style="margin:7px 0 10px;page-break-inside:avoid;break-inside:avoid"><h2 style="margin:0 0 5px;padding:7px 10px;background:#073b28;color:#fff;border-right:5px solid #c99a32;font-size:15px">أقل ساعات المرور — توزيع الزيارات</h2><p style="margin:0 0 5px;color:#073b28;font-size:10px">كل عمود يمثل ساعة من النطاق المختار، وعدد الأعمدة يساوي عدد الساعات المختارة.</p><div style="width:100%;overflow:visible"><table style="width:100%;height:67mm;table-layout:fixed;border-collapse:collapse;direction:rtl"><thead><tr>'+lowHourHeaders+'</tr></thead><tbody><tr>'+lowHourCells+'</tr></tbody></table></div><p style="margin:5px 0 0;color:#073b28;font-size:10px;font-weight:700">المربعات الحمراء تعرض عدد الزيارات المسجلة؛ كلما زادت كثافة اللون زاد عدد الزيارات.</p></section>';
    }
    if(type==="heat"){
