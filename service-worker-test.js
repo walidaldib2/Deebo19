@@ -49,6 +49,9 @@ async function main() {
   assert.ok(cacheWrites.includes("./index.html"), "Install must cache the application shell");
   assert.ok(cacheWrites.includes("./native-plugins.bundle.js"), "Install must cache the native-plugin fallback");
   assert.ok(cacheWrites.includes("./team-sync.js"), "Install must cache the DEEB19 team sync engine");
+  assert.ok(cacheWrites.includes("./ocr/worker.min.js"), "Install must cache the local OCR worker");
+  assert.ok(cacheWrites.includes("./ocr/core/tesseract-core-relaxedsimd-lstm.wasm"), "Install must cache the relaxed SIMD OCR core");
+  assert.ok(cacheWrites.includes("./ocr/lang/ara.traineddata") && cacheWrites.includes("./ocr/lang/eng.traineddata"), "Install must cache both OCR language models");
   assert.equal(skipWaitingCalls, 1, "Successful install should activate the new worker");
 
   let activatePromise;
