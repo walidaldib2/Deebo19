@@ -36,7 +36,7 @@ fields.emergencies.unshift(["emergency_date","تاريخ الحالة","date",1]
 fields.tasks.unshift(["work_date","تاريخ العمل","date",1]);
 fields.absences.find(f=>f[0]==="shift")[4]=1;
 const pageGroups={follow:["daily_rosters","branch_patrols","written_reports","memos"],data:["branches","patrol_people","bikes","patrol_sites","managers","documents","custom_data"],emergency:["emergencies","emergency_people"]};
-const sectionMenus={operations:{title:"التشغيل الميداني",items:[["follow","متابعة الفروع"],["map","خط سير المرور اليومي"],["bikeMaps","خرائط الدراجات"],["bikeShiftAssignments","توزيع شفت مرور الدراجات"],["managerRounds","مرور المديرين"],["tasks","المهام والتكليفات"],["handovers","تسليم واستلام الشفت"]]},security:{title:"إدارة الأمن",items:[["employees","سجل الموظفين"],["attendance","الغياب والاستئذان"],["incidents","الحوادث والبلاغات"],["emergency","الطوارئ"]]},reportsGroup:{title:"التقارير والإحصائيات",items:[["reports","مركز التقارير"],["stats","الإحصائيات"]]}};
+const sectionMenus={bikesGroup:{title:"الدراجات",items:[["bikeData","بيانات الدراجات وترتيبها"],["bikeShiftAssignments","توزيع الدراجات والراكبين للشفت"],["bikepatrol","تسجيل ومتابعة المرور"],["bikeMaps","خرائط المرور الحالية والسابقة"],["bikeMapReports","تقارير الخرائط وأرشيفها"],["bikeAnalytics","إحصائيات وتحليل المرور"],["bikePatrolDeleted","محذوفات سجلات المرور"]]},operations:{title:"التشغيل الميداني",items:[["follow","متابعة الفروع"],["map","خط سير المرور اليومي"],["managerRounds","مرور المديرين"],["tasks","المهام والتكليفات"],["handovers","تسليم واستلام الشفت"]]},security:{title:"إدارة الأمن",items:[["employees","سجل الموظفين"],["attendance","الغياب والاستئذان"],["incidents","الحوادث والبلاغات"],["emergency","الطوارئ"]]},reportsGroup:{title:"التقارير والإحصائيات",items:[["reports","مركز التقارير"],["stats","الإحصائيات"]]}};
 let cache=[],currentPage="home",currentType=null,currentEdit=null,currentEmployeeDetailId=null,weatherTimer=null,archiveTimer=null,searchTerm="",deferredInstallPrompt=null;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const normalize=v=>String(v||"").trim().toLocaleLowerCase("ar").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي");
@@ -1420,6 +1420,41 @@ async function openBackupPage(){
   host.querySelectorAll("[data-auto-restore]").forEach(btn=>btn.onclick=async()=>{if(!confirm("سيتم استبدال بيانات العمل الحالية بهذه النسخة. هل لديك نسخة خارجية حديثة؟"))return;btn.disabled=true;try{await DebooDB.restoreAutoBackup(btn.dataset.autoRestore);await refresh();toast("تمت استعادة النسخة التلقائية.");openBackupPage();}catch(e){toast("تعذرت الاستعادة: "+e.message);}finally{btn.disabled=false;}});
  }catch(e){host.textContent="تعذر تحميل النسخ التلقائية: "+e.message;}
 }
+async function bikeAnalyticsPage(){
+ area.innerHTML=pageHead("إحصائيات وتحليل مرور الدراجات")+'<div class="card">جارٍ تحليل سجلات المرور المحفوظة...</div>';
+ const [active,archived]=await Promise.all([DebooDB.all({archived:false}),DebooDB.all({archived:true})]);
+ const records=[...active,...archived].filter(r=>!r.is_deleted);
+ const registry=orderedBikes(records.filter(r=>r.entity_type==="bikes"&&!r.is_archived));
+ const visits=records.filter(r=>r.entity_type==="bike_patrols"&&r.payload?.patrol_date&&r.payload?.patrol_time);
+ const today=localISODate();
+ const dateShift=(date,days)=>{const d=new Date(date+"T12:00:00");d.setDate(d.getDate()+days);return localISODate(d);};
+ const rangeFor=mode=>mode==="day"?[today,today]:mode==="week"?[dateShift(today,-6),today]:[dateShift(today,-29),today];
+ const minuteOf=value=>{const m=String(value||"").match(/(\\d{1,2}):(\\d{2})/);return m?Number(m[1])*60+Number(m[2]):null;};
+ const hourOf=value=>{const n=minuteOf(value);return n===null?null:Math.floor(n/60);};
+ const escHtml=esc;
+ const renderStats=mode=>{
+  const [from,to]=rangeFor(mode),filtered=visits.filter(r=>String(r.payload.patrol_date).slice(0,10)>=from&&String(r.payload.patrol_date).slice(0,10)<=to);
+  const names=[...new Set(registry.map(r=>String(r.payload?.number||"").trim()).filter(Boolean).concat(filtered.map(r=>String(r.payload?.bike||"").trim()).filter(Boolean)))];
+  const perBike=names.map(name=>{
+   const list=filtered.filter(r=>String(r.payload?.bike||"").trim()===name).sort((a,b)=>(String(a.payload.patrol_date)+" "+String(a.payload.patrol_time)).localeCompare(String(b.payload.patrol_date)+" "+String(b.payload.patrol_time)));
+   const hours=Array(24).fill(0);list.forEach(r=>{const h=hourOf(r.payload.patrol_time);if(h!==null&&h>=0&&h<24)hours[h]++;});
+   const peak=Math.max(0,...hours),peakHour=peak?hours.indexOf(peak):null;
+   const gaps=[];for(let i=1;i<list.length;i++){const a=Date.parse(list[i-1].payload.patrol_date+"T"+String(list[i-1].payload.patrol_time).slice(0,5)),b=Date.parse(list[i].payload.patrol_date+"T"+String(list[i].payload.patrol_time).slice(0,5));if(Number.isFinite(a)&&Number.isFinite(b)&&b>=a)gaps.push((b-a)/60000);}
+   const avg=gaps.length?gaps.reduce((x,y)=>x+y,0)/gaps.length:null,max=gaps.length?Math.max(...gaps):null;
+   return {name,count:list.length,peakHour,peak,avg,max};
+  });
+  const total=filtered.length,peakHours=Array(24).fill(0);filtered.forEach(r=>{const h=hourOf(r.payload.patrol_time);if(h!==null&&h>=0&&h<24)peakHours[h]++;});
+  const allPeak=Math.max(0,...peakHours),allPeakHour=allPeak?peakHours.indexOf(allPeak):null;
+  const fmt=m=>m===null?"—":(m>=60?(m/60).toFixed(1)+" ساعة":Math.round(m)+" دقيقة");
+  const rowsHtml=perBike.map(x=>'<tr><td>'+escHtml(x.name)+'</td><td>'+x.count+'</td><td>'+(x.peakHour===null?"—":String(x.peakHour).padStart(2,"0")+":00 ("+x.peak+")")+'</td><td>'+fmt(x.avg)+'</td><td>'+fmt(x.max)+'</td></tr>').join("");
+  const maxCount=Math.max(1,...perBike.map(x=>x.count));
+  const bars=perBike.map(x=>'<div class="notice" style="margin:8px 0"><b>'+escHtml(x.name)+'</b> — '+x.count+' زيارة<div style="height:8px;background:var(--border);border-radius:8px;overflow:hidden;margin-top:6px"><div style="height:8px;width:'+Math.round(x.count/maxCount*100)+'%;background:var(--primary);border-radius:8px"></div></div></div>').join("");
+  const host=$("#bikeAnalyticsContent");if(!host)return;
+  host.innerHTML='<div class="stats-grid">'+stats([["إجمالي الزيارات",total],["عدد الدراجات",names.length],["ساعة الذروة للأسطول",allPeakHour===null?"—":String(allPeakHour).padStart(2,"0")+":00"],["زيارات ساعة الذروة",allPeak]])+'</div><div class="card"><h3>مقارنة عدد الزيارات</h3>'+(bars||'<p class="muted">لا توجد زيارات في الفترة المحددة.</p>')+'</div><div class="card"><h3>تحليل كل دراجة</h3><div class="table-wrap"><table><thead><tr><th>الدراجة</th><th>الزيارات</th><th>ساعة الذروة</th><th>متوسط الفاصل بين الزيارات</th><th>أطول فترة بين زيارتين</th></tr></thead><tbody>'+(rowsHtml||'<tr><td colspan="5">لا توجد سجلات مرور في الفترة.</td></tr>')+'</tbody></table></div><p class="muted">الفواصل محسوبة بين زيارتين مسجلتين متتاليتين فقط؛ لا تُحتسب فترات ما قبل أول زيارة أو بعد آخر زيارة كخمول.</p></div>';
+ };
+ area.innerHTML=pageHead("إحصائيات وتحليل مرور الدراجات")+'<div class="card"><div class="field"><label for="bikeAnalyticsRange">الفترة الزمنية</label><select id="bikeAnalyticsRange"><option value="day">اليوم</option><option value="week">آخر 7 أيام</option><option value="month">آخر 30 يومًا</option></select></div><div id="bikeAnalyticsContent"></div></div>';
+ $("#bikeAnalyticsRange").addEventListener("change",e=>renderStats(e.target.value));renderStats("day");
+}
 function sectionPage(key){const section=sectionMenus[key];if(!section)throw new Error("القسم غير معروف: "+key);area.innerHTML=pageHead(section.title)+"<div class=\"tiles section-tiles\">"+section.items.map(item=>"<button class=\"tile\" type=\"button\" data-subpage=\""+item[0]+"\"><span>›</span><b>"+item[1]+"</b></button>").join("")+"</div>";area.querySelectorAll("[data-subpage]").forEach(button=>button.addEventListener("click",()=>render(button.dataset.subpage)));}
 function render(p){
  currentPage=p;currentType=null;
@@ -1439,6 +1474,8 @@ function render(p){
   else if(p==="bikeMaps")bikeMapsPage();
   else if(p==="bikeShiftAssignments")singleSectionPage("توزيع شفت مرور الدراجات","bike_shift_assignments");
   else if(p==="bikeMapReports")bikeMapReportsPage();
+  else if(p==="bikeData")singleSectionPage("بيانات الدراجات","bikes");
+  else if(p==="bikeAnalytics")bikeAnalyticsPage().catch(error=>{console.error(error);area.innerHTML=pageHead("تعذر تحليل مرور الدراجات") '+'<div class="card notice">'+esc(error.message||error)+'</div>';});
   else if(p==="bikepatrol")bikePatrolPage();
   else if(p==="reports")reports().catch(error=>{console.error("DEEB reports load failed:",error);area.innerHTML=pageHead("تعذر تحميل التقارير والسجلات")+'<div class="card notice">'+esc(error?.message||error)+'</div>';});
   else if(p==="employees")singleSectionPage("سجل الموظفين","employees");
