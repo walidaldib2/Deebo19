@@ -757,12 +757,19 @@ function bikeMapReportsPage(){
  area.innerHTML=pageHead("خرائط الدراجات",'<button class="secondary" id="backToBikeMaps">خرائط الدراجات</button><button class="primary" id="printBikeMapReport">طباعة التقرير</button><button class="secondary" id="saveBikeMapArchive">حفظ في الأرشيف</button><button class="secondary" id="saveBikeMapReportPdf">حفظ PDF</button><button class="secondary" id="saveBikeMapReportImage">حفظ التقرير صورة</button>')+
  '<div class="card"><p class="muted">خريطة مرور مستقلة لكل دراجة، بنفس بيانات وتصميم تقرير المرور الأصلي. تظهر الخريطة بدل جدول المرور، ولا يتم تعديل التقرير الأصلي.</p><div class="form"><div class="field"><label>الدراجة</label><select id="bikeMapReportBike"><option value="">اختر الدراجة</option>'+bikes.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("")+'</select></div><div class="field"><label>فرد المرور</label><select id="bikeMapReportPerson"><option value="">كل الأفراد</option></select></div><div class="field"><label>من تاريخ</label><input id="bikeMapReportFrom" type="date" value="'+monthStart+'"></div><div class="field"><label>إلى تاريخ</label><input id="bikeMapReportTo" type="date" value="'+today+'"></div></div><div id="bikeMapReportPreview"><div class="empty">اختر الدراجة لإعداد الخريطة.</div></div></div>';
  let reportHtml="",bikeMapArchiveKey="",bikeMapArchivePromise=null,reportVisits=[];
- const archiveBikeMapReport=async()=>{const bike=$("#bikeMapReportBike").value,from=$("#bikeMapReportFrom").value,to=$("#bikeMapReportTo").value;if(!reportHtml||!bike)throw new Error("اختر الدراجة أولًا لإعداد خريطتها.");const key=[bike,from,to,reportVisits.map(x=>x.id+":"+x.updated_at).join("|")].join("|");let fingerprint=2166136261;for(let i=0;i<key.length;i++){fingerprint^=key.charCodeAt(i);fingerprint=Math.imul(fingerprint,16777619);}const dedupeKey="deeb-bike-map-"+(fingerprint>>>0).toString(16);if(key===bikeMapArchiveKey&&bikeMapArchivePromise)return bikeMapArchivePromise;bikeMapArchiveKey=key;bikeMapArchivePromise=DebooDB.archiveReport({title:"خريطة مرور الدراجة "+bike,report_type:"bike_map",from_date:from,to_date:to,html:reportHtml,dedupe_key:dedupeKey,meta:{bike,data:reportVisits.map(x=>({id:x.id,created_at:x.created_at,payload:x.payload||{}}))}}).catch(error=>{if(bikeMapArchiveKey===key){bikeMapArchiveKey="";bikeMapArchivePromise=null;}throw error;});return bikeMapArchivePromise;};
+ const archiveBikeMapReport=async()=>{const bike=$("#bikeMapReportBike").value,from=$("#bikeMapReportFrom").value,to=$("#bikeMapReportTo").value;if(!reportHtml||!bike)throw new Error("اختر الدراجة أولًا لإعداد خريطتها.");const person=$("#bikeMapReportPerson").value,key=[bike,person,from,to,reportVisits.map(x=>x.id+":"+x.updated_at).join("|")].join("|");let fingerprint=2166136261;for(let i=0;i<key.length;i++){fingerprint^=key.charCodeAt(i);fingerprint=Math.imul(fingerprint,16777619);}const dedupeKey="deeb-bike-map-"+(fingerprint>>>0).toString(16);if(key===bikeMapArchiveKey&&bikeMapArchivePromise)return bikeMapArchivePromise;bikeMapArchiveKey=key;bikeMapArchivePromise=DebooDB.archiveReport({title:"خريطة مرور الدراجة "+bike+" — "+person,report_type:"bike_map",from_date:from,to_date:to,html:reportHtml,dedupe_key:dedupeKey,meta:{bike,person,data:reportVisits.map(x=>({id:x.id,created_at:x.created_at,payload:x.payload||{}}))}}).catch(error=>{if(bikeMapArchiveKey===key){bikeMapArchiveKey="";bikeMapArchivePromise=null;}throw error;});return bikeMapArchivePromise;};
  const build=()=>{
   const bike=$("#bikeMapReportBike").value,from=$("#bikeMapReportFrom").value,to=$("#bikeMapReportTo").value,host=$("#bikeMapReportPreview");
   if(!bike){reportHtml="";host.innerHTML='<div class="empty">اختر الدراجة لإعداد الخريطة.</div>';return;}
   const visitDate=x=>String(x.payload?.patrol_date||x.created_at||"").slice(0,10);
-  const visits=mapRecords.filter(x=>x.entity_type==="bike_patrols"&&String(x.payload?.bike||"").trim()===bike).filter(x=>{const d=visitDate(x);return (!from||d>=from)&&(!to||d<=to);}).sort((a,b)=>visitDate(a).localeCompare(visitDate(b))||comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time));
+  const candidates=mapRecords.filter(x=>x.entity_type==="bike_patrols"&&String(x.payload?.bike||"").trim()===bike).filter(x=>{const d=visitDate(x);return (!from||d>=from)&&(!to||d<=to);});
+  const people=[...new Set(candidates.map(x=>String(x.payload?.person||x.payload?.responsible||"").trim()).filter(Boolean))];
+  const personSelect=$("#bikeMapReportPerson"),previousPerson=personSelect.value;
+  personSelect.innerHTML='<option value="">اختر فرد المرور</option>'+people.map(p=>'<option value="'+esc(p)+'">'+esc(p)+'</option>').join("");
+  personSelect.value=people.includes(previousPerson)?previousPerson:(people.length===1?people[0]:"");
+  const selectedPerson=personSelect.value;
+  if(!selectedPerson){reportHtml="";host.innerHTML='<div class="empty">اختر فرد المرور لإعداد تقرير مستقل باسمه.</div>';return;}
+  const visits=candidates.filter(x=>String(x.payload?.person||x.payload?.responsible||"").trim()===selectedPerson).sort((a,b)=>visitDate(a).localeCompare(visitDate(b))||comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time));
   reportVisits=visits;
   const located=visits.filter(x=>validCoordinatePair(x.payload?.lat,x.payload?.lng));
   const mapPoints=located.map(x=>({number:visits.indexOf(x)+1,lat:Number(x.payload.lat),lng:Number(x.payload.lng),site:x.payload.site||x.payload.branch||x.payload.location||"موقع المرور",date:x.payload.patrol_date||visitDate(x),time:x.payload.patrol_time||""}));
@@ -771,11 +778,11 @@ function bikeMapReportsPage(){
   const bikeRecord=cache.find(x=>x.entity_type==="bikes"&&!x.is_archived&&String(x.payload?.number||"").trim()===bike);
   const bikeData=bikeRecord?.payload||{};
   const bikeIndex=bikes.indexOf(bike)+1;
-  const riders=[...new Set(visits.map(x=>String(x.payload?.person||"").trim()).filter(Boolean))];const person=riders.join("، ")||"—";
+  const person=selectedPerson||"—";
   const code=String(bikeData.code||"").trim()||"—";
   const bikeType=String(bikeData.type||bikeData.description||"").trim()||"—";
   const latestDate=visits.map(visitDate).filter(Boolean).sort().pop()||"—";
-  const reportTitle="خريطة مرور دراجة "+bikeIndex;
+  const reportTitle="خريطة مرور دراجة "+bikeIndex+" — "+selectedPerson;
   const metaHtml='<h2 class="bike-section-title">بيانات التقرير</h2><div class="bike-meta"><div class="bike-meta-date"><span>التاريخ</span><b>'+esc(reportDateLabel)+'</b></div><div><span>اسم القائم بالمرور</span><b>'+esc(person)+'</b></div><div class="bike-meta-total"><span>عدد مرات المرور</span><b>'+visits.length+' مرة</b></div><div><span>نوع الدراجة</span><b>'+esc(bikeType)+'</b></div><div><span>رقم الدراجة</span><b>'+esc(bike)+'</b></div><div><span>كود الدراجة</span><b>'+esc(code)+'</b></div></div>';
   const detailRowCount=Math.max(1,Math.ceil(detailPoints.length/3));
   const mapHeightMm=Math.max(48,Math.min(120,120-Math.max(0,detailRowCount-7)*8));
