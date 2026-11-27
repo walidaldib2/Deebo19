@@ -5,7 +5,7 @@ const $=s=>document.querySelector(s);
 function status(message,error=false){const el=$("#scannerStatus");if(el){el.textContent=message;el.classList.toggle("scanner-error",error);}}
 function scannerMarkup(){
  const area=$("#contentArea");if(!area)return;
- area.innerHTML='<div class="page-head"><h1>ماسح المستندات</h1><button class="secondary" id="scannerBack">رجوع</button></div>'+
+ area.innerHTML='<style id="deebScannerStyles">.scanner-card{display:grid;gap:14px}.scanner-preview{background:#050c19;border:1px solid #334155;border-radius:12px;padding:8px;text-align:center;overflow:auto}.scanner-preview canvas{max-width:100%;max-height:65vh;object-fit:contain;border-radius:8px}.scanner-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.scanner-pages{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}.scanner-page{background:#14243a;border:1px solid #334155;border-radius:10px;padding:8px;display:grid;gap:6px}.scanner-page img{width:100%;height:150px;object-fit:contain;background:#fff;border-radius:6px}.scanner-file-label{display:inline-flex;align-items:center;justify-content:center;cursor:pointer}.scanner-error{color:#ffb4b4}.scanner-note{line-height:1.8}#scannerOcrText{width:100%;min-height:180px;direction:auto;white-space:pre-wrap}</style><div class="page-head"><h1>ماسح المستندات</h1><button class="secondary" id="scannerBack">رجوع</button></div>'+
  '<div class="card scanner-card"><p class="muted">صوّر المستند أو اختر صورة، ثم اكشف حدود الورقة تلقائيًا أو حدد زواياها وصحح المنظور قبل الحفظ.</p>'+
  '<div class="actions"><button class="primary" id="scannerGoogleScan" type="button">فتح الماسح الاحترافي من Google</button><label class="primary scanner-file-label" for="scannerCamera">📷 تصوير مستند</label><input id="scannerCamera" class="hidden" type="file" accept="image/*" capture="environment"><label class="secondary scanner-file-label" for="scannerGallery">اختيار صورة</label><input id="scannerGallery" class="hidden" type="file" accept="image/*"></div>'+
  '<div id="scannerEditor" class="hidden"><div class="scanner-preview"><canvas id="scannerCanvas" aria-label="معاينة المستند"></canvas></div>'+
@@ -17,9 +17,9 @@ function scannerMarkup(){
  '<div class="card"><h3>صفحات المستند <span id="scannerPageCount" class="pill">0</span></h3><div id="scannerPages" class="scanner-pages"><p class="muted">لم تتم إضافة صفحات بعد.</p></div>'+
  '<div class="actions"><button class="primary" id="scannerSavePdf" disabled>حفظ كل الصفحات PDF</button><button class="secondary" id="scannerSaveImages" disabled>حفظ الصور منفصلة</button><button class="danger" id="scannerClear" disabled>مسح المستند</button></div></div>'+
  '<p id="scannerStatus" class="notice" aria-live="polite">ابدأ بتصوير المستند أو اختيار صورة.</p>'+
- '<p class="muted scanner-note">يمكن كشف حدود مستطيلة مبدئيًا، أو تحديد الزوايا الأربع يدويًا لتصحيح المنظور. راجع النتيجة قبل الحفظ. OCR العربي والإنجليزي لم يُضف بعد.</p></div>';
+ '<div class="card"><h3>قراءة النص من المستند (OCR)</h3><p class="muted">تعرّف ضوئي على النص العربي والإنجليزي. يحتاج اتصال إنترنت في أول تشغيل لتحميل محرك القراءة وملفات اللغة.</p><div class="actions"><button class="primary" id="scannerRunOcr" type="button">قراءة النص من الصفحات</button><button class="secondary" id="scannerCopyOcr" type="button">نسخ النص</button></div><textarea id="scannerOcrText" rows="8" placeholder="سيظهر النص المستخرج هنا للمراجعة والتصحيح..."></textarea><div class="form"><div class="field"><label for="scannerReportTitle">عنوان التقرير الجديد</label><input id="scannerReportTitle" value="تقرير مستخرج من مستند"></div><div class="field"><label for="scannerReportShift">الشفت</label><select id="scannerReportShift"><option value="ليلي">ليلي</option><option value="صباحي">صباحي</option><option value="مسائي">مسائي</option></select></div><div class="field"><label for="scannerPreparedBy">معد التقرير (اختياري)</label><input id="scannerPreparedBy" placeholder="اسم معد التقرير"></div></div><div class="actions"><button class="primary" id="scannerCreateReport" type="button">نقل النص إلى تقرير جديد داخل DEEB</button></div></div><p class="muted scanner-note">راجع النص المستخرج وصحح الأسماء والأرقام قبل حفظ التقرير؛ دقة OCR تتأثر بجودة الصورة والخط.</p></div>';
  $("#scannerBack").onclick=()=>{if(typeof window.DEebRender==="function")window.DEebRender("home");else document.querySelector('[data-page="home"]')?.click();};
- $("#scannerCamera").onchange=loadFile;$("#scannerGallery").onchange=loadFile;$("#scannerGoogleScan").onclick=scanWithGoogle;
+ $("#scannerCamera").onchange=loadFile;$("#scannerGallery").onchange=loadFile;$("#scannerGoogleScan").onclick=scanWithGoogle;$("#scannerRunOcr").onclick=recognizePages;$("#scannerCopyOcr").onclick=copyOcrText;$("#scannerCreateReport").onclick=createReportFromOcr;
  ["cropLeft","cropTop","cropRight","cropBottom"].forEach(id=>$("#"+id).addEventListener("input",()=>{crop[id.replace("crop","").toLowerCase()]=Number($("#"+id).value);quad=[];drawPreview();}));
  document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{filter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>x.classList.toggle("active",x===b));drawPreview();});
  $("#scannerRotate").onclick=()=>{rotation=(rotation+90)%360;quad=[];drawPreview();};
@@ -29,7 +29,57 @@ function scannerMarkup(){
  $("#scannerCanvas").onclick=canvasPick;
  $("#scannerAddPage").onclick=addPage;$("#scannerSavePdf").onclick=savePdf;$("#scannerSaveImages").onclick=saveImages;$("#scannerClear").onclick=clearPages;renderPages();
 }
-async function scanWithGoogle(){
+async async function ensureOcrEngine(){
+ if(window.Tesseract?.createWorker)return window.Tesseract;
+ if(window.__deebOcrLoading)return window.__deebOcrLoading;
+ window.__deebOcrLoading=new Promise((resolve,reject)=>{
+  const script=document.createElement("script");script.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";script.async=true;
+  script.onload=()=>window.Tesseract?.createWorker?resolve(window.Tesseract):reject(new Error("لم يتم تحميل محرك OCR."));
+  script.onerror=()=>reject(new Error("تعذر تحميل محرك OCR. تحقق من اتصال الإنترنت."));
+  document.head.appendChild(script);
+ }).finally(()=>{window.__deebOcrLoading=null});
+ return window.__deebOcrLoading;
+}
+window.DEebLoadOcrEngine=ensureOcrEngine;
+async function recognizePages(){
+ const button=$("#scannerRunOcr"),output=$("#scannerOcrText");if(!pages.length){status("أضف صفحة واحدة على الأقل قبل قراءة النص.",true);return;}
+ button.disabled=true;output.value="";let worker=null;
+ try{
+  status("جارٍ تحميل محرك قراءة النص العربي والإنجليزي...");
+  const engine=await ensureOcrEngine();
+  worker=await engine.createWorker(["ara","eng"],1,{workerPath:"https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js",langPath:"https://tessdata.projectnaptha.com/4.0.0",corePath:"https://cdn.jsdelivr.net/npm/tesseract.js-core@5.0.0/tesseract-core.wasm.js",logger:e=>{if(e?.status)status("قراءة النص: "+e.status+(e.progress!=null?" "+Math.round(e.progress*100)+"%":""));}});
+  const results=[];
+  for(let i=0;i<pages.length;i++){
+   status("قراءة الصفحة "+(i+1)+" من "+pages.length+"...");
+   const img=new Image();img.src=pages[i].data;await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error("تعذر فتح الصفحة "+(i+1)))});
+   const canvas=document.createElement("canvas");canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;canvas.getContext("2d").drawImage(img,0,0);
+   const result=await worker.recognize(canvas);results.push("===== الصفحة "+(i+1)+" =====\n"+String(result?.data?.text||"").trim());
+  }
+  output.value=results.join("\n\n");status("اكتملت القراءة. راجع النص وصحح الأخطاء قبل نقله إلى التقرير.");
+ }catch(error){status(error?.message||"تعذر استخراج النص.",true)}
+ finally{if(worker)try{await worker.terminate()}catch(_){}button.disabled=false}
+}
+async function copyOcrText(){
+ const value=$("#scannerOcrText")?.value||"";if(!value.trim()){status("لا يوجد نص لنسخه.",true);return;}
+ try{await navigator.clipboard.writeText(value);status("تم نسخ النص المستخرج.");}
+ catch(_){const area=$("#scannerOcrText");area.focus();area.select();status("حدد النص ثم اختر نسخ من الهاتف.");}
+}
+async function createReportFromOcr(){
+ const text=$("#scannerOcrText")?.value?.trim()||"",title=$("#scannerReportTitle")?.value?.trim()||"",shift=$("#scannerReportShift")?.value||"";
+ if(!text){status("اقرأ المستند أولًا أو اكتب النص في مربع المراجعة.",true);return;}
+ if(!title){status("اكتب عنوان التقرير.",true);return;}
+ if(!window.DebooDB?.save){status("قاعدة بيانات DEEB غير متاحة.",true);return;}
+ const button=$("#scannerCreateReport");button.disabled=true;
+ try{
+  const now=new Date(),date=[now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0")].join("-");
+  const saved=await window.DebooDB.save("written_reports",{report_title:title,report_date:date,shift:shift,prepared_by:$("#scannerPreparedBy")?.value?.trim()||"",report_text:text},null);
+  if(!saved?.id)throw new Error("لم يتم تأكيد حفظ التقرير.");
+  status("تم حفظ النص في تقرير جديد داخل DEEB. افتح مركز التقارير لمراجعته.");
+  if(typeof window.DEebRender==="function")window.DEebRender("reports");
+ }catch(error){status(error?.message||"تعذر حفظ التقرير.",true)}
+ finally{button.disabled=false}
+}
+function scanWithGoogle(){
  const plugin=window.DEEBNativePlugins?.DocumentScanner;
  if(!plugin?.scanDocument){status("الماسح الاحترافي من Google متاح في نسخة Android فقط. يمكنك استخدام الماسح اليدوي أدناه.",true);return;}
  const button=$("#scannerGoogleScan");button.disabled=true;status("جارٍ فتح الماسح الاحترافي. قد يحتاج أول استخدام إلى تنزيل مكونات Google Play Services.");
