@@ -1,6 +1,6 @@
 {
-  "appId": "com.deebo19.fieldops",
-  "appName": "DEEB19",
+  "appId": "com.deebo19.fieldops.bikereporttest",
+  "appName": "DEEB19 تجربة 2",
   "webDir": "www",
   "bundledWebRuntime": false,
   "android": {
