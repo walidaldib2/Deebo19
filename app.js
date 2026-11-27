@@ -1388,7 +1388,14 @@ $("#settingsHome").onclick=()=>render("landing");
  $("#checkNotifications").onclick=()=>checkAlerts(true);checkAlerts(false);
  try{const a=await DebooDB.audit();$("#auditArea").innerHTML=a.map(x=>`<div class="notice">${esc(x.action)} — ${esc(x.reason||"")} <small>${new Date(x.created_at).toLocaleString("ar-EG")}</small></div>`).join("")||"لا توجد أحداث"}catch(e){$("#auditArea").textContent=e.message}
 }
-function bikePatrolPage(){singleSectionPage("مرور الدراجات","bike_patrols");}
+function bikePatrolPage(){
+ area.innerHTML=pageHead("مرور الدراجات",'<button class="primary" type="button" id="openBikeShiftAssignments">توزيع شفت الدراجات</button><button class="secondary" type="button" id="openBikeMaps">خرائط الدراجات</button><button class="secondary" type="button" id="openBikePatrolDeleted">المحذوفات</button>')+'<div id="groupContent"></div>';
+ currentEdit=null;currentEmployeeDetailId=null;searchTerm="";
+ $("#openBikeShiftAssignments").onclick=()=>render("bikeShiftAssignments");
+ $("#openBikeMaps").onclick=()=>render("bikeMaps");
+ $("#openBikePatrolDeleted").onclick=()=>render("bikePatrolDeleted");
+ renderEntity("bike_patrols");
+}
 function bikePatrolDeletedPage(){
  area.innerHTML=pageHead("محذوفات مرور الدراجات",'<button class="secondary" type="button" id="backToBikePatrols">العودة لمرور الدراجات</button>')+'<div id="bikeDeletedContent" class="card"><div class="muted">جارٍ تحميل المحذوفات...</div></div>';
  $("#backToBikePatrols").onclick=()=>render("bikepatrol");
