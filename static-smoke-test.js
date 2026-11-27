@@ -27,6 +27,16 @@ if (!documentToolsSource.includes('p.crop') ||
 }
 if (!powerpointEditorSource.includes('type:"shape"') || !powerpointEditorSource.includes('type:"text"')) throw new Error('PowerPoint tables and charts must use editable native slide elements.');
 const html = fs.readFileSync(path.join(root,'index.html'),'utf8');
+const androidAssetsMatch = androidPrepareSource.match(/const assets = \\[([\\s\\S]*?)\\];/);
+if (!androidAssetsMatch) throw new Error('Android asset manifest could not be parsed');
+const androidAssetNames = new Set(Array.from(androidAssetsMatch[1].matchAll(/["']([^"']+)["']/g), match => match[1]));
+const localScripts = Array.from(html.matchAll(/<script\\b[^>]*\\bsrc=["']([^"']+)["']/gi), match => match[1]);
+const localStyles = Array.from(html.matchAll(/<link\\b(?=[^>]*\\brel=["']stylesheet["'])[^>]*\\bhref=["']([^"']+)["']/gi), match => match[1]);
+for (const asset of [...localScripts, ...localStyles]) {
+  if (/^(?:https?:)?\\/\\//i.test(asset) || asset.startsWith('data:')) continue;
+  if (!androidAssetNames.has(asset)) throw new Error('Android packaging manifest is missing a locally loaded application asset: '+asset);
+}
+
 for (const asset of ['document-tools.js','powerpoint-editor.js']) {
   if (!html.includes('<script src="'+asset+'"></script>')) throw new Error('Application entry point must load '+asset);
 }
