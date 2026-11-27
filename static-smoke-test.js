@@ -20,6 +20,9 @@ for (const token of ['deebOcr','deebOcrText','deebOcrCopy','createWorker(["ara",
 }
 if (["cdn.jsdelivr.net","tessdata.projectnaptha.com","unpkg.com"].some(host => documentToolsSource.includes(host))) throw new Error('Runtime OCR code must not call external network services.');
 
+const ocrWorkerPaths = documentToolsSource.match(/workerPath:"([^"]+)"[\\s\\S]*?langPath:"([^"]+)"[\\s\\S]*?corePath:"([^"]+)"/);
+if (!ocrWorkerPaths || ocrWorkerPaths[1] !== "./ocr/worker.min.js" || ocrWorkerPaths[2] !== "./lang" || ocrWorkerPaths[3] !== "./core") throw new Error("OCR worker-relative paths must resolve language and core assets beside ./ocr/worker.min.js, not under a duplicated ./ocr/ocr directory.");
+
 const powerpointEditorSource = fs.readFileSync(path.join(root,'powerpoint-editor.js'),'utf8');
 if (!powerpointEditorSource.includes('addEventListener("focus",snap)') || !powerpointEditorSource.includes("function queueSave()") || !powerpointEditorSource.includes("draw();queueSave()") || !powerpointEditorSource.includes("draw();save()")) throw new Error("PowerPoint editor must snapshot edits at control focus and autosave changes without one undo entry per keystroke.");
 
