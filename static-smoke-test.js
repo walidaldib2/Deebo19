@@ -642,6 +642,16 @@ if(!heatReportSource.includes('title>DEEB | خريطة كثافة المرور')
 if(!app.includes('id="printBikeHeatMapReport"') || !app.includes('id="saveBikeHeatMapPdf"') || !app.includes('id="saveBikeHeatMapImage"') || !app.includes('id="archiveBikeHeatMapReport"')) throw new Error('Heatmap must expose its own print, PDF, image, and archive actions, separate from the low-hours report.');
 
 
+const customActionStart=app.indexOf('const withCustomReportButton=async(buttonId,action)=>');
+const customActionEnd=app.indexOf('$("#printBikeCustomReport").onclick',customActionStart);
+const customActionSource=customActionStart>=0&&customActionEnd>customActionStart?app.slice(customActionStart,customActionEnd):'';
+if(!customActionSource.includes('try{await archiveBikeCustomReport();') ||
+   !customActionSource.includes('catch(archiveError)') ||
+   !customActionSource.includes('await action(data)') ||
+   customActionSource.indexOf('await action(data)')<customActionSource.indexOf('catch(archiveError)')) {
+  throw new Error('A custom report export must continue when its optional archive save fails.');
+}
+
 const customHoursStart=app.indexOf('const buildBikeCustomReport=()=>');
 const customHoursEnd=app.indexOf('const archiveBikeCustomReport=async()=>',customHoursStart);
 const customHoursSource=customHoursStart>=0&&customHoursEnd>customHoursStart?app.slice(customHoursStart,customHoursEnd):'';
