@@ -299,6 +299,13 @@ async function main() {
   assert.ok((await db.automaticBackups()).length >= 6, "Historical daily backups must not be capped at three");
 
   // Incident records can own photo/document attachments just like documents.
+  const geoVisit = await db.save("bike_patrols", {
+    bike: "دراجة إحداثيات اختبار", person: "فرد اختبار", site: "موقع بإحداثيات",
+    patrol_date: "2026-11-20", patrol_time: "13:00", lat: 30.123456, lng: 31.654321
+  });
+  assert.equal((await db.getRecord(geoVisit.id)).payload.lat, 30.123456, "Patrol latitude must be saved with its original visit");
+  assert.equal((await db.getRecord(geoVisit.id)).payload.lng, 31.654321, "Patrol longitude must be saved with its original visit");
+
   const incident = await db.save("incidents", { incident_type: "أمني", description: "اختبار مرفق بلاغ" });
   const incidentAttachment = await db.saveAttachment(incident.id, blob);
   assert.equal((await db.attachments(incident.id)).some(x => x.id === incidentAttachment.id), true);
@@ -317,6 +324,8 @@ async function main() {
   await db.restore(fullBackup);
   assert.ok((await db.getRecord(localOnly.id))?.payload?.description === "سجل أحدث غير موجود في ملف النسخة", "Restore must preserve local records absent from the selected backup");
   assert.equal((await db.getRecord(incident.id))?.payload?.extra, "keep-newer", "Restore must keep a newer local version of a matching record");
+  assert.equal((await db.getRecord(geoVisit.id))?.payload?.lat, 30.123456, "Historical patrol latitude must survive backup restore");
+  assert.equal((await db.getRecord(geoVisit.id))?.payload?.lng, 31.654321, "Historical patrol longitude must survive backup restore");
   assert.ok((await db.reportArchives()).some(x => x.id === roundTripReport.id), "Report archives must survive backup restore");
   assert.ok((await db.attachments(incident.id)).some(x => x.id === incidentAttachment.id));
   assert.ok((await db.getAttachment(incidentAttachment.id))?.blob?.size > 0);
