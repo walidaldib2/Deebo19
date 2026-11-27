@@ -21,6 +21,8 @@ for (const token of ['deebOcr','deebOcrText','deebOcrCopy','createWorker(["ara",
 if (["cdn.jsdelivr.net","tessdata.projectnaptha.com","unpkg.com"].some(host => documentToolsSource.includes(host))) throw new Error('Runtime OCR code must not call external network services.');
 
 if (!documentToolsSource.includes('workerPath:"./ocr/worker.min.js"') || !documentToolsSource.includes('langPath:"./lang"') || !documentToolsSource.includes('corePath:"./core"')) throw new Error("OCR worker-relative paths must resolve language and core assets beside ./ocr/worker.min.js, not under a duplicated ./ocr/ocr directory.");
+if (!documentToolsSource.includes('createWorker(["ara","eng"],1,') || !documentToolsSource.includes("gzip:false")) throw new Error("OCR must initialize Arabic/English LSTM recognition with gzip disabled for the downloaded uncompressed traineddata models.");
+if (!androidPrepareForOcr.includes('language + ".traineddata"') || !androidPrepareForOcr.includes('tesseract-core-relaxedsimd-lstm.wasm.js')) throw new Error("Android OCR preparation must include dynamically named language data and the Tesseract core loader.");
 
 const powerpointEditorSource = fs.readFileSync(path.join(root,'powerpoint-editor.js'),'utf8');
 if (!powerpointEditorSource.includes('addEventListener("focus",snap)') || !powerpointEditorSource.includes("function queueSave()") || !powerpointEditorSource.includes("draw();queueSave()") || !powerpointEditorSource.includes("draw();save()")) throw new Error("PowerPoint editor must snapshot edits at control focus and autosave changes without one undo entry per keystroke.");
