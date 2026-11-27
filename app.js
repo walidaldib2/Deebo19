@@ -1510,7 +1510,7 @@ async function bikeAnalyticsPage(){
   const peakHours=Array(24).fill(0),heat=Array.from({length:7},()=>Array(24).fill(0));
   filtered.forEach(r=>{const t=timeParts(r.payload.patrol_time),dt=dateTimeOf(r);if(t){peakHours[t.hour]++;if(dt)heat[dt.getDay()][t.hour]++;}});
   const allPeak=Math.max(0,...peakHours),allPeakHour=allPeak?peakHours.indexOf(allPeak):null;
-  const fmt=m=>m===null?"—":(m>=60?(m/60).toFixed(1)+" ساعة":Math.round(m)+" دقيقة");
+  const fmt=m=>{if(m===null||m===undefined||!Number.isFinite(Number(m)))return "—";const total=Math.max(0,Math.round(Number(m))),hours=Math.floor(total/60),minutes=total%60;if(!hours)return minutes+" دقيقة";const hourLabel=hours===1?"ساعة":hours===2?"ساعتان":hours<=10?"ساعات":"ساعة";return hours+" "+hourLabel+(minutes?" و"+minutes+" دقيقة":"");};
   const siteMap=new Map();
   filtered.forEach(r=>{
    const site=String(r.payload?.site||r.payload?.branch||r.payload?.location||"موقع غير محدد").trim()||"موقع غير محدد";
@@ -1537,18 +1537,24 @@ async function bikeAnalyticsPage(){
   const allTimeline=filtered.map(r=>({row:r,dt:dateTimeOf(r),bike:String(r.payload?.bike||"غير محددة"),site:String(r.payload?.site||r.payload?.branch||r.payload?.location||"موقع غير محدد")})).filter(x=>x.dt).sort((a,b)=>a.dt-b.dt);
   const byBikeTimeline=new Map();
   allTimeline.forEach(x=>{const k=bikeKey(x.bike);if(!byBikeTimeline.has(k))byBikeTimeline.set(k,[]);byBikeTimeline.get(k).push(x);});
-  byBikeTimeline.forEach(list=>{for(let i=1;i<list.length;i++){const a=list[i-1],b=list[i];if(a.dt.toDateString()!==b.dt.toDateString())continue;const mins=(b.dt-a.dt)/60000;if(mins>=30)sameDayGaps.push({bike:b.bike,from:a.dt,to:b.dt,minutes:mins,site:b.site});}});
+  byBikeTimeline.forEach(list=>{for(let i=1;i<list.length;i++){const a=list[i-1],b=list[i];if(a.dt.toDateString()!==b.dt.toDateString())continue;const mins=(b.dt-a.dt)/60000;if(mins>=30)sameDayGaps.push({bike:b.bike,from:a.dt,to:b.dt,minutes:mins,fromSite:a.site,site:b.site});}});
   sameDayGaps.sort((a,b)=>b.minutes-a.minutes);
+  const fleetGaps=[];
+  const fleetByDay=new Map();
+  allTimeline.forEach(x=>{const day=localISODate(x.dt);if(!fleetByDay.has(day))fleetByDay.set(day,[]);fleetByDay.get(day).push(x);});
+  fleetByDay.forEach(list=>{list.sort((a,b)=>a.dt-b.dt);for(let i=1;i<list.length;i++){const a=list[i-1],b=list[i],mins=(b.dt-a.dt)/60000;if(mins>=30)fleetGaps.push({bike:"كل الدراجات",from:a.dt,to:b.dt,minutes:mins,fromSite:a.site,site:b.site});}});
+  fleetGaps.sort((a,b)=>b.minutes-a.minutes);
   const lowHours=peakHours.map((count,h)=>({hour:h,count})).sort((a,b)=>a.count-b.count).slice(0,5);
   const siteHourRows=[];
   siteRows.forEach(site=>{const matching=filtered.filter(r=>normalize(String(r.payload?.site||r.payload?.branch||r.payload?.location||"موقع غير محدد"))===normalize(site.name));const counts=Array(24).fill(0);matching.forEach(r=>{const t=timeParts(r.payload?.patrol_time);if(t)counts[t.hour]++;});counts.forEach((count,h)=>{if(count===0)siteHourRows.push({site:site.name,hour:h,count});});});
   const fmtDateTime=d=>d.toLocaleString("ar-EG",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit",hour12:true});
   const monitoringAlerts=[
-   ...sameDayGaps.slice(0,12).map(g=>({kind:"gap",title:"فاصل بدون تسجيل مرور",detail:"الدراجة "+g.bike+" — من "+fmtDateTime(g.from)+" إلى "+fmtDateTime(g.to)+" ("+fmt(g.minutes)+")"})),
+   ...fleetGaps.slice(0,6).map(g=>({kind:"fleet-gap",title:"فاصل عدم تسجيل للأسطول",detail:"كل الدراجات — من "+fmtDateTime(g.from)+" إلى "+fmtDateTime(g.to)+" ("+fmt(g.minutes)+")"})),
+   ...sameDayGaps.slice(0,8).map(g=>({kind:"gap",title:"فاصل عدم تسجيل لدراجة",detail:"الدراجة "+g.bike+" — من "+fmtDateTime(g.from)+" إلى "+fmtDateTime(g.to)+" ("+fmt(g.minutes)+")"})),
    ...lowHours.filter(x=>x.count===0).slice(0,4).map(x=>({kind:"hour",title:"ساعة بلا زيارات مسجلة",detail:"الساعة "+String(x.hour).padStart(2,"0")+":00 — لا توجد زيارات مسجلة في الفترة"})),
    ...siteHourRows.slice(0,12).map(x=>({kind:"site",title:"لا يوجد تسجيل للموقع في ساعة محددة",detail:x.site+" — الساعة "+String(x.hour).padStart(2,"0")+":00"}))
   ];
-  const monitorHtml='<div class="card"><h3>شاشة المتابعة الرقابية</h3><p class="muted">مؤشرات مبنية على الزيارات المحفوظة فقط. عبارة «لم يُسجل» لا تعني بالضرورة عدم حدوث مرور فعلي.</p><div class="stats-grid">'+stats([["فواصل 30 دقيقة فأكثر",sameDayGaps.length],["أقل ساعة تسجيلًا",lowHours.length?String(lowHours[0].hour).padStart(2,"0")+":00":"—"],["مواقع ضمن التحليل",siteRows.length],["ملاحظات رقابية",monitoringAlerts.length]])+'</div><h4>الملاحظات والتنبيهات</h4><div class="notice-list">'+(monitoringAlerts.length?monitoringAlerts.map(x=>'<div class="notice" style="margin:7px 0"><b>'+esc(x.title)+'</b><div>'+esc(x.detail)+'</div></div>').join(""):'<p class="muted">لا توجد ملاحظات ضمن البيانات المسجلة لهذه الفترة.</p>')+'</div><h4>أقل ساعات التسجيل</h4><div class="table-wrap"><table><thead><tr><th>الساعة</th><th>عدد الزيارات المسجلة</th></tr></thead><tbody>'+lowHours.map(x=>'<tr><td>'+String(x.hour).padStart(2,"0")+':00</td><td>'+x.count+'</td></tr>').join("")+'</tbody></table></div><h4>المواقع التي لا يظهر لها مرور مسجل في ساعات معينة</h4><div class="table-wrap"><table><thead><tr><th>الموقع</th><th>الساعة</th><th>الزيارات</th></tr></thead><tbody>'+(siteHourRows.slice(0,30).map(x=>'<tr><td>'+esc(x.site)+'</td><td>'+String(x.hour).padStart(2,"0")+':00</td><td>0</td></tr>').join("")||'<tr><td colspan="3">لا توجد بيانات كافية.</td></tr>')+'</tbody></table></div><p class="muted">فواصل عدم التسجيل محسوبة بين زيارتين متتاليتين في اليوم نفسه للدراجة نفسها، ولا تشمل ما قبل أول زيارة أو بعد آخر زيارة.</p></div>';
+  const monitorHtml='<div class="card"><h3>شاشة المتابعة الرقابية</h3><p class="muted">مؤشرات مبنية على الزيارات المحفوظة فقط. عبارة «لم يُسجل» لا تعني بالضرورة عدم حدوث مرور فعلي.</p><div class="stats-grid">'+stats([["فواصل بين زيارات الدراجة",sameDayGaps.length],["فواصل للأسطول",fleetGaps.length],["أقل ساعة تسجيلًا",lowHours.length?String(lowHours[0].hour).padStart(2,"0")+":00":"—"],["مواقع ضمن التحليل",siteRows.length],["ملاحظات رقابية",monitoringAlerts.length]])+'</div><h4>الملاحظات والتنبيهات</h4><div class="notice-list">'+(monitoringAlerts.length?monitoringAlerts.map(x=>'<div class="notice" style="margin:7px 0"><b>'+esc(x.title)+'</b><div>'+esc(x.detail)+'</div></div>').join(""):'<p class="muted">لا توجد ملاحظات ضمن البيانات المسجلة لهذه الفترة.</p>')+'</div><h4>أقل ساعات التسجيل</h4><div class="table-wrap"><table><thead><tr><th>الساعة</th><th>عدد الزيارات المسجلة</th></tr></thead><tbody>'+lowHours.map(x=>'<tr><td>'+String(x.hour).padStart(2,"0")+':00</td><td>'+x.count+'</td></tr>').join("")+'</tbody></table></div><h4>المواقع التي لا يظهر لها مرور مسجل في ساعات معينة</h4><div class="table-wrap"><table><thead><tr><th>الموقع</th><th>الساعة</th><th>الزيارات</th></tr></thead><tbody>'+(siteHourRows.slice(0,30).map(x=>'<tr><td>'+esc(x.site)+'</td><td>'+String(x.hour).padStart(2,"0")+':00</td><td>0</td></tr>').join("")||'<tr><td colspan="3">لا توجد بيانات كافية.</td></tr>')+'</tbody></table></div><p class="muted">فواصل عدم التسجيل محسوبة بين زيارتين متتاليتين في اليوم نفسه للدراجة نفسها، ولا تشمل ما قبل أول زيارة أو بعد آخر زيارة.</p></div>';
   host.insertAdjacentHTML("beforeend",monitorHtml+'<div class="card" id="bikeCustomReportCard"><h3>طباعة تقرير مخصص</h3><p class="muted">اختَر المعلومة التي تريد طباعتها والفترة المطلوبة. لن يتغير أي قالب تقرير موجود.</p><div class="form-grid"><div class="field"><label>نوع التقرير</label><select id="bikeCustomReportType"><option value="gaps">فترات عدم تسجيل المرور</option><option value="hours">أقل ساعات المرور</option><option value="site">متابعة موقع حسب الساعة</option><option value="bike">نشاط دراجة محددة</option><option value="all">ملخص شاشة المتابعة</option></select></div><div class="field"><label>الدراجة</label><select id="bikeCustomReportBike"><option value="">كل الدراجات</option>'+names.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join("")+'</select></div><div class="field"><label>الموقع</label><select id="bikeCustomReportSite"><option value="">كل المواقع</option>'+siteRows.map(x=>'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>').join("")+'</select></div><div class="field"><label>من ساعة</label><select id="bikeCustomReportFromHour">'+Array.from({length:24},(_,h)=>'<option value="'+h+'">'+String(h).padStart(2,"0")+':00</option>').join("")+'</select></div><div class="field"><label>إلى ساعة</label><select id="bikeCustomReportToHour">'+Array.from({length:24},(_,h)=>'<option value="'+h+'">'+String(h).padStart(2,"0")+':00</option>').join("")+'</select></div></div><div class="actions"><button class="primary" id="printBikeCustomReport">طباعة التقرير</button><button class="secondary" id="pdfBikeCustomReport">حفظ PDF</button><button class="secondary" id="imageBikeCustomReport">حفظ صورة</button><button class="secondary" id="archiveBikeCustomReport">حفظ في الأرشيف</button></div></div>');
   let customReportHtml="",customReportArchivePromise=null,customReportArchiveKey="";
   const buildBikeCustomReport=()=>{
@@ -1564,10 +1570,12 @@ async function bikeAnalyticsPage(){
    let title="",sectionTitle="",columns=[],rows=[],summary=[];
    if(type==="gaps"){
     title="تقرير فترات عدم تسجيل المرور";sectionTitle="الفواصل الزمنية بين الزيارات المسجلة";
-    const data=sameDayGaps.filter(g=>(!bike||g.bike===bike)&&inHours({hour:g.from.getHours()}));
-    columns=["الدراجة","من","إلى","الفاصل بالدقائق"];
-    rows=data.map(g=>[g.bike,fmtDateTime(g.from),fmtDateTime(g.to),fmt(g.minutes)]);
-    summary=[["عدد الفواصل",data.length],["أقل فاصل",data.length?fmt(Math.min(...data.map(x=>x.minutes))):"—"],["أطول فاصل",data.length?fmt(Math.max(...data.map(x=>x.minutes))):"—"]];
+    const gapMatches=g=>inHours({hour:g.from.getHours()})&&(!site||(normalize(g.fromSite)===normalize(site)&&normalize(g.site)===normalize(site)));
+    const data=bike?sameDayGaps.filter(g=>g.bike===bike&&gapMatches(g)).map(g=>({...g,scope:g.bike})):([...fleetGaps.map(g=>({...g,scope:"الأسطول"})),...sameDayGaps.map(g=>({...g,scope:g.bike}))]).filter(gapMatches);
+    columns=["النطاق","من","إلى","مدة عدم التسجيل"];
+    rows=data.map(g=>[g.scope,fmtDateTime(g.from),fmtDateTime(g.to),fmt(g.minutes)]);
+    const fleetCount=bike?0:data.filter(g=>g.scope==="الأسطول").length, bikeCount=data.length-fleetCount;
+    summary=[["فواصل الدراجات",bikeCount],["فواصل الأسطول",bike?"—":fleetCount],["أطول فاصل",data.length?fmt(Math.max(...data.map(x=>x.minutes))):"—"]];
    }else if(type==="hours"){
     title="تقرير أقل ساعات المرور";sectionTitle="جميع الساعات حسب عدد الزيارات المسجلة";
     columns=["الساعة","عدد الزيارات المسجلة"];
