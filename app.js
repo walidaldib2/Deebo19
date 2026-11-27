@@ -35,7 +35,7 @@ fields.emergencies.unshift(["emergency_date","تاريخ الحالة","date",1]
 fields.tasks.unshift(["work_date","تاريخ العمل","date",1]);
 fields.absences.find(f=>f[0]==="shift")[4]=1;
 const pageGroups={follow:["daily_rosters","branch_patrols","written_reports","memos"],data:["branches","patrol_people","bikes","patrol_sites","managers","documents","custom_data"],emergency:["emergencies","emergency_people"]};
-const sectionMenus={operations:{title:"التشغيل الميداني",items:[["follow","متابعة الفروع"],["map","خط سير المرور اليومي"],["bikeMaps","خرائط الدراجات"],["bikeShiftAssignments","توزيع شفت مرور الدراجات"],["managerRounds","مرور المديرين"],["tasks","المهام والتكليفات"],["handovers","تسليم واستلام الشفت"]]},security:{title:"إدارة الأمن",items:[["employees","سجل الموظفين"],["attendance","الغياب والاستئذان"],["incidents","الحوادث والبلاغات"],["emergency","الطوارئ"]]},reportsGroup:{title:"التقارير والإحصائيات",items:[["reports","مركز التقارير"],["stats","الإحصائيات"]]}};
+const sectionMenus={operations:{title:"التشغيل الميداني",items:[["follow","متابعة الفروع"],["map","خط سير المرور اليومي"],["bikeMaps","خرائط الدراجات"],["bikeShiftAssignments","توزيع شفت مرور الدراجات"],["managerRounds","مرور المديرين"],["tasks","المهام والتكليفات"],["handovers","تسليم واستلام الشفت"]]},security:{title:"إدارة الأمن",items:[["employees","سجل الموظفين"],["attendance","الغياب والاستئذان"],["incidents","الحوادث والبلاغات"],["emergency","الطوارئ"]]},reportsGroup:{title:"التقارير والإحصائيات",items:[["reports","مركز التقارير"],["stats","الإحصائيات"]]},officeTools:{title:"الأدوات المكتبية",items:[["scanner","ماسح المستندات – CamScanner"],["powerpoint","PowerPoint – محرر العروض"],["documentTools","أدوات المستندات وPDF"]]}};
 let cache=[],currentPage="home",currentType=null,currentEdit=null,currentEmployeeDetailId=null,weatherTimer=null,archiveTimer=null,searchTerm="",deferredInstallPrompt=null;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const normalize=v=>String(v||"").trim().toLocaleLowerCase("ar").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي");
@@ -1487,6 +1487,9 @@ function render(p){
   else if(p==="bikeShiftAssignments")singleSectionPage("توزيع شفت مرور الدراجات","bike_shift_assignments");
   else if(p==="bikeMapReports")bikeMapReportsPage();
   else if(p==="bikepatrol")bikePatrolPage();
+  else if(p==="scanner"){if(!window.DEebScanner?.render)throw new Error("ماسح المستندات غير محمّل في هذه النسخة.");window.DEebScanner.render();}
+  else if(p==="powerpoint"){if(!window.DEEBPowerPointEditor?.open)throw new Error("محرر PowerPoint غير محمّل في هذه النسخة.");window.DEEBPowerPointEditor.open();}
+  else if(p==="documentTools"){const launch=document.getElementById("deebDocLaunch");if(launch)launch.click();else throw new Error("أدوات المستندات غير متاحة.");}
   else if(p==="reports")reports().catch(error=>{console.error("DEEB reports load failed:",error);area.innerHTML=pageHead("تعذر تحميل التقارير والسجلات")+'<div class="card notice">'+esc(error?.message||error)+'</div>';});
   else if(p==="employees")singleSectionPage("سجل الموظفين","employees");
   else if(p==="managerRounds")singleSectionPage("مرور المديرين","manager_rounds");
