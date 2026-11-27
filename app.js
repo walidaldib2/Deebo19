@@ -651,8 +651,9 @@ function renderBikeSiteHeatMap(targetId,points){
   clusters.forEach(c=>{
    const intensity=c.count/max,siteLines=[...c.sites.entries()].sort((a,b)=>b[1]-a[1]).map(([n,v])=>'<div>'+safe(n)+' — '+v+' زيارة</div>').join("");
    const bikeLines=[...c.bikes.entries()].sort((a,b)=>b[1]-a[1]).map(([n,v])=>'<div>'+safe(n)+': '+v+'</div>').join("");
-   const color=intensity>.66?"#8b1732":intensity>.33?"#c36a28":"#d6a83e";
-   L.circleMarker([c.lat,c.lng],{radius:8+Math.round(15*intensity),color,weight:2,fillColor:color,fillOpacity:.25+.65*intensity}).addTo(map).bindPopup('<b>إجمالي المرور: '+c.count+'</b>'+siteLines+'<hr><b>حسب الدراجة</b>'+bikeLines);
+   // Keep the base map readable: use small, muted, translucent density halos instead of opaque red markers.
+   const color=intensity>.66?"#9b7650":intensity>.33?"#789486":"#b6a477";
+   L.circleMarker([c.lat,c.lng],{radius:5+Math.round(7*intensity),color:"#526b61",weight:1,opacity:.55,fillColor:color,fillOpacity:.14+.18*intensity}).addTo(map).bindPopup('<b>إجمالي المرور: '+c.count+'</b>'+siteLines+'<hr><b>حسب الدراجة</b>'+bikeLines);
   });
   const bounds=L.latLngBounds(clusters.map(c=>[c.lat,c.lng]));map.fitBounds(bounds.pad(.2),{maxZoom:15});setTimeout(()=>map.invalidateSize(),150);
   function safe(v){return String(v||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
