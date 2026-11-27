@@ -15,7 +15,7 @@ const androidPrepareForOcr = fs.readFileSync(path.join(root,'prepare-android.js'
 for (const token of ['worker.min.js','tesseract.min.js','ara.traineddata','eng.traineddata','tesseract-core-simd-lstm.wasm.js','tesseract-core-relaxedsimd-lstm.wasm.js','tesseract-core-relaxedsimd-lstm.wasm','tessdata_fast']) {
   if (!androidPrepareForOcr.includes(token)) throw new Error('Android OCR preparation is missing: '+token);
 }
-for (const token of ['deebOcr','deebOcrText','deebOcrCopy','createWorker(["ara","eng"]','workerPath:"./ocr/worker.min.js"','langPath:"./ocr/lang"','corePath:"./ocr/core"','لم يتم حفظه في أي سجل']) {
+for (const token of ['deebOcr','deebOcrText','deebOcrCopy','createWorker(["ara","eng"]','workerPath:"./ocr/worker.min.js"','langPath:"./lang"','corePath:"./core"','لم يتم حفظه في أي سجل']) {
   if (!documentToolsSource.includes(token)) throw new Error('Local OCR review workflow is missing: '+token);
 }
 if (["cdn.jsdelivr.net","tessdata.projectnaptha.com","unpkg.com"].some(host => documentToolsSource.includes(host))) throw new Error('Runtime OCR code must not call external network services.');
