@@ -1433,24 +1433,21 @@ async function bikeAnalyticsPage(){
  const rangeFor=mode=>mode==="day"?[today,today]:mode==="week"?[dateShift(today,-6),today]:[monthStart(),today];
  const normalizeDigits=value=>String(value??"").replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d));
  const timeParts=value=>{
-  const raw=normalizeDigits(value).trim();
-  const m=raw.match(/(\d{1,2}):(\d{2})/);
+  const raw=normalizeDigits(value).trim(),m=raw.match(/(\d{1,2}):(\d{2})/);
   if(!m)return null;
   let hour=Number(m[1]),minute=Number(m[2]);
   if(hour>23||minute>59)return null;
   const pm=/(م|مساء|pm)/i.test(raw),am=/(ص|صباح|am)/i.test(raw);
-  if(pm&&hour<12)hour+=12;
-  if(am&&hour===12)hour=0;
+  if(pm&&hour<12)hour+=12;if(am&&hour===12)hour=0;
   return {hour,minute,total:hour*60+minute};
  };
  const dateTimeOf=row=>{
   const date=String(row.payload?.patrol_date||"").slice(0,10),t=timeParts(row.payload?.patrol_time);
   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!t)return null;
-  const [y,m,d]=date.split("-").map(Number);
-  const value=new Date(y,m-1,d,t.hour,t.minute,0,0);
+  const [y,m,d]=date.split("-").map(Number),value=new Date(y,m-1,d,t.hour,t.minute,0,0);
   return Number.isFinite(value.getTime())?value:null;
  };
- const escHtml=esc;
+ const dayNames=["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
  const renderStats=mode=>{
   const [from,to]=rangeFor(mode);
   const filtered=visits.filter(r=>String(r.payload.patrol_date).slice(0,10)>=from&&String(r.payload.patrol_date).slice(0,10)<=to);
@@ -1460,26 +1457,26 @@ async function bikeAnalyticsPage(){
   filtered.forEach(r=>{const n=String(r.payload?.bike||"").trim();if(n&&!bikeNames.has(bikeKey(n)))bikeNames.set(bikeKey(n),n);});
   const names=[...bikeNames.values()];
   const perBike=names.map(name=>{
-   const list=filtered.filter(r=>bikeKey(r.payload?.bike)===bikeKey(name)).sort((a,b)=>{
-    const da=dateTimeOf(a),db=dateTimeOf(b);return (da?.getTime()??0)-(db?.getTime()??0);
-   });
+   const list=filtered.filter(r=>bikeKey(r.payload?.bike)===bikeKey(name)).sort((a,b)=>(dateTimeOf(a)?.getTime()??0)-(dateTimeOf(b)?.getTime()??0));
    const hours=Array(24).fill(0);
    list.forEach(r=>{const t=timeParts(r.payload.patrol_time);if(t)hours[t.hour]++;});
-   const peak=Math.max(0,...hours),peakHour=peak?hours.indexOf(peak):null;
-   const gaps=[];
+   const peak=Math.max(0,...hours),peakHour=peak?hours.indexOf(peak):null,gaps=[];
    for(let i=1;i<list.length;i++){const a=dateTimeOf(list[i-1]),b=dateTimeOf(list[i]);if(a&&b&&b>=a)gaps.push((b-a)/60000);}
    const avg=gaps.length?gaps.reduce((x,y)=>x+y,0)/gaps.length:null,max=gaps.length?Math.max(...gaps):null;
    return {name,count:list.length,peakHour,peak,avg,max};
   });
-  const peakHours=Array(24).fill(0);
-  filtered.forEach(r=>{const t=timeParts(r.payload.patrol_time);if(t)peakHours[t.hour]++;});
+  const peakHours=Array(24).fill(0),heat=Array.from({length:7},()=>Array(24).fill(0));
+  filtered.forEach(r=>{const t=timeParts(r.payload.patrol_time),dt=dateTimeOf(r);if(t){peakHours[t.hour]++;if(dt)heat[dt.getDay()][t.hour]++;}});
   const allPeak=Math.max(0,...peakHours),allPeakHour=allPeak?peakHours.indexOf(allPeak):null;
   const fmt=m=>m===null?"—":(m>=60?(m/60).toFixed(1)+" ساعة":Math.round(m)+" دقيقة");
-  const rowsHtml=perBike.map(x=>'<tr><td>'+escHtml(x.name)+'</td><td>'+x.count+'</td><td>'+(x.peakHour===null?"—":String(x.peakHour).padStart(2,"0")+":00 ("+x.peak+")")+'</td><td>'+fmt(x.avg)+'</td><td>'+fmt(x.max)+'</td></tr>').join("");
+  const rowsHtml=perBike.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+x.count+'</td><td>'+(x.peakHour===null?"—":String(x.peakHour).padStart(2,"0")+":00 ("+x.peak+")")+'</td><td>'+fmt(x.avg)+'</td><td>'+fmt(x.max)+'</td></tr>').join("");
   const maxCount=Math.max(1,...perBike.map(x=>x.count));
-  const bars=perBike.map(x=>'<div class="notice" style="margin:8px 0"><b>'+escHtml(x.name)+'</b> — '+x.count+' زيارة<div style="height:8px;background:var(--border);border-radius:8px;overflow:hidden;margin-top:6px"><div style="height:8px;width:'+Math.round(x.count/maxCount*100)+'%;background:var(--primary);border-radius:8px"></div></div></div>').join("");
+  const bars=perBike.map(x=>'<div class="notice" style="margin:8px 0"><b>'+esc(x.name)+'</b> — '+x.count+' زيارة<div style="height:8px;background:var(--border);border-radius:8px;overflow:hidden;margin-top:6px"><div style="height:8px;width:'+Math.round(x.count/maxCount*100)+'%;background:var(--primary);border-radius:8px"></div></div></div>').join("");
+  const maxHeat=Math.max(1,...heat.flat());
+  const heatRows=heat.map((row,day)=>'<tr><th style="position:sticky;right:0;background:var(--card);white-space:nowrap">'+dayNames[day]+'</th>'+row.map((count,h)=>'<td title="'+dayNames[day]+' '+String(h).padStart(2,"0")+':00 — '+count+' زيارة" style="min-width:24px;text-align:center;padding:5px 2px;background:rgba(190,45,55,'+(count?(.12+.78*count/maxHeat):.025)+');color:'+(count/maxHeat>.55?'white':'var(--text)')+'">'+(count||"·")+'</td>').join("")+'</tr>').join("");
+  const hourly=peakHours.map((count,h)=>'<div title="'+String(h).padStart(2,"0")+':00 — '+count+' زيارة" style="flex:1;min-width:0;text-align:center"><div style="height:110px;display:flex;align-items:end;background:var(--surface);border-radius:4px;overflow:hidden"><div style="width:100%;height:'+(count?Math.max(4,count/Math.max(1,...peakHours)*100):0)+'%;background:rgba(190,45,55,.82)"></div></div><small style="font-size:9px">'+String(h).padStart(2,"0")+'</small></div>').join("");
   const host=$("#bikeAnalyticsContent");if(!host)return;
-  host.innerHTML='<div class="stats-grid">'+stats([["إجمالي الزيارات",filtered.length],["عدد الدراجات",names.length],["ساعة الذروة للأسطول",allPeakHour===null?"—":String(allPeakHour).padStart(2,"0")+":00"],["زيارات ساعة الذروة",allPeak]])+'</div><div class="card"><h3>مقارنة عدد الزيارات</h3>'+(bars||'<p class="muted">لا توجد زيارات في الفترة المحددة.</p>')+'</div><div class="card"><h3>تحليل كل دراجة</h3><div class="table-wrap"><table><thead><tr><th>الدراجة</th><th>الزيارات</th><th>ساعة الذروة</th><th>متوسط الفاصل بين الزيارات</th><th>أطول فترة بين زيارتين</th></tr></thead><tbody>'+(rowsHtml||'<tr><td colspan="5">لا توجد سجلات مرور في الفترة.</td></tr>')+'</tbody></table></div><p class="muted">الفواصل محسوبة بين زيارتين مسجلتين متتاليتين فقط؛ لا تُحتسب فترات ما قبل أول زيارة أو بعد آخر زيارة كخمول. يُعرض الشهر الحالي من أوله حتى اليوم.</p></div>';
+  host.innerHTML='<div class="stats-grid">'+stats([["إجمالي الزيارات",filtered.length],["عدد الدراجات",names.length],["ساعة الذروة للأسطول",allPeakHour===null?"—":String(allPeakHour).padStart(2,"0")+":00"],["زيارات ساعة الذروة",allPeak]])+'</div><div class="card"><h3>الخريطة الحرارية لساعات الذروة</h3><p class="muted">كل خلية تعرض عدد الزيارات المسجلة في يوم الأسبوع والساعة. كلما زادت كثافة اللون زاد المرور الفعلي المسجل.</p><div style="overflow-x:auto"><table style="border-collapse:separate;border-spacing:2px;min-width:760px"><thead><tr><th>اليوم / الساعة</th>'+Array.from({length:24},(_,h)=>'<th style="font-size:10px;min-width:24px">'+String(h).padStart(2,"0")+'</th>').join("")+'</tr></thead><tbody>'+heatRows+'</tbody></table></div><div style="display:flex;justify-content:space-between;gap:8px;margin-top:10px;font-size:12px"><span>لون خفيف: نشاط أقل</span><span>لون داكن: ذروة أعلى</span></div><h4 style="margin-top:18px">حجم المرور حسب الساعة</h4><div style="display:flex;gap:3px;align-items:end;overflow-x:auto">'+hourly+'</div></div><div class="card"><h3>مقارنة عدد الزيارات بين الدراجات</h3>'+(bars||'<p class="muted">لا توجد زيارات في الفترة المحددة.</p>')+'</div><div class="card"><h3>تحليل كل دراجة</h3><div class="table-wrap"><table><thead><tr><th>الدراجة</th><th>الزيارات</th><th>ساعة الذروة</th><th>متوسط الفاصل بين الزيارات</th><th>أطول فترة بين زيارتين</th></tr></thead><tbody>'+(rowsHtml||'<tr><td colspan="5">لا توجد سجلات مرور في الفترة.</td></tr>')+'</tbody></table></div><p class="muted">الفواصل محسوبة بين زيارتين مسجلتين متتاليتين فقط؛ لا تُحتسب فترات ما قبل أول زيارة أو بعد آخر زيارة كخمول. يُعرض الشهر الحالي من أوله حتى اليوم.</p></div>';
  };
  area.innerHTML=pageHead("إحصائيات وتحليل مرور الدراجات")+'<div class="card"><div class="field"><label for="bikeAnalyticsRange">الفترة الزمنية</label><select id="bikeAnalyticsRange"><option value="day">اليوم</option><option value="week">آخر 7 أيام</option><option value="month">الشهر الحالي</option></select></div><div id="bikeAnalyticsContent"></div></div>';
  $("#bikeAnalyticsRange").addEventListener("change",e=>renderStats(e.target.value));renderStats("day");
