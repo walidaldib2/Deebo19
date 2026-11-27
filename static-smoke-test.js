@@ -10,6 +10,12 @@ const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
 const patrolDateResolver=app.match(/const dayOf=x=>\{const p=x\.payload\|\|\{\};const specific=([\s\S]*?)return String\(specific\|\|p\.work_date\|\|x\.created_at\|\|""\)\.slice\(0,10\);\};/);
 if(!patrolDateResolver || !patrolDateResolver[1].includes('p.patrol_date') || !patrolDateResolver[1].includes('p.incident_date') || !patrolDateResolver[1].includes('p.report_date')) throw new Error('Report date filtering must prioritize each patrol record\'s own patrol_date over a generic work_date so historical branch and bike follow-ups remain visible.');
 
+const bikeExportHandler=app.slice(app.indexOf('const withCustomReportButton=async'),app.indexOf('$("#printBikeCustomReport").onclick'));
+if(!bikeExportHandler.includes('let stage="بناء بيانات التقرير"') ||
+   !bikeExportHandler.includes('stage="تنفيذ التصدير"') ||
+   !bikeExportHandler.includes('تعذر التقرير في مرحلة')) {
+  throw new Error('Bike custom report export must identify whether report construction or native export failed.');
+}
 const vm = require('node:vm');
 for (const file of ['app.js','db.js','team-sync.js','preferences.js','sw.js','qrcode.js','biometric.bundle.js','native-plugins.bundle.js']) {
   const source = fs.readFileSync(path.join(root,file),'utf8');
