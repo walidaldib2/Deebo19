@@ -30,9 +30,9 @@ const html = fs.readFileSync(path.join(root,'index.html'),'utf8');
 for (const asset of ['document-tools.js','powerpoint-editor.js']) {
   if (!html.includes('<script src="'+asset+'"></script>')) throw new Error('Application entry point must load '+asset);
 }
-const serviceWorkerSource = fs.readFileSync(path.join(root,'sw.js'),'utf8');
+const offlineAssetCacheSource = fs.readFileSync(path.join(root,'sw.js'),'utf8');
 for (const asset of ['document-tools.js','powerpoint-editor.js']) {
-  if (!serviceWorkerSource.includes('"./'+asset+'"')) throw new Error('Offline cache must include '+asset);
+  if (!offlineAssetCacheSource.includes('"./'+asset+'"')) throw new Error('Offline cache must include '+asset);
 }
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
