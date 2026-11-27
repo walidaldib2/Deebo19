@@ -41,7 +41,7 @@ if (!app.includes('const persons=[...new Set(g.visits.map(v=>String(v.payload?.p
 const bikeGroupStart=app.indexOf('const bikeGroupsFor=d=>{');
 const bikeGroupEnd=app.indexOf('const branchGroupsFor=d=>',bikeGroupStart);
 if(bikeGroupStart<0||bikeGroupEnd<=bikeGroupStart) throw new Error('Bike report grouping function could not be located for behavior tests');
-const bikeGroupSource=app.slice(bikeGroupStart+'const bikeGroupsFor='.length,bikeGroupEnd).replace(/;\\s*$/, '');
+const bikeGroupSource=app.slice(bikeGroupStart+'const bikeGroupsFor='.length,bikeGroupEnd).replace(/;\s*$/, '');
 const bikeRegistry=[
  {entity_type:'bikes',created_at:'2026-01-01',payload:{number:'1696',person:'اسم قديم',code:'7832',type:'بوكسر'}},
  {entity_type:'bikes',created_at:'2026-01-02',payload:{number:'6327',person:'اسم قديم آخر',code:'7848',type:'بوكسر'}}
