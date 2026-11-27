@@ -1489,7 +1489,7 @@ function render(p){
   else if(p==="bikepatrol")bikePatrolPage();
   else if(p==="scanner"){if(!window.DEebScanner?.render)throw new Error("ماسح المستندات غير محمّل في هذه النسخة.");window.DEebScanner.render();}
   else if(p==="powerpoint"){if(!window.DEEBPowerPointEditor?.open)throw new Error("محرر PowerPoint غير محمّل في هذه النسخة.");window.DEEBPowerPointEditor.open();}
-  else if(p==="documentTools"){const launch=document.getElementById("deebDocLaunch");if(launch)launch.click();else throw new Error("أدوات المستندات غير متاحة.");}
+  else if(p==="documentTools"){const launch=document.getElementById("deebToolsButton");if(launch)launch.click();else throw new Error("أدوات المستندات غير متاحة.");}
   else if(p==="reports")reports().catch(error=>{console.error("DEEB reports load failed:",error);area.innerHTML=pageHead("تعذر تحميل التقارير والسجلات")+'<div class="card notice">'+esc(error?.message||error)+'</div>';});
   else if(p==="employees")singleSectionPage("سجل الموظفين","employees");
   else if(p==="managerRounds")singleSectionPage("مرور المديرين","manager_rounds");
