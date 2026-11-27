@@ -648,14 +648,18 @@ const customHoursSource=customHoursStart>=0&&customHoursEnd>customHoursStart?app
 if(!customHoursSource.includes('title="تقرير أقل ساعات المرور"') ||
    !customHoursSource.includes('columns=["الساعة","عدد الزيارات المسجلة"]') ||
    !customHoursSource.includes('rows=hourRows.map') ||
-   customHoursSource.includes('if(type==="hours"){') ||
    !customHoursSource.includes('if(type==="heat"){') ||
    !customHoursSource.includes('title="تقرير الخريطة الحرارية لساعات الذروة"') ||
    !customHoursSource.includes('<option value="heat">الخريطة الحرارية لساعات الذروة</option>')) {
   throw new Error('Low-hours and peak-hour heatmap reports must be separate selectable report types.');
 }
 
-if (!customHoursSource.includes('const selectedHeat=Array.from({length:7},()=>Array(24).fill(0))') ||
+const heatmapSourceStart=customHoursSource.indexOf('let hoursHeatmapHtml=""');
+const heatmapSourceEnd=customHoursSource.indexOf('const table=',heatmapSourceStart);
+const heatmapSource=heatmapSourceStart>=0&&heatmapSourceEnd>heatmapSourceStart?customHoursSource.slice(heatmapSourceStart,heatmapSourceEnd):'';
+if (heatmapSource.includes('if(type==="hours"){') ||
+    !heatmapSource.includes('if(type==="heat"){') ||
+    !customHoursSource.includes('const selectedHeat=Array.from({length:7},()=>Array(24).fill(0))') ||
     !customHoursSource.includes('const weekDays=new Map()') ||
     !customHoursSource.includes('const cursor=new Date(from+"T12:00:00"),lastDay=new Date(to+"T12:00:00")') ||
     !customHoursSource.includes('const shiftHours=[]') ||
