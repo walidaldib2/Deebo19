@@ -657,8 +657,11 @@ const customHoursEnd=app.indexOf('const archiveBikeCustomReport=async()=>',custo
 const customHoursSource=customHoursStart>=0&&customHoursEnd>customHoursStart?app.slice(customHoursStart,customHoursEnd):'';
 if(!customHoursSource.includes('title="تقرير أقل ساعات المرور"') ||
    !customHoursSource.includes('columns=["الساعة","عدد الزيارات المسجلة"]') ||
-   !customHoursSource.includes('const lowHourRows=hourRows.slice(0,5)') ||
-   !customHoursSource.includes('rows=lowHourRows.map') ||
+   !customHoursSource.includes('rows=hourRows.map') ||
+   !customHoursSource.includes('const selectedHours=hourRows') ||
+   !customHoursSource.includes('const lowHourHeaders=selectedHours.map') ||
+   !customHoursSource.includes('const lowHourCells=selectedHours.map') ||
+   !customHoursSource.includes('عدد الأعمدة يساوي عدد الساعات المختارة') ||
    !customHoursSource.includes('if(type==="heat"){') ||
    !customHoursSource.includes('title="تقرير الخريطة الحرارية لساعات الذروة"') ||
    !app.includes('<option value="heat">الخريطة الحرارية لساعات الذروة</option>')) {
@@ -668,7 +671,7 @@ if(!customHoursSource.includes('title="تقرير أقل ساعات المرور
 const heatmapSourceStart=customHoursSource.indexOf('let hoursHeatmapHtml=""');
 const heatmapSourceEnd=customHoursSource.indexOf('const table=',heatmapSourceStart);
 const heatmapSource=heatmapSourceStart>=0&&heatmapSourceEnd>heatmapSourceStart?customHoursSource.slice(heatmapSourceStart,heatmapSourceEnd):'';
-if (heatmapSource.includes('if(type==="hours"){') ||
+if (!heatmapSource.includes('if(type==="hours"){') ||
     !heatmapSource.includes('if(type==="heat"){') ||
     !customHoursSource.includes('const selectedHeat=Array.from({length:7},()=>Array(24).fill(0))') ||
     !customHoursSource.includes('const weekDays=new Map()') ||
