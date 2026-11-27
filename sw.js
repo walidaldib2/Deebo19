@@ -6,6 +6,8 @@ const CORE = [
   "./style.css",
   "./app.js",
   "./document-tools.js",
+  "./ocr/tesseract.min.js",
+  "./ocr/worker.min.js",
   "./powerpoint-editor.js",
   "./db.js",
   "./team-sync.js",
