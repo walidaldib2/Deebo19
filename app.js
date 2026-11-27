@@ -1540,7 +1540,7 @@ async function bikeAnalyticsPage(){
    const type=$("#bikeCustomReportType").value,bike=$("#bikeCustomReportBike").value,site=$("#bikeCustomReportSite").value;
    const fromHour=Number($("#bikeCustomReportFromHour").value),toHour=Number($("#bikeCustomReportToHour").value);
    const inHours=t=>t&&((fromHour<=toHour)?(t.hour>=fromHour&&t.hour<=toHour):(t.hour>=fromHour||t.hour<=toHour));
-   const hourRows=peakHours.map((count,h)=>({hour:h,count})).filter(x=>inHours({hour:x.hour})).sort((a,b)=>a.count-b.count||a.hour-b.hour);
+   const customHourCounts=Array(24).fill(0);filtered.forEach(r=>{const p=r.payload||{},t=timeParts(p.patrol_time),rowBike=String(p.bike||"").trim(),rowSite=String(p.site||p.branch||p.location||"موقع غير محدد").trim();if(!t||!inHours(t)||(bike&&rowBike!==bike)||(site&&normalize(rowSite)!==normalize(site)))return;customHourCounts[t.hour]++;});const hourRows=customHourCounts.map((count,h)=>({hour:h,count})).filter(x=>inHours({hour:x.hour})).sort((a,b)=>a.count-b.count||a.hour-b.hour);
    const stamp=new Date().toLocaleDateString("ar-EG",{day:"2-digit",month:"long",year:"numeric"});
    let title="تقرير متابعة الدراجات",sectionTitle="",rows=[],columns=[],summary=[];
    if(type==="gaps"){
