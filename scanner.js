@@ -47,7 +47,7 @@ async function recognizePages(){
  try{
   status("جارٍ تحميل محرك قراءة النص العربي والإنجليزي...");
   const engine=await ensureOcrEngine();
-  worker=await engine.createWorker(["ara","eng"],1,{workerPath:"./ocr/worker.min.js",langPath:"./lang",corePath:"./core",gzip:false,logger:e=>{if(e?.status)status("قراءة النص: "+e.status+(e.progress!=null?" "+Math.round(e.progress*100)+"%":""));}});
+  worker=await engine.createWorker(["ara","eng"],1,{workerPath:"./ocr/worker.min.js",langPath:"./ocr/lang",corePath:"./ocr/core",gzip:false,logger:e=>{if(e?.status)status("قراءة النص: "+e.status+(e.progress!=null?" "+Math.round(e.progress*100)+"%":""));}});
   const results=[];
   for(let i=0;i<pages.length;i++){
    status("قراءة الصفحة "+(i+1)+" من "+pages.length+"...");
