@@ -18,6 +18,7 @@ if (!documentToolsSource.includes('p.crop') ||
 const html = fs.readFileSync(path.join(root,'index.html'),'utf8');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
+if (!app.includes('<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>') || !app.includes('<selection pane="bottomLeft" activeCell="A2" sqref="A2"/>')) throw new Error('Excel exports must freeze the first header row while preserving right-to-left navigation.');
 const vm = require('node:vm');
 new vm.Script(powerpointEditorSource,{filename:'powerpoint-editor.js'});
 for (const file of ['app.js','db.js','team-sync.js','preferences.js','sw.js','qrcode.js','biometric.bundle.js','native-plugins.bundle.js','document-tools.js']) {
