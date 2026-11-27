@@ -177,3 +177,10 @@ body{background:radial-gradient(ellipse at 50% 0%,#172943 0,#091626 48%,#050b14 
 .archive-report-info span,.archive-report-info small{color:var(--muted);font-size:12px}
 .archive-report-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
 @media(max-width:560px){.archive-report-card{align-items:stretch;flex-direction:column}.archive-report-actions{justify-content:flex-start}.archive-category-grid{grid-template-columns:1fr 1fr}}
+
+
+/* Consistent icons for inner section navigation and branch directory */
+.section-tile-icon{display:grid;place-items:center;width:38px;height:38px;border:1px solid #b58a43;border-radius:13px;background:linear-gradient(145deg,#26364b,#101c2b);font-size:23px;line-height:1;filter:drop-shadow(0 2px 4px #0005)}
+.section-tile{min-height:112px}
+.branch-row-icon{display:inline-grid;place-items:center;width:25px;height:25px;margin-inline-end:7px;border:1px solid #b58a43;border-radius:8px;background:#182a40;font-size:15px;vertical-align:middle}
+@media(max-width:600px){.section-tile-icon{width:34px;height:34px;font-size:21px}.section-tile{min-height:102px}}
