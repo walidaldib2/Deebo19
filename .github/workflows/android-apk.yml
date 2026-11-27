@@ -107,14 +107,14 @@ jobs:
           import json, os, re
           variables = Path("android/variables.gradle").read_text(encoding="utf-8")
           for key in ("compileSdkVersion", "targetSdkVersion"):
-              match = re.search(rf"\\b{key}\\s*=\\s*(\\d+)", variables)
+              match = re.search(rf"\b{key}\s*=\s*(\d+)", variables)
               if not match or int(match.group(1)) < 36:
                   raise SystemExit(f"{key} must be at least 36 for Google Play")
           package = json.loads(Path("package.json").read_text(encoding="utf-8"))
           gradle = Path("android/app/build.gradle")
           source = gradle.read_text(encoding="utf-8")
-          source, code_count = re.subn(r"versionCode\\s+\\d+", f"versionCode {int(os.environ['APP_VERSION'])}", source, count=1)
-          source, name_count = re.subn(r'versionName\\s+"[^"]+"', f'versionName "{package["version"]}"', source, count=1)
+          source, code_count = re.subn(r"versionCode\s+\d+", f"versionCode {int(os.environ['APP_VERSION'])}", source, count=1)
+          source, name_count = re.subn(r'versionName\s+"[^"]+"', f'versionName "{package["version"]}"', source, count=1)
           if code_count != 1 or name_count != 1:
               raise SystemExit("Could not set Android versionCode/versionName")
           gradle.write_text(source, encoding="utf-8")
@@ -157,11 +157,11 @@ jobs:
                   }
               }
           '''
-          source, count = re.subn(r"(\\n\\s*)buildTypes\\s*\\{", lambda m: m.group(1) + signing + "\\n    buildTypes {", source, count=1)
+          source, count = re.subn(r"(\n\s*)buildTypes\s*\{", lambda m: m.group(1) + signing + "\n    buildTypes {", source, count=1)
           if count != 1:
               key_path.unlink(missing_ok=True)
               raise SystemExit("Could not add the Android release signing configuration.")
-          source, count = re.subn(r"(\\n\\s*buildTypes\\s*\\{\\s*\\n\\s*release\\s*\\{)", r"\\1\\n            signingConfig signingConfigs.release", source, count=1)
+          source, count = re.subn(r"(\n\s*buildTypes\s*\{\s*\n\s*release\s*\{)", r"\1\n            signingConfig signingConfigs.release", source, count=1)
           if count != 1:
               key_path.unlink(missing_ok=True)
               raise SystemExit("Could not attach upload signing to the release build type.")
@@ -177,9 +177,9 @@ jobs:
           fallback = 'maven { url "https://repo1.maven.org/maven2" }'
           for path in Path("android").rglob("*.gradle"):
               source = path.read_text(encoding="utf-8")
-              source = source.replace("mavenCentral()", primary + "\\n        " + fallback)
+              source = source.replace("mavenCentral()", primary + "\n        " + fallback)
               if primary not in source and "repositories {" in source:
-                  source = source.replace("repositories {", "repositories {\\n        " + primary + "\\n        " + fallback, 1)
+                  source = source.replace("repositories {", "repositories {\n        " + primary + "\n        " + fallback, 1)
               path.write_text(source, encoding="utf-8")
           PY
 
