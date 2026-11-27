@@ -92,8 +92,7 @@ if (!pkg.dependencies?.['@aparajita/capacitor-biometric-auth']?.startsWith('^10.
 if (!pkg.devDependencies?.sharp || !pkg.scripts?.['prepare:android:icons']) throw new Error('DEEB launcher icon generation dependency/script is missing');
 const androidSetup = fs.readFileSync(path.join(root,'configure-android-share.js'),'utf8');
 const activityTemplateStart=androidSetup.indexOf('const activity = `');
-const activityTemplateEnd=androidSetup.indexOf('`;
-fs.writeFileSync(path.join(javaDir, "MainActivity.java")',activityTemplateStart);
+const activityTemplateEnd=androidSetup.indexOf('`;\nfs.writeFileSync(path.join(javaDir, "MainActivity.java")',activityTemplateStart);
 const activityTemplate=activityTemplateStart>=0&&activityTemplateEnd>activityTemplateStart?androidSetup.slice(activityTemplateStart,activityTemplateEnd):'';
 const earlyDrawInit=activityTemplate.indexOf('WebView.enableSlowWholeDocumentDraw()');
 const bridgeInit=activityTemplate.indexOf('super.onCreate(savedInstanceState)');
