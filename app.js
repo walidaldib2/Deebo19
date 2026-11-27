@@ -1565,6 +1565,7 @@ async function bikeAnalyticsPage(){
    const selected=filtered.filter(matchesFilters);
    const customHourCounts=Array(24).fill(0);selected.forEach(r=>{const t=timeParts(r.payload?.patrol_time);if(t)customHourCounts[t.hour]++;});
    const hourRows=customHourCounts.map((count,h)=>({hour:h,count})).filter(x=>inHours({hour:x.hour})).sort((a,b)=>a.count-b.count||a.hour-b.hour);
+   const lowHourRows=hourRows.slice(0,5);
    const stamp=new Date().toLocaleDateString("ar-EG",{day:"2-digit",month:"long",year:"numeric"});
    const fmtDateTime=d=>d.toLocaleString("ar-EG",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit",hour12:true});
    let title="",sectionTitle="",columns=[],rows=[],summary=[];
@@ -1579,8 +1580,8 @@ async function bikeAnalyticsPage(){
    }else if(type==="hours"){
     title="تقرير أقل ساعات المرور";sectionTitle="جميع الساعات حسب عدد الزيارات المسجلة";
     columns=["الساعة","عدد الزيارات المسجلة"];
-    rows=hourRows.map(x=>[String(x.hour).padStart(2,"0")+":00",x.count]);
-    summary=[["الساعات المشمولة",hourRows.length],["أقل عدد زيارات",hourRows.length?Math.min(...hourRows.map(x=>x.count)):"—"],["أعلى عدد زيارات",hourRows.length?Math.max(...hourRows.map(x=>x.count)):"—"]];
+    rows=lowHourRows.map(x=>[String(x.hour).padStart(2,"0")+":00",x.count]);
+    summary=[["عدد أقل الساعات المعروضة",lowHourRows.length],["أقل عدد زيارات",lowHourRows.length?Math.min(...lowHourRows.map(x=>x.count)):"—"],["أعلى عدد زيارات ضمن الجدول",lowHourRows.length?Math.max(...lowHourRows.map(x=>x.count)):"—"]];
    }else if(type==="heat"){
     title="تقرير الخريطة الحرارية لساعات الذروة";sectionTitle="عدد الزيارات المسجلة حسب الساعة واليوم";
     columns=["الساعة","عدد الزيارات المسجلة"];
