@@ -49,6 +49,14 @@ const localScripts = Array.from(html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)[
 const localStyles = Array.from(html.matchAll(/<link\b(?=[^>]*\brel=["']stylesheet["'])[^>]*\bhref=["']([^"']+)["']/gi), match => match[1]);
 for (const asset of [...localScripts, ...localStyles]) {
   if (/^(?:https?:)?\/\//i.test(asset) || asset.startsWith('data:')) continue;
+  if (asset.startsWith('ocr/')) {
+    if (!androidPrepareSource.includes('const ocrRoot = path.join(output, "ocr")') ||
+        !androidPrepareSource.includes('path.join(ocrRoot, "tesseract.min.js")') ||
+        !androidPrepareSource.includes('path.join(ocrRoot, "worker.min.js")')) {
+      throw new Error('Android OCR runtime assets must be copied into www/ocr by the dedicated OCR packaging step.');
+    }
+    continue;
+  }
   if (!androidAssetNames.has(asset)) throw new Error('Android packaging manifest is missing a locally loaded application asset: '+asset);
 }
 
