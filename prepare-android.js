@@ -48,7 +48,9 @@ async function main() {
   const requiredCore = [
     "tesseract-core.wasm.js", "tesseract-core-simd.wasm.js",
     "tesseract-core-lstm.wasm.js", "tesseract-core-simd-lstm.wasm.js",
-    "tesseract-core-relaxedsimd.wasm.js", "tesseract-core-relaxedsimd-lstm.wasm.js"
+    "tesseract-core-relaxedsimd.wasm.js", "tesseract-core-relaxedsimd-lstm.wasm.js",
+    "tesseract-core.wasm", "tesseract-core-simd.wasm", "tesseract-core-lstm.wasm",
+    "tesseract-core-simd-lstm.wasm", "tesseract-core-relaxedsimd.wasm", "tesseract-core-relaxedsimd-lstm.wasm"
   ];
   for (const name of requiredCore) {
     if (!fs.existsSync(path.join(ocrRoot, "core", name))) throw new Error("Missing Tesseract core asset: " + name);
