@@ -650,7 +650,7 @@ if(!customHoursSource.includes('title="تقرير أقل ساعات المرور
    !customHoursSource.includes('rows=hourRows.map') ||
    !customHoursSource.includes('if(type==="heat"){') ||
    !customHoursSource.includes('title="تقرير الخريطة الحرارية لساعات الذروة"') ||
-   !customHoursSource.includes('<option value="heat">الخريطة الحرارية لساعات الذروة</option>')) {
+   !app.includes('<option value="heat">الخريطة الحرارية لساعات الذروة</option>')) {
   throw new Error('Low-hours and peak-hour heatmap reports must be separate selectable report types.');
 }
 
