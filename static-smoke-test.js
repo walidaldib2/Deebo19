@@ -5,6 +5,7 @@ const required = ['index.html','app.js','db.js','team-sync.js','style.css','sw.j
 const missing = required.filter(f => !fs.existsSync(path.join(root,f)));
 if (missing.length) throw new Error('Missing required files: '+missing.join(', '));
 const documentToolsSource = fs.readFileSync(path.join(root,'document-tools.js'),'utf8');
+if (!documentToolsSource.includes('deebPptDensity') || !documentToolsSource.includes('deebPptFont') || !documentToolsSource.includes('deebPptTheme') || !documentToolsSource.includes('deebPptCover') || !documentToolsSource.includes('pptOptions.density') || !documentToolsSource.includes('brightness') || !documentToolsSource.includes('contrast') || !documentToolsSource.includes('نسخ الصفحة') || !documentToolsSource.includes('إلغاء القص')) throw new Error('PowerPoint export settings and scanner page enhancement controls are required');
 if (!documentToolsSource.includes('p.crop') ||
     !documentToolsSource.includes('قص من اليسار') ||
     !documentToolsSource.includes('قص من الأعلى') ||
