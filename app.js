@@ -783,12 +783,12 @@ function bikeMapReportsPage(){
   const bikeType=String(bikeData.type||bikeData.description||"").trim()||"—";
   const latestDate=visits.map(visitDate).filter(Boolean).sort().pop()||"—";
   const reportTitle="خريطة مرور دراجة "+bikeIndex+" — "+selectedPerson;
+  const formatReportDate=value=>value?new Date(value+"T00:00:00").toLocaleDateString("ar-EG"):"—";
+  const reportDateLabel=from&&to?(from===to?formatReportDate(from):formatReportDate(from)+" – "+formatReportDate(to)):formatReportDate(latestDate);
   const metaHtml='<h2 class="bike-section-title">بيانات التقرير</h2><div class="bike-meta"><div class="bike-meta-date"><span>التاريخ</span><b>'+esc(reportDateLabel)+'</b></div><div><span>اسم القائم بالمرور</span><b>'+esc(person)+'</b></div><div class="bike-meta-total"><span>عدد مرات المرور</span><b>'+visits.length+' مرة</b></div><div><span>نوع الدراجة</span><b>'+esc(bikeType)+'</b></div><div><span>رقم الدراجة</span><b>'+esc(bike)+'</b></div><div><span>كود الدراجة</span><b>'+esc(code)+'</b></div></div>';
   const detailRowCount=Math.max(1,Math.ceil(detailPoints.length/3));
   const mapHeightMm=Math.max(48,Math.min(120,120-Math.max(0,detailRowCount-7)*8));
   const detailFontPx=Math.max(7,10-Math.max(0,detailRowCount-7)*0.35);
-  const formatReportDate=value=>value?new Date(value+"T00:00:00").toLocaleDateString("ar-EG"):"—";
-  const reportDateLabel=from&&to?(from===to?formatReportDate(from):formatReportDate(from)+" – "+formatReportDate(to)):formatReportDate(latestDate);
   const detailHtml=detailPoints.length?'<div class="deeb-map-details"><h3>تفاصيل نقاط المرور ('+detailPoints.length+' نقطة)</h3><ol style="grid-template-rows:repeat('+detailRowCount+',auto);font-size:'+detailFontPx+'px">'+detailPoints.map((p,index)=>'<li style="grid-column:'+(Math.floor(index/detailRowCount)+1)+';grid-row:'+(index%detailRowCount+1)+'"><span>'+(index+1)+'.</span> <b>'+esc(p.site)+'</b><small>'+esc(p.coordinates)+'</small></li>').join("")+'</ol></div>':'<div class="deeb-map-details"><h3>تفاصيل نقاط المرور</h3><p>لا توجد نقاط مرور مسجلة في الفترة المحددة.</p></div>';
   const mapMarkup=(located.length?'<div id="deebReportMap" class="deeb-report-map" style="height:'+mapHeightMm+'mm"></div><p id="deebRouteStatus" class="deeb-route-status">جارٍ تجهيز تفاصيل الطريق...</p>':'<div class="deeb-report-map-empty">لا توجد إحداثيات صحيحة محفوظة لهذه الدراجة في الفترة المحددة، لذلك لا يمكن رسم مسار جغرافي مؤكد.</div>')+detailHtml;
   const routeCoords=located.map(x=>Number(x.payload.lat)+","+Number(x.payload.lng));
