@@ -1609,7 +1609,7 @@ async function bikeAnalyticsPage(){
    const cell=v=>esc(String(v??"—"));
    const period=from+" إلى "+to,range=String(fromHour).padStart(2,"0")+":00 إلى "+String(toHour).padStart(2,"0")+":00";
    let hoursHeatmapHtml="";
-   if(type==="heat"){
+   if(type==="heat"||type==="hours"){
     const selectedHeat=Array.from({length:7},()=>Array(24).fill(0));
     const weekDays=new Map();
     const cursor=new Date(from+"T12:00:00"),lastDay=new Date(to+"T12:00:00");
@@ -1621,7 +1621,7 @@ async function bikeAnalyticsPage(){
     const dayIndexes=[...new Set([...weekDays.values()])].sort((x,y)=>x-y);
     const hourHead=shiftHours.map(h=>'<th style="min-width:9mm;padding:3px 2px;background:#073b28;color:#fff;font-size:8px">'+String(h).padStart(2,"0")+":00</th>").join("");
     const hourBody=dayIndexes.map(day=>'<tr><th style="white-space:nowrap;padding:4px 6px;background:#073b28;color:#fff;font-size:9px">'+cell(dayNames[day])+'</th>'+shiftHours.map(h=>{const count=selectedHeat[day][h];return '<td style="min-width:9mm;padding:4px 2px;text-align:center;border:1px solid #c99a32;font-size:9px;font-weight:800;background:rgba(139,20,41,'+(count?(.12+.78*count/maxSelectedHeat):.035)+');color:'+(count/maxSelectedHeat>.55?'#fff':'#10275b')+'">'+count+'</td>';}).join("")+'</tr>').join("");
-    hoursHeatmapHtml='<section style="margin:12px 0 16px;page-break-inside:avoid;break-inside:avoid"><h2 style="margin:0 0 6px;padding:7px 10px;background:#073b28;color:#fff;border-right:5px solid #c99a32;font-size:14px">الخريطة الحرارية لساعات المرور</h2><p style="margin:0 0 6px;color:#073b28;font-size:10px">أيام الفترة المختارة فقط: '+cell(period)+' — ساعات الشفت: '+cell(range)+'؛ كل خلية تعرض عدد الزيارات المسجلة، واللون الأغمق يعني كثافة أعلى.</p><div style="width:100%;overflow:visible"><table style="width:100%;table-layout:fixed;border-collapse:collapse;direction:rtl"><thead><tr><th style="width:18mm;padding:4px;background:#073b28;color:#fff;font-size:8px">اليوم / الساعة</th>'+hourHead+'</tr></thead><tbody>'+hourBody+'</tbody></table></div><p style="margin:5px 0 0;color:#073b28;font-size:9px">الخريطة تعرض الأيام التي تقع داخل الفترة المحددة فقط، وساعات الشفت المحددة فقط، وبالاعتماد على السجلات المطابقة لفلاتر التقرير.</p></section>';
+    hoursHeatmapHtml='<section style="margin:12px 0 16px;page-break-inside:avoid;break-inside:avoid"><h2 style="margin:0 0 6px;padding:7px 10px;background:#073b28;color:#fff;border-right:5px solid #c99a32;font-size:14px">ساعات المرور ومربعات كثافة التسجيل</h2><p style="margin:0 0 6px;color:#073b28;font-size:10px">أيام الفترة المختارة فقط: '+cell(period)+' — ساعات الشفت: '+cell(range)+'؛ كل خلية تعرض عدد الزيارات المسجلة، واللون الأغمق يعني كثافة أعلى.</p><div style="width:100%;overflow:visible"><table style="width:100%;table-layout:fixed;border-collapse:collapse;direction:rtl"><thead><tr><th style="width:18mm;padding:4px;background:#073b28;color:#fff;font-size:8px">اليوم / الساعة</th>'+hourHead+'</tr></thead><tbody>'+hourBody+'</tbody></table></div><p style="margin:5px 0 0;color:#073b28;font-size:9px">الجدول يعرض الأيام الواقعة داخل الفترة المحددة وساعات الشفت المحددة فقط. المربعات الحمراء الأغمق تعني عدد زيارات مسجلة أعلى.</p></section>';
    }
    const table='<table class="report-table"><thead><tr>'+columns.map(x=>'<th>'+cell(x)+'</th>').join("")+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+row.map(v=>'<td>'+cell(v)+'</td>').join("")+'</tr>').join("")+'</tbody></table>';
    const metrics=summary.map(x=>'<div class="metric"><span>'+cell(x[0])+'</span><b>'+cell(x[1])+'</b></div>').join("");
