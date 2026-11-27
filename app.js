@@ -620,6 +620,47 @@ function renderBikeLeafletMap(targetId, points){
  if(!document.getElementById("deebLeafletCss")){const css=document.createElement("link");css.id="deebLeafletCss";css.rel="stylesheet";css.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";document.head.appendChild(css);}
  let js=document.getElementById("deebLeafletJs");if(!js){js=document.createElement("script");js.id="deebLeafletJs";js.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";document.head.appendChild(js);}js.addEventListener("load",draw,{once:true});js.addEventListener("error",()=>{const current=document.getElementById(targetId);if(current)current.innerHTML='<div class="notice">تعذر تحميل مكتبة الخرائط. تحقق من اتصال الإنترنت ثم أعد فتح القسم.</div>';},{once:true});
 }
+let deebFlyoverAssetPromise=null;
+function loadDeebFlyoverAssets(){
+ if(window.maplibregl)return Promise.resolve();
+ if(deebFlyoverAssetPromise)return deebFlyoverAssetPromise;
+ deebFlyoverAssetPromise=new Promise((resolve,reject)=>{
+  if(!document.getElementById("deebMapLibreCss")){const css=document.createElement("link");css.id="deebMapLibreCss";css.rel="stylesheet";css.href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css";document.head.appendChild(css);}
+  const script=document.createElement("script");script.src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js";script.onload=()=>window.maplibregl?resolve():reject(new Error("لم يتم تحميل محرك التحليق."));script.onerror=()=>reject(new Error("تعذر تحميل محرك التحليق. تحقق من الإنترنت."));document.head.appendChild(script);
+ });
+ return deebFlyoverAssetPromise;
+}
+function renderBikeFlyoverMap(targetId,points){
+ const target=document.getElementById(targetId);if(!target)return;
+ if(!points.length){target.innerHTML='<div class="empty">لا توجد إحداثيات للتحليق فوقها.</div>';return;}
+ target.innerHTML='<div class="actions flyover-controls"><button type="button" class="primary" id="deebFlyoverStart">ابدأ التحليق فوق المسار</button><button type="button" class="secondary" id="deebFlyoverStop" disabled>إيقاف التحليق</button><button type="button" class="secondary" id="deebFlyoverTop">عرض علوي</button></div><div id="deebFlyoverCanvas" style="height:440px;width:100%;border-radius:12px;overflow:hidden;background:#101827"></div><p class="muted">صور أقمار صناعية مع ميل ودوران الكاميرا. التحليق يتبع نقاط المرور المسجلة؛ لا يمثل بثًا مباشرًا أو تضاريس ارتفاع ثلاثية الأبعاد.</p>';
+ loadDeebFlyoverAssets().then(()=>{
+  const canvas=document.getElementById("deebFlyoverCanvas");if(!canvas||!window.maplibregl)return;
+  if(window.__deebFlyoverMap){try{window.__deebFlyoverMap.remove();}catch(_){}window.__deebFlyoverMap=null;}
+  const first=points[0],map=new maplibregl.Map({container:canvas,style:{version:8,sources:{satellite:{type:"raster",tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],tileSize:256,attribution:"Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics"}},layers:[{id:"satellite",type:"raster",source:"satellite",minzoom:0,maxzoom:19}]},center:[first.lng,first.lat],zoom:15,pitch:48,bearing:0,antialias:true, maxPitch:80});
+  window.__deebFlyoverMap=map;map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"top-left");
+  let stopped=false,step=0;
+  const start=document.getElementById("deebFlyoverStart"),stop=document.getElementById("deebFlyoverStop"),top=document.getElementById("deebFlyoverTop");
+  map.on("load",()=>{
+   points.forEach((p,i)=>{const el=document.createElement("div");el.style.cssText="width:28px;height:28px;border:2px solid white;border-radius:50%;background:#8b1732;color:white;display:flex;align-items:center;justify-content:center;font:bold 13px sans-serif;box-shadow:0 1px 6px #111";el.textContent=String(i+1);new maplibregl.Marker({element:el}).setLngLat([p.lng,p.lat]).setPopup(new maplibregl.Popup({offset:18}).setHTML("<b>"+String(p.site||"موقع المرور").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))+"</b><br>"+String(p.date||"")+" "+String(p.time||""))).addTo(map);});
+   if(points.length>1){const bounds=new maplibregl.LngLatBounds();points.forEach(p=>bounds.extend([p.lng,p.lat]));map.fitBounds(bounds,{padding:55,maxZoom:15,duration:900});}
+  });
+  start.onclick=()=>{
+   if(!map.loaded())return;
+   stopped=false;step=0;start.disabled=true;stop.disabled=false;
+   const flyNext=()=>{
+    if(stopped||step>=points.length){start.disabled=false;stop.disabled=true;return;}
+    const p=points[step],bearing=(step*42)%360;step++;
+    map.flyTo({center:[p.lng,p.lat],zoom:18,pitch:68,bearing,duration:4200,curve:1.35,speed:0.65});
+    map.once("moveend",()=>{if(!stopped)setTimeout(flyNext,350);else{start.disabled=false;stop.disabled=true;}});
+   };
+   flyNext();
+  };
+  stop.onclick=()=>{stopped=true;map.stop();start.disabled=false;stop.disabled=true;};
+  top.onclick=()=>{stopped=true;map.stop();start.disabled=false;stop.disabled=true;const b=new maplibregl.LngLatBounds();points.forEach(p=>b.extend([p.lng,p.lat]));map.fitBounds(b,{padding:55,maxZoom:16,pitch:0,bearing:0,duration:900});};
+  setTimeout(()=>map.resize(),180);
+ }).catch(error=>{const current=document.getElementById(targetId);if(current)current.innerHTML='<div class="notice">'+esc(error?.message||error)+'</div>';});
+}
 function bikeMapsPage(){
  return (async()=>{
  const archivedMapRecords=await DebooDB.all({archived:true});
@@ -646,8 +687,8 @@ function bikeMapsPage(){
   const located=visits.filter(x=>validCoordinatePair(x.payload?.lat,x.payload?.lng));
   const coords=located.map(x=>Number(x.payload.lat)+","+Number(x.payload.lng));
   const routeUrl=bike?(coords.length>1?"https://www.google.com/maps/dir/?api=1&origin="+encodeURIComponent(coords[0])+"&destination="+encodeURIComponent(coords[coords.length-1])+(coords.length>2?"&waypoints="+encodeURIComponent(coords.slice(1,-1).join("|")):"")+"&travelmode=driving":coords.length===1?"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(coords[0]):""):"";
-  host.innerHTML='<style>.deeb-live-map{height:380px;width:100%;margin:14px 0;border:1px solid #c99a32;border-radius:10px;z-index:1}.deeb-map-pin{background:transparent;border:0}.deeb-map-pin span{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:2px solid white;border-radius:50%;background:#8b1732;color:#fff;font-weight:bold;box-shadow:0 1px 5px #333}</style><div class="stats"><div class="stat"><strong>'+visits.length+'</strong><span>إجمالي الزيارات</span></div><div class="stat"><strong>'+located.length+'</strong><span>نقاط على الخريطة</span></div><div class="stat"><strong>'+Math.max(0,visits.length-located.length)+'</strong><span>مواقع بلا إحداثيات</span></div></div>'+(located.length?'<div id="individualBikeLeafletMap" class="deeb-live-map"></div>':'<p class="notice">'+(visits.length?'السجلات موجودة، لكن لا توجد إحداثيات محفوظة لعرضها على الخريطة.':'لا توجد زيارات مسجلة في الفترة المحددة.')+'</p>')+(routeUrl?'<div class="actions"><a class="primary" target="_blank" rel="noopener" href="'+routeUrl+'">فتح مسار الدراجة على خرائط Google</a></div>':'')+(visits.length?'<div class="table-wrap"><table><thead><tr><th>م</th><th>الدراجة</th><th>التاريخ</th><th>الوقت</th><th>الفرع / المكان</th><th>الإحداثيات</th><th>النقطة</th></tr></thead><tbody>'+visits.map((x,i)=>{const p=x.payload||{},ok=validCoordinatePair(p.lat,p.lng),lat=Number(p.lat),lng=Number(p.lng);return '<tr><td>'+(i+1)+'</td><td>'+esc(p.bike||"—")+'</td><td>'+esc(p.patrol_date||String(x.created_at||"").slice(0,10)||"—")+'</td><td>'+esc(p.patrol_time||"—")+'</td><td>'+esc(p.site||p.branch||"غير محدد")+'</td><td>'+(ok?lat.toFixed(6)+", "+lng.toFixed(6):"غير مسجل")+'</td><td>'+(ok?'<a target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat='+lat+'&mlon='+lng+'#map=16/'+lat+'/'+lng+'">عرض النقطة</a>':"—")+'</td></tr>';}).join("")+'</tbody></table></div>':'');
-  if(located.length)renderBikeLeafletMap("individualBikeLeafletMap",located.map(x=>({lat:Number(x.payload.lat),lng:Number(x.payload.lng),bike:x.payload.bike,site:x.payload.site||x.payload.branch,date:x.payload.patrol_date,time:x.payload.patrol_time})));
+  host.innerHTML='<style>.deeb-live-map{height:380px;width:100%;margin:14px 0;border:1px solid #c99a32;border-radius:10px;z-index:1}.deeb-map-pin{background:transparent;border:0}.deeb-map-pin span{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:2px solid white;border-radius:50%;background:#8b1732;color:#fff;font-weight:bold;box-shadow:0 1px 5px #333}</style><div class="stats"><div class="stat"><strong>'+visits.length+'</strong><span>إجمالي الزيارات</span></div><div class="stat"><strong>'+located.length+'</strong><span>نقاط على الخريطة</span></div><div class="stat"><strong>'+Math.max(0,visits.length-located.length)+'</strong><span>مواقع بلا إحداثيات</span></div></div>'+(located.length?'<div class="card"><h3>التحليق فوق المسار</h3><div id="individualBikeFlyoverMap"></div></div><div id="individualBikeLeafletMap" class="deeb-live-map"></div>':'<p class="notice">'+(visits.length?'السجلات موجودة، لكن لا توجد إحداثيات محفوظة لعرضها على الخريطة.':'لا توجد زيارات مسجلة في الفترة المحددة.')+'</p>')+(routeUrl?'<div class="actions"><a class="primary" target="_blank" rel="noopener" href="'+routeUrl+'">فتح مسار الدراجة على خرائط Google</a></div>':'')+(visits.length?'<div class="table-wrap"><table><thead><tr><th>م</th><th>الدراجة</th><th>التاريخ</th><th>الوقت</th><th>الفرع / المكان</th><th>الإحداثيات</th><th>النقطة</th></tr></thead><tbody>'+visits.map((x,i)=>{const p=x.payload||{},ok=validCoordinatePair(p.lat,p.lng),lat=Number(p.lat),lng=Number(p.lng);return '<tr><td>'+(i+1)+'</td><td>'+esc(p.bike||"—")+'</td><td>'+esc(p.patrol_date||String(x.created_at||"").slice(0,10)||"—")+'</td><td>'+esc(p.patrol_time||"—")+'</td><td>'+esc(p.site||p.branch||"غير محدد")+'</td><td>'+(ok?lat.toFixed(6)+", "+lng.toFixed(6):"غير مسجل")+'</td><td>'+(ok?'<a target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat='+lat+'&mlon='+lng+'#map=16/'+lat+'/'+lng+'">عرض النقطة</a>':"—")+'</td></tr>';}).join("")+'</tbody></table></div>':'');
+  if(located.length){const flyoverPoints=located.map(x=>({lat:Number(x.payload.lat),lng:Number(x.payload.lng),bike:x.payload.bike,site:x.payload.site||x.payload.branch,date:x.payload.patrol_date,time:x.payload.patrol_time}));renderBikeFlyoverMap("individualBikeFlyoverMap",flyoverPoints);renderBikeLeafletMap("individualBikeLeafletMap",flyoverPoints);}
  };
  ["individualBikeMap","bikeMapFrom","bikeMapTo"].forEach(id=>$("#"+id).onchange=paint);
  $("#bikeMapYesterday").onclick=()=>{$("#bikeMapFrom").value=yesterday;$("#bikeMapTo").value=yesterday;paint();};
