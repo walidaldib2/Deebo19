@@ -672,14 +672,12 @@ const customHoursSource=customHoursStart>=0&&customHoursEnd>customHoursStart?app
 if(!customHoursSource.includes('title="تقرير أقل ساعات المرور"') ||
    !customHoursSource.includes('columns=["الساعة","عدد الزيارات المسجلة"]') ||
    !customHoursSource.includes('rows=hourRows.map') ||
-   !customHoursSource.includes('const selectedHours=hourRows') ||
-   !customHoursSource.includes('const lowHourHeaders=selectedHours.map') ||
-   !customHoursSource.includes('const lowHourCells=selectedHours.map') ||
-   !customHoursSource.includes('عدد الأعمدة يساوي عدد الساعات المختارة') ||
+   !customHoursSource.includes('const hourTableRows=hourRows.map') ||
+   !customHoursSource.includes('<table class="report-table">') ||
    !customHoursSource.includes('if(type==="heat"){') ||
    !customHoursSource.includes('title="تقرير الخريطة الحرارية لساعات الذروة"') ||
    !app.includes('<option value="heat">الخريطة الحرارية لساعات الذروة</option>')) {
-  throw new Error('Low-hours and peak-hour heatmap reports must be separate selectable report types.');
+  throw new Error('Low-hours report must use the app-style two-column table while peak-hour heatmap remains a separate report type.');
 }
 
 const heatmapSourceStart=customHoursSource.indexOf('let hoursHeatmapHtml=""');
