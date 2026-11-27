@@ -490,7 +490,7 @@ if (!app.includes(sharedIdentity) || !app.includes('h1{position:relative!importa
 const backupPageStart=app.indexOf('async function openBackupPage(){');
 const backupPageEnd=app.indexOf('function render(p)',backupPageStart);
 const backupPageSource=backupPageStart>=0&&backupPageEnd>backupPageStart?app.slice(backupPageStart,backupPageEnd):'';
-if (!backupPageSource.includes('تم تحديث النسخة التلقائية لهذا اليوم') || !backupPageSource.includes('لا يمسح السجلات الأحدث') || !backupPageSource.includes('DebooDB.createAutoBackup()')) throw new Error('Automatic backup history and non-destructive restore guidance must be visible in the dedicated backup page');
+if (!backupPageSource.includes('تم تحديث النسخة التلقائية لهذا اليوم') || !backupPageSource.includes('ولا تمسح السجلات الأحدث') || !backupPageSource.includes('DebooDB.createAutoBackup()')) throw new Error('Automatic backup history and non-destructive restore guidance must be visible in the dedicated backup page');
 
 const androidAssets = fs.readFileSync(path.join(root,'prepare-android.js'),'utf8');
 if (androidAssets.includes('"scanner.js"') || html.includes('src="scanner.js"') || sw.includes('./scanner.js')) throw new Error('Document scanner assets must not be staged or cached');
