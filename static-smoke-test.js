@@ -654,6 +654,19 @@ if(!customHoursSource.includes('title="تقرير أقل ساعات المرور
 }
 
 
+// Patrol gaps must use exact elapsed hours/minutes and include per-bike plus fleet-wide intervals.
+if (!app.includes('const fmt=m=>{if(m===null||m===undefined||!Number.isFinite(Number(m)))return "—";') ||
+    !app.includes('return hours+" "+hourLabel+(minutes?" و"+minutes+" دقيقة":"");') ||
+    app.includes('(m/60).toFixed(1)') ||
+    !app.includes('const fleetByDay=new Map()') ||
+    !app.includes('const fleetGaps=[]') ||
+    !customHoursSource.includes('columns=["النطاق","من","إلى","مدة عدم التسجيل"]') ||
+    !customHoursSource.includes('scope:"الأسطول"') ||
+    !customHoursSource.includes('summary=[["فواصل الدراجات",bikeCount],["فواصل الأسطول"')) {
+  throw new Error('Patrol gap reports must show exact hour/minute durations and separate per-bike from fleet-wide gaps.');
+}
+
+
 // General Archive must be an independent main-navigation destination with searchable archived content.
 if (!html.includes('data-page="archive"') || !app.includes('p==="archive"') || !app.includes('async function openArchivePage(){') || !app.includes('const open=$("#showArchive");') || !app.includes('back.textContent="القائمة الرئيسية"')) {
   throw new Error('General Archive must open independently from the main navigation.');
