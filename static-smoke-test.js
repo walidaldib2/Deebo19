@@ -233,7 +233,7 @@ for (const label of ['لوحة التحكم','التشغيل الميداني','
   if (!navigationHtml.includes(label)) throw new Error('Main navigation label was lost: '+label);
 }
 for (const required of ['class="tile-icon"','viewBox="0 0 24 24"']) if (!navigationHtml.includes(required)) throw new Error('Premium vector navigation icon system is missing: '+required);
-if ((navigationHtml.match(/data-page=/g)||[]).length !== 7 || navigationHtml.includes('data-page="backup"')) throw new Error('Home must contain exactly seven primary navigation tiles, with backup and restore nested under Settings.');
+if ((navigationHtml.match(/data-page=/g)||[]).length !== 8 || !navigationHtml.includes('data-page="officeTools"') || navigationHtml.includes('data-page="backup"')) throw new Error('Home must contain the eight primary navigation tiles, including Office Tools, with backup and restore nested under Settings.');
 if (navigationHtml.includes('data-page="system"')) throw new Error('Legacy combined data/settings section must not remain in main navigation.');
 const menuStart=appSource.indexOf('const sectionMenus=');
 const menuEnd=appSource.indexOf(';',menuStart);
