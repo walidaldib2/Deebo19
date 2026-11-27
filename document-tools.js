@@ -24,7 +24,7 @@ function init(){if(document.getElementById("deebToolsButton"))return;var st=docu
   button.disabled=true;output.value="";
   try{
     msg("جاري تحميل محرك التعرف المحلي...");
-    worker=await window.Tesseract.createWorker("ara+eng",1,{
+    worker=await window.Tesseract.createWorker(["ara","eng"],1,{
       workerPath:"./ocr/worker.min.js",
       langPath:"./ocr/lang",
       corePath:"./ocr/core",
