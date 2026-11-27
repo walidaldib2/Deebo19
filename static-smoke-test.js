@@ -706,6 +706,11 @@ for (const token of [
 ]) {
   if (!appSource.includes(token)) throw new Error('Bike patrol shift-assignment integration is missing: '+token);
 }
+if (!appSource.includes('id="openBikeShiftAssignments"') ||
+    !appSource.includes('$("#openBikeShiftAssignments").onclick=()=>render("bikeShiftAssignments")') ||
+    !appSource.includes('$("#openBikeMaps").onclick=()=>render("bikeMaps")')) {
+  throw new Error('Bike patrol page must provide direct navigation to shift assignment and route maps.');
+}
 if (!appSource.includes('String(x.payload?.work_date||"").slice(0,10)===String(workDate).slice(0,10)') ||
     !appSource.includes('String(x.payload?.shift||"")===String(shift)') ||
     !appSource.includes('String(a.bike_id||"")===String(bike.id)')) {
