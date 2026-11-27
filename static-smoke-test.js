@@ -1,20 +1,23 @@
 const fs = require('fs');
 const path = require('path');
 const root = __dirname;
-const required = ['index.html','app.js','db.js','team-sync.js','style.css','sw.js','manifest.json','icon.svg','qrcode.js','capacitor.config.json','package.json','biometric.bundle.js','prepare-android.js','configure-android-share.js','prepare-android-icons.js'];
+const required = ['index.html','app.js','db.js','team-sync.js','style.css','sw.js','manifest.json','icon.svg','qrcode.js','capacitor.config.json','package.json','biometric.bundle.js','prepare-android.js','configure-android-share.js','prepare-android-icons.js','document-tools.js'];
 const missing = required.filter(f => !fs.existsSync(path.join(root,f)));
 if (missing.length) throw new Error('Missing required files: '+missing.join(', '));
 const html = fs.readFileSync(path.join(root,'index.html'),'utf8');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
 const vm = require('node:vm');
-for (const file of ['app.js','db.js','team-sync.js','preferences.js','sw.js','qrcode.js','biometric.bundle.js','native-plugins.bundle.js']) {
+for (const file of ['app.js','db.js','team-sync.js','preferences.js','sw.js','qrcode.js','biometric.bundle.js','native-plugins.bundle.js','document-tools.js']) {
   const source = fs.readFileSync(path.join(root,file),'utf8');
   new vm.Script(source,{filename:file});
 }
 for (const f of ['qrcode.js','db.js','team-sync.js','biometric.bundle.js','app.js']) if (!html.includes(`src="${f}"`)) throw new Error('index.html does not load '+f);
 // Reuse the database source loaded at the top of this smoke test.
 // Reuse the app source loaded at the top of this smoke test.
+if (!html.includes('src="document-tools.js"') || !fs.readFileSync(path.join(root,'sw.js'),'utf8').includes('./document-tools.js')) throw new Error('PowerPoint and document scanner tools must load and remain available offline');
+const toolsSource=fs.readFileSync(path.join(root,'document-tools.js'),'utf8');
+for (const feature of ['exportPowerPoint','exportScannedPdf','capture="environment"','أبيض وأسود','image/jpeg','application/pdf','application/vnd.openxmlformats-officedocument.presentationml.presentation']) if (!toolsSource.includes(feature)) throw new Error('Document tools missing required capability: '+feature);
 if (!db.includes('DB_VERSION = 5') || !db.includes('"report_archives"') || !db.includes('async function archiveReport') || !db.includes('async function reportArchives')) throw new Error('Persistent report archive storage and API are required');
 for (const marker of ['archiveCurrentReport','archiveBikeMapReport','أرشيف خرائط الدراجات','archiveReportFilter','saveBikeMapArchive','data-pdf-report-archive','data-image-report-archive','data-pdf-approved','data-image-approved','saveArchivedPdf','saveArchivedImage']) if (!app.includes(marker)) throw new Error('Report archive UI is missing '+marker);
 const detailLayoutStart=app.indexOf('const detailPoints=visits.map');
