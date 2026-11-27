@@ -124,7 +124,7 @@ const sw = fs.readFileSync(path.join(root,'sw.js'),'utf8');
 for (const f of ['index.html','style.css','app.js','db.js','team-sync.js','qrcode.js','manifest.json','icon.svg']) if (!sw.includes(`./${f}`)) throw new Error('Service worker core cache missing '+f);
 const pkg = JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
 const cap = JSON.parse(fs.readFileSync(path.join(root,'capacitor.config.json'),'utf8'));
-if (cap.appId !== 'com.deebo19.fieldops' || cap.appName !== 'DEEB19') throw new Error('DEEB19 must have a distinct Android package ID and app label so it installs beside Fareda');
+if (cap.appId !== 'com.deebo19.fieldops.dev' || cap.appName !== 'DEEB19 تطوير') throw new Error('DEEB19 development build must use its own package ID and app label so it installs beside the stable app');
 const androidPrep = fs.readFileSync(path.join(root,'prepare-android.js'),'utf8');
 if (!androidPrep.includes('"team-sync.js"')) throw new Error('Android preparation must package the DEEB19 team sync engine');
 if (!html.includes('<title>DEEB19') || !html.includes('class="wordmark">DEEB19')) throw new Error('DEEB19 app shell branding is missing');
