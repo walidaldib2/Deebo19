@@ -693,7 +693,7 @@ for (const token of [
   'payload.assigned_person_id=linked.person.id',
   'payload.assignment_status=',
   'person.dataset.autoAssignment',
-  'id="bikeAssignmentStatus"',
+  'status.id="bikeAssignmentStatus"',
   '["shift","الشفت","select","صباحي|مسائي|ليلي",1]'
 ]) {
   if (!appSource.includes(token)) throw new Error('Bike patrol shift-assignment integration is missing: '+token);
