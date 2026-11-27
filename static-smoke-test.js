@@ -8,7 +8,7 @@ const documentToolsSource = fs.readFileSync(path.join(root,'document-tools.js'),
 const powerpointEditorSource = fs.readFileSync(path.join(root,'powerpoint-editor.js'),'utf8');
 if (!powerpointEditorSource.includes('addEventListener("focus",snap)') || !powerpointEditorSource.includes("function queueSave()") || !powerpointEditorSource.includes("draw();queueSave()") || !powerpointEditorSource.includes("draw();save()")) throw new Error("PowerPoint editor must snapshot edits at control focus and autosave changes without one undo entry per keystroke.");
 
-for (const feature of ['pptAddSlide','pptAddText','pptAddImage','pptExport','localStorage','exportPptx','pptUndo','pptRedo','pptDuplicate']) if (!powerpointEditorSource.includes(feature)) throw new Error('PowerPoint editor missing capability: '+feature);
+for (const feature of ['pptAddSlide','pptAddText','pptAddImage','pptExport','localStorage','exportPptx','pptUndo','pptRedo','pptDuplicate','pptTable','pptChart','function createEditableTable()','function createEditableChart()','function addMany(items)','accent1="D6A743"']) if (!powerpointEditorSource.includes(feature)) throw new Error('PowerPoint editor missing capability: '+feature);
 
 if (!documentToolsSource.includes('rotated image') && (!documentToolsSource.includes('angle===90') || !documentToolsSource.includes('angle===180') || !documentToolsSource.includes('angle===270') || !documentToolsSource.includes('p.rot=0'))) throw new Error('Rotating a scanned page must normalize image orientation and transform crop coordinates for 90/180/270 degrees.');
 if (!documentToolsSource.includes('data-crop-handle') && !documentToolsSource.includes('dataset.cropHandle')) throw new Error('Scanner must provide direct touch crop handles on the document preview.');
@@ -19,6 +19,7 @@ if (!documentToolsSource.includes('p.crop') ||
     !documentToolsSource.includes('type="screen16x9"')) {
   throw new Error('Scanner must provide manual crop controls and PowerPoint must use widescreen 16:9 slides.');
 }
+if (!powerpointEditorSource.includes('type:"shape"') || !powerpointEditorSource.includes('type:"text"')) throw new Error('PowerPoint tables and charts must use editable native slide elements.');
 const html = fs.readFileSync(path.join(root,'index.html'),'utf8');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
