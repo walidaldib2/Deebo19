@@ -15,12 +15,12 @@ const androidPrepareForOcr = fs.readFileSync(path.join(root,'prepare-android.js'
 for (const token of ['worker.min.js','tesseract.min.js','language + ".traineddata"','tesseract-core-simd-lstm.wasm.js','tesseract-core-relaxedsimd-lstm.wasm.js','tesseract-core-relaxedsimd-lstm.wasm','tessdata_fast']) {
   if (!androidPrepareForOcr.includes(token)) throw new Error('Android OCR preparation is missing: '+token);
 }
-for (const token of ['deebOcr','deebOcrText','deebOcrCopy','createWorker(["ara","eng"]','workerPath:"./ocr/worker.min.js"','langPath:"./lang"','corePath:"./core"','لم يتم حفظه في أي سجل']) {
+for (const token of ['deebOcr','deebOcrText','deebOcrCopy','createWorker(["ara","eng"]','workerPath:"./ocr/worker.min.js"','langPath:"./ocr/lang"','corePath:"./ocr/core"','لم يتم حفظه في أي سجل']) {
   if (!documentToolsSource.includes(token)) throw new Error('Local OCR review workflow is missing: '+token);
 }
 if (["cdn.jsdelivr.net","tessdata.projectnaptha.com","unpkg.com"].some(host => documentToolsSource.includes(host))) throw new Error('Runtime OCR code must not call external network services.');
 
-if (!documentToolsSource.includes('workerPath:"./ocr/worker.min.js"') || !documentToolsSource.includes('langPath:"./lang"') || !documentToolsSource.includes('corePath:"./core"')) throw new Error("OCR worker-relative paths must resolve language and core assets beside ./ocr/worker.min.js, not under a duplicated ./ocr/ocr directory.");
+if (!documentToolsSource.includes('workerPath:"./ocr/worker.min.js"') || !documentToolsSource.includes('langPath:"./ocr/lang"') || !documentToolsSource.includes('corePath:"./ocr/core"')) throw new Error("OCR worker-relative paths must resolve language and core assets beside ./ocr/worker.min.js, not under a duplicated ./ocr/ocr directory.");
 if (!documentToolsSource.includes('createWorker(["ara","eng"],1,') || !documentToolsSource.includes("gzip:false")) throw new Error("OCR must initialize Arabic/English LSTM recognition with gzip disabled for the downloaded uncompressed traineddata models.");
 if (!androidPrepareForOcr.includes('language + ".traineddata"') || !androidPrepareForOcr.includes('tesseract-core-relaxedsimd-lstm.wasm.js')) throw new Error("Android OCR preparation must include dynamically named language data and the Tesseract core loader.");
 
