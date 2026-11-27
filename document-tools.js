@@ -27,9 +27,10 @@ function init(){if(document.getElementById("deebToolsButton"))return;var st=docu
     var engine=window.DEebLoadOcrEngine?await window.DEebLoadOcrEngine():window.Tesseract;
     if(!engine?.createWorker)throw new Error("محرك OCR غير متاح.");
     worker=await engine.createWorker(["ara","eng"],1,{
-      workerPath:"https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js",
-      langPath:"https://tessdata.projectnaptha.com/4.0.0",
-      corePath:"https://cdn.jsdelivr.net/npm/tesseract.js-core@5.0.0/tesseract-core.wasm.js",
+      workerPath:"./ocr/worker.min.js",
+      langPath:"./lang",
+      corePath:"./core",
+      gzip:false,
       logger:function(event){if(event&&event.status)msg("OCR: "+event.status+(event.progress!=null?" "+Math.round(event.progress*100)+"%":""))}
     });
     var results=[];
