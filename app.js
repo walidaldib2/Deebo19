@@ -1603,9 +1603,9 @@ async function bikeAnalyticsPage(){
    let hoursHeatmapHtml="";
    if(type==="hours"){
     const selectedHeat=Array.from({length:7},()=>Array(24).fill(0));
-    const selectedDates=[...new Set(selected.map(r=>String(r.payload?.patrol_date||"").slice(0,10)).filter(d=>/^\\d{4}-\\d{2}-\\d{2}$/.test(d)))].sort();
     const weekDays=new Map();
-    selectedDates.forEach(date=>{const d=new Date(date+"T12:00:00");if(!Number.isNaN(d.getTime()))weekDays.set(date,d.getDay());});
+    const cursor=new Date(from+"T12:00:00"),lastDay=new Date(to+"T12:00:00");
+    for(;cursor<=lastDay;cursor.setDate(cursor.getDate()+1)){const date=localISODate(cursor);weekDays.set(date,cursor.getDay());}
     selected.forEach(r=>{const p=r.payload||{},t=timeParts(p.patrol_time),date=String(p.patrol_date||"").slice(0,10);if(!t||!weekDays.has(date)||!inHours(t))return;selectedHeat[weekDays.get(date)][t.hour]++;});
     const shiftHours=[];
     if(fromHour<=toHour){for(let h=fromHour;h<=toHour;h++)shiftHours.push(h);}else{for(let h=fromHour;h<24;h++)shiftHours.push(h);for(let h=0;h<=toHour;h++)shiftHours.push(h);}
