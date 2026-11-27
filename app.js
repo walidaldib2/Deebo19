@@ -666,9 +666,10 @@ function renderBikeFlyoverMap(targetId,points){
 }
 function bikeMapsPage(){
  return (async()=>{
- const archivedMapRecords=await DebooDB.all({archived:true});
- const mapRecords=[...cache,...archivedMapRecords].filter(x=>!x.is_deleted);
- const bikes=[...new Set(orderedBikes(cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived)).map(x=>String(x.payload?.number||"").trim()).filter(Boolean).concat(mapRecords.filter(x=>x.entity_type==="bike_patrols").map(x=>String(x.payload?.bike||"").trim()).filter(Boolean)))];
+ const [activeMapRecords,archivedMapRecords]=await Promise.all([DebooDB.all({archived:false}),DebooDB.all({archived:true})]);
+ const mapRecords=[...activeMapRecords,...archivedMapRecords].filter(x=>!x.is_deleted);
+ const bikeRegistry=mapRecords.filter(x=>x.entity_type==="bikes"&&!x.is_archived);
+ const bikes=[...new Set(orderedBikes(bikeRegistry).map(x=>String(x.payload?.number||"").trim()).filter(Boolean).concat(mapRecords.filter(x=>x.entity_type==="bike_patrols").map(x=>String(x.payload?.bike||"").trim()).filter(Boolean)))];
  const dateValue=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
  const todayDate=new Date(),today=dateValue(todayDate),yesterdayDate=new Date(todayDate);yesterdayDate.setDate(yesterdayDate.getDate()-1);const yesterday=dateValue(yesterdayDate);
  area.innerHTML=pageHead("خرائط الدراجات",'<button class="secondary" id="openBikeMapReports">تقارير خرائط الدراجات</button><button class="primary" id="openBikePatrolRecords">تسجيل مرور جديد</button>')+
@@ -703,9 +704,10 @@ function bikeMapsPage(){
 }
 function bikeMapReportsPage(){
  return (async()=>{
- const archivedMapRecords=await DebooDB.all({archived:true});
- const mapRecords=[...cache,...archivedMapRecords].filter(x=>!x.is_deleted);
- const bikes=[...new Set(orderedBikes(cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived)).map(x=>String(x.payload?.number||"").trim()).filter(Boolean).concat(mapRecords.filter(x=>x.entity_type==="bike_patrols").map(x=>String(x.payload?.bike||"").trim()).filter(Boolean)))];
+ const [activeMapRecords,archivedMapRecords]=await Promise.all([DebooDB.all({archived:false}),DebooDB.all({archived:true})]);
+ const mapRecords=[...activeMapRecords,...archivedMapRecords].filter(x=>!x.is_deleted);
+ const bikeRegistry=mapRecords.filter(x=>x.entity_type==="bikes"&&!x.is_archived);
+ const bikes=[...new Set(orderedBikes(bikeRegistry).map(x=>String(x.payload?.number||"").trim()).filter(Boolean).concat(mapRecords.filter(x=>x.entity_type==="bike_patrols").map(x=>String(x.payload?.bike||"").trim()).filter(Boolean)))];
  const today=new Date().toLocaleDateString("en-CA"),monthStart=[new Date().getFullYear(),String(new Date().getMonth()+1).padStart(2,"0"),"01"].join("-");
  area.innerHTML=pageHead("خرائط الدراجات",'<button class="secondary" id="backToBikeMaps">خرائط الدراجات</button><button class="primary" id="printBikeMapReport">طباعة التقرير</button><button class="secondary" id="saveBikeMapArchive">حفظ في الأرشيف</button><button class="secondary" id="saveBikeMapReportPdf">حفظ PDF</button><button class="secondary" id="saveBikeMapReportImage">حفظ التقرير صورة</button>')+
  '<div class="card"><p class="muted">خريطة مرور مستقلة لكل دراجة، بنفس بيانات وتصميم تقرير المرور الأصلي. تظهر الخريطة بدل جدول المرور، ولا يتم تعديل التقرير الأصلي.</p><div class="form"><div class="field"><label>الدراجة</label><select id="bikeMapReportBike"><option value="">اختر الدراجة</option>'+bikes.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join("")+'</select></div><div class="field"><label>من تاريخ</label><input id="bikeMapReportFrom" type="date" value="'+monthStart+'"></div><div class="field"><label>إلى تاريخ</label><input id="bikeMapReportTo" type="date" value="'+today+'"></div></div><div id="bikeMapReportPreview"><div class="empty">اختر الدراجة لإعداد الخريطة.</div></div></div>';
@@ -721,7 +723,7 @@ function bikeMapReportsPage(){
   const mapPoints=located.map(x=>({number:visits.indexOf(x)+1,lat:Number(x.payload.lat),lng:Number(x.payload.lng),site:x.payload.site||x.payload.branch||x.payload.location||"موقع المرور",date:x.payload.patrol_date||visitDate(x),time:x.payload.patrol_time||""}));
   const detailPoints=visits.map((x,i)=>({site:x.payload?.site||x.payload?.branch||x.payload?.location||"موقع المرور",coordinates:validCoordinatePair(x.payload?.lat,x.payload?.lng)?Number(x.payload.lat).toFixed(6)+", "+Number(x.payload.lng).toFixed(6):"الإحداثيات غير مسجلة"}));
   const mapJson=JSON.stringify(mapPoints).replace(/</g,"\\u003c");
-  const bikeRecord=cache.find(x=>x.entity_type==="bikes"&&!x.is_archived&&String(x.payload?.number||"").trim()===bike);
+  const bikeRecord=bikeRegistry.find(x=>x.entity_type==="bikes"&&!x.is_archived&&String(x.payload?.number||"").trim()===bike);
   const bikeData=bikeRecord?.payload||{};
   const bikeIndex=bikes.indexOf(bike)+1;
   const person=String(bikeData.person||"").trim()||"—";
