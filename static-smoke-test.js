@@ -44,7 +44,10 @@ if(bikeGroupStart<0||bikeGroupEnd<=bikeGroupStart) throw new Error('Bike report 
 const bikeGroupSource=app.slice(bikeGroupStart+'const bikeGroupsFor='.length,bikeGroupEnd).replace(/;\s*$/, '');
 const bikeRegistry=[
  {entity_type:'bikes',created_at:'2026-01-01',payload:{number:'1696',person:'اسم قديم',code:'7832',type:'بوكسر'}},
- {entity_type:'bikes',created_at:'2026-01-02',payload:{number:'6327',person:'اسم قديم آخر',code:'7848',type:'بوكسر'}}
+ {entity_type:'bikes',created_at:'2026-01-02',payload:{number:'6327',person:'اسم قديم آخر',code:'7848',type:'بوكسر'}},
+ {entity_type:'bikes',created_at:'2026-01-03',payload:{number:'7011',code:'7850',type:'بوكسر'}},
+ {entity_type:'bikes',created_at:'2026-01-04',payload:{number:'8122',code:'7851',type:'بوكسر'}},
+ {entity_type:'bikes',created_at:'2026-01-05',payload:{number:'9233',code:'7852',type:'بوكسر'}}
 ];
 const bikeTestVisits=[
  {id:'v1',entity_type:'bike_patrols',created_at:'2026-11-27T21:10:00',payload:{bike:'1696',person:'أحمد',patrol_date:'2026-11-27',patrol_time:'09:10 م',site:'العباسية',lat:30.1,lng:31.2}},
@@ -58,6 +61,8 @@ if(firstBike.bike!=='1696'||firstBike.reportNumber!==1||firstBike.person!=='ال
 if(firstBike.sites.length!==2||firstBike.sites[0].entries[0].person!=='أحمد'||firstBike.sites[1].entries[0].person!=='محمد') throw new Error('Bike report mixed two riders or lost the rider attached to an individual visit');
 if(firstBike.sites[0].times[0].indexOf('أحمد')<0||firstBike.sites[1].times[0].indexOf('محمد')<0) throw new Error('Bike report visit times must carry their own rider identity');
 if(bikeGroups[1].bike!=='6327'||bikeGroups[1].reportNumber!==2||bikeGroups[1].sites[0].entries[0].person!=='علي') throw new Error('Second bike report must preserve registration order and its own rider');
+if(bikeGroups.length!==5||bikeGroups.map(g=>g.reportNumber).join(',')!=='1,2,3,4,5'||bikeGroups[4].bike!=='9233') throw new Error('The bike registry, shift assignment and individual reports must support five or more bikes with sequential report numbers and no fixed limit');
+if(!app.includes('bikes.map((bike,index)=>')||!app.includes('cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived).map(x=>')) throw new Error('Daily bike assignment and patrol selection must enumerate every registered bike, not only the first two or three');
 
 if (!app.includes('if(!$("#archiveReportFilter"))host.insertAdjacentHTML("afterbegin"') || !app.includes('لا توجد خرائط دراجات محفوظة حتى الآن')) throw new Error('Archive must always expose the bike-map category, including when no map reports have been saved yet');
 if (!app.includes('"bike_map","bike_patrols"') || !app.includes("window.DEebOpenArchive=showArchive;") || !app.includes("await window.DEebOpenArchive();") || !app.includes('openArchivePage().catch(error=>')) throw new Error("General archive navigation must await the shared archive renderer, expose bike patrol follow-up, and report async failures in the UI");
