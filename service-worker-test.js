@@ -17,7 +17,7 @@ const cache = {
 };
 const cachesApi = {
   open: async () => cache,
-  keys: async () => ["old-cache", "deebo-local-v10-27"],
+  keys: async () => ["old-cache", "deebo-local-v10-28"],
   delete: async (key) => { deleted.push(key); return true; },
   match: async (request) => {
     const key = typeof request === "string" ? request : request.url;
