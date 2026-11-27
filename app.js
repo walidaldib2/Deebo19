@@ -771,7 +771,7 @@ function bikeMapReportsPage(){
   const bikeRecord=cache.find(x=>x.entity_type==="bikes"&&!x.is_archived&&String(x.payload?.number||"").trim()===bike);
   const bikeData=bikeRecord?.payload||{};
   const bikeIndex=bikes.indexOf(bike)+1;
-  const riders=[...new Set(visits.map(x=>String(x.payload?.person||"").trim()).filter(Boolean))];const person=riders.length===1?riders[0]:riders.length>1?"أكثر من راكب":"—";
+  const riders=[...new Set(visits.map(x=>String(x.payload?.person||"").trim()).filter(Boolean))];const person=riders.join("، ")||"—";
   const code=String(bikeData.code||"").trim()||"—";
   const bikeType=String(bikeData.type||bikeData.description||"").trim()||"—";
   const latestDate=visits.map(visitDate).filter(Boolean).sort().pop()||"—";
