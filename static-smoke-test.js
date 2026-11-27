@@ -61,7 +61,10 @@ if(firstBike.bike!=='1696'||firstBike.reportNumber!==1||firstBike.person!=='ال
 if(firstBike.sites.length!==2||firstBike.sites[0].entries[0].person!=='أحمد'||firstBike.sites[1].entries[0].person!=='محمد') throw new Error('Bike report mixed two riders or lost the rider attached to an individual visit');
 if(firstBike.sites[0].times[0].indexOf('أحمد')<0||firstBike.sites[1].times[0].indexOf('محمد')<0) throw new Error('Bike report visit times must carry their own rider identity');
 if(bikeGroups[1].bike!=='6327'||bikeGroups[1].reportNumber!==2||bikeGroups[1].sites[0].entries[0].person!=='علي') throw new Error('Second bike report must preserve registration order and its own rider');
-if(bikeGroups.length!==5||bikeGroups.map(g=>g.reportNumber).join(',')!=='1,2,3,4,5'||bikeGroups[4].bike!=='9233') throw new Error('The bike registry, shift assignment and individual reports must support five or more bikes with sequential report numbers and no fixed limit');\nbikeRegistry[4].payload.sort_order=1;bikeRegistry[0].payload.sort_order=2;bikeRegistry[1].payload.sort_order=3;bikeRegistry[2].payload.sort_order=4;bikeRegistry[3].payload.sort_order=5;\nconst reorderedBikeGroups=vm.runInNewContext('('+bikeGroupSource+')',bikeSandbox)(bikeTestVisits);\nif(reorderedBikeGroups[0].bike!=='9233'||reorderedBikeGroups[0].reportNumber!==1||reorderedBikeGroups[1].bike!=='1696'||reorderedBikeGroups[1].reportNumber!==2||reorderedBikeGroups[2].bike!=='6327'||reorderedBikeGroups[2].reportNumber!==3) throw new Error('Manual bike reordering must immediately change sequential report numbers without changing the saved bike patrol visits');
+if(bikeGroups.length!==5||bikeGroups.map(g=>g.reportNumber).join(',')!=='1,2,3,4,5'||bikeGroups[4].bike!=='9233') throw new Error('The bike registry, shift assignment and individual reports must support five or more bikes with sequential report numbers and no fixed limit');
+bikeRegistry[4].payload.sort_order=1;bikeRegistry[0].payload.sort_order=2;bikeRegistry[1].payload.sort_order=3;bikeRegistry[2].payload.sort_order=4;bikeRegistry[3].payload.sort_order=5;
+const reorderedBikeGroups=vm.runInNewContext('('+bikeGroupSource+')',bikeSandbox)(bikeTestVisits);
+if(reorderedBikeGroups[0].bike!=='9233'||reorderedBikeGroups[0].reportNumber!==1||reorderedBikeGroups[1].bike!=='1696'||reorderedBikeGroups[1].reportNumber!==2||reorderedBikeGroups[2].bike!=='6327'||reorderedBikeGroups[2].reportNumber!==3) throw new Error('Manual bike reordering must immediately change sequential report numbers without changing the saved bike patrol visits');
 if(!app.includes('bikes.map((bike,index)=>')||!app.includes('orderedBikes(cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived))')||!app.includes('data-move-bike=')||!app.includes('moveBikeOrder(button.dataset.moveBike')) throw new Error('Daily bike assignment and patrol selection must enumerate all bikes in the user-defined order');
 
 if (!app.includes('if(!$("#archiveReportFilter"))host.insertAdjacentHTML("afterbegin"') || !app.includes('لا توجد خرائط دراجات محفوظة حتى الآن')) throw new Error('Archive must always expose the bike-map category, including when no map reports have been saved yet');
@@ -89,7 +92,8 @@ if (!pkg.dependencies?.['@aparajita/capacitor-biometric-auth']?.startsWith('^10.
 if (!pkg.devDependencies?.sharp || !pkg.scripts?.['prepare:android:icons']) throw new Error('DEEB launcher icon generation dependency/script is missing');
 const androidSetup = fs.readFileSync(path.join(root,'configure-android-share.js'),'utf8');
 const activityTemplateStart=androidSetup.indexOf('const activity = `');
-const activityTemplateEnd=androidSetup.indexOf('`;\nfs.writeFileSync(path.join(javaDir, "MainActivity.java")',activityTemplateStart);
+const activityTemplateEnd=androidSetup.indexOf('`;
+fs.writeFileSync(path.join(javaDir, "MainActivity.java")',activityTemplateStart);
 const activityTemplate=activityTemplateStart>=0&&activityTemplateEnd>activityTemplateStart?androidSetup.slice(activityTemplateStart,activityTemplateEnd):'';
 const earlyDrawInit=activityTemplate.indexOf('WebView.enableSlowWholeDocumentDraw()');
 const bridgeInit=activityTemplate.indexOf('super.onCreate(savedInstanceState)');
@@ -100,7 +104,9 @@ const pdfExport=pdfExportStart>=0&&pdfExportEnd>pdfExportStart?androidSetup.slic
 for(const required of ['application/pdf','MediaStore.Downloads.EXTERNAL_CONTENT_URI','Environment.DIRECTORY_DOWNLOADS+"/DEEB"','document.writeTo(out)','PageInfo.Builder(595,842,i+1)','page.getCanvas().scale(595f/width,842f/height)','waitForReportResources(v,handler,30000']) if(!pdfExport.includes(required)) throw new Error('Direct PDF export must save a complete validated PDF in Downloads/DEEB: '+required);
 if(!app.includes('native.saveHtmlAsPdf({html,name:"DEEB-report"})') || !app.includes('native.saveHtmlAsPdf({html,name:"DEEB-archive-"+item.id})') || !app.includes('native.saveHtmlAsPdf({html:reportHtml,name:"DEEB-bike-map-"')) throw new Error('Current, archived and bike map reports must offer direct PDF file export');
 const printHandlerStart=androidSetup.indexOf('@PluginMethod public void printHtml');
-const printHandlerEnd=androidSetup.indexOf('\n  }\n}',printHandlerStart);
+const printHandlerEnd=androidSetup.indexOf('
+  }
+}',printHandlerStart);
 const printHandler=printHandlerStart>=0&&printHandlerEnd>printHandlerStart?androidSetup.slice(printHandlerStart,printHandlerEnd):'';
 if (!printHandler.includes('setJavaScriptEnabled(true)') || !printHandler.includes('createPrintDocumentAdapter(jobName)')) throw new Error('Android print WebView must use the native print adapter');
 if (!printHandler.includes('int height=webPageHeight;') || !printHandler.includes('int width=webWidth;') || printHandler.includes('contentCssHeight=Math.max(cssPageHeight,v.getContentHeight())')) throw new Error('Native report printing must keep a fixed A4 WebView viewport and let Android paginate the complete document');
@@ -210,11 +216,14 @@ for (const route of ['follow','emergency','map','bikeMaps','bikeMapReports','bik
 const premiumCss = fs.readFileSync(path.join(root,'style.css'),'utf8');
 for (const required of ['--gold-metal','linear-gradient','drop-shadow','weather-compact','prefers-reduced-motion']) if (!premiumCss.includes(required)) throw new Error('Premium visual/accessible UI styling is missing: '+required);
 
-if (!androidSetup.includes('@PluginMethod\n    public void resolveSharedLocation') || !androidSetup.includes('setInstanceFollowRedirects(true)') || !androidSetup.includes('isGoogleMapsHost(finalUri.getHost())') || !androidSetup.includes('connection.setConnectTimeout(12000)')) throw new Error('Android ShareIntent must safely expand Google Maps short links and follow redirects');
+if (!androidSetup.includes('@PluginMethod
+    public void resolveSharedLocation') || !androidSetup.includes('setInstanceFollowRedirects(true)') || !androidSetup.includes('isGoogleMapsHost(finalUri.getHost())') || !androidSetup.includes('connection.setConnectTimeout(12000)')) throw new Error('Android ShareIntent must safely expand Google Maps short links and follow redirects');
 if (!appSource.includes('async function resolveBikePatrolLocation') || !appSource.includes('input.addEventListener("blur"') || !appSource.includes('setTimeout(resolve,700)') || !appSource.includes('resolved?.content')) throw new Error('Bike patrol must resolve pasted and shared Google Maps links into saved coordinates');
 if (!appSource.includes('// Exact dropped pin coordinates take precedence over the map\'s approximate camera center.')) throw new Error('Exact Google Maps pin coordinates must take precedence over approximate map-center coordinates');
 const bikeReportDateTemplateStart=appSource.indexOf('if($("#reportType").value==="bike_patrols"){',appSource.indexOf('const printHtml'));
-const bikeReportDateTemplateEnd=appSource.indexOf('\n  }\n  const rows=rowsFor(d),counts={};',bikeReportDateTemplateStart);
+const bikeReportDateTemplateEnd=appSource.indexOf('
+  }
+  const rows=rowsFor(d),counts={};',bikeReportDateTemplateStart);
 const bikeReportDateTemplate=bikeReportDateTemplateStart>=0&&bikeReportDateTemplateEnd>bikeReportDateTemplateStart?appSource.slice(bikeReportDateTemplateStart,bikeReportDateTemplateEnd):'';
 if (!bikeReportDateTemplate.includes('class="bike-meta-date"') || !bikeReportDateTemplate.includes('<th>الموقع</th><th>توقيت المرور</th><th>الإحداثيات</th>') || bikeReportDateTemplate.includes('<th>التاريخ</th>') || !bikeReportDateTemplate.includes('عدد مرات المرور') || !bikeReportDateTemplate.includes('نوع الدراجة') || !bikeReportDateTemplate.includes('رقم الدراجة') || !bikeReportDateTemplate.includes('كود الدراجة') || !bikeReportDateTemplate.includes('class="bike-coordinates"') || bikeReportDateTemplate.includes('class="bike-notes"')) throw new Error('Bike patrol report metadata must contain one date field and the table must contain site, time and coordinates only');
 const scannerBridgeSource = fs.readFileSync(path.join(root,'native-plugins-entry.js'),'utf8');
@@ -288,7 +297,8 @@ const imageSaveHandler=imageSaveStart>=0&&imageSaveEnd>imageSaveStart?app.slice(
 if (!imageSaveHandler.includes('native.saveHtmlAsImages({html:reportCoordinatesOnly(readableReportHtml(printHtml(d)),d),name:"DEEB-report"})') || !imageSaveHandler.includes("result?.saved!==true") || !imageSaveHandler.includes("Number.isInteger(result.count)") || !imageSaveHandler.includes("result.count<1") || !imageSaveHandler.includes("finally{button.disabled=false;button.textContent=\"حفظ التقرير صورة\";")) throw new Error("Report image export must confirm at least one saved image and always restore the button state");
 
 const readableStart=app.indexOf("const readableReportHtml="),readableEnd=app.indexOf('$("#saveReportImage").onclick=',readableStart),readableCss=readableStart>=0&&readableEnd>readableStart?app.slice(readableStart,readableEnd):"";
-if(!readableCss.includes(".meta b,.overview-item span,.metric span,.bike-meta span{font-size:16px!important")||!readableCss.includes(".meta span,.overview-item b,.metric b,.bike-meta b{font-size:20px!important")||readableCss.includes("\\n .meta"))throw new Error("Shared report typography must apply metadata font sizes without escaped CSS selector separators");
+if(!readableCss.includes(".meta b,.overview-item span,.metric span,.bike-meta span{font-size:16px!important")||!readableCss.includes(".meta span,.overview-item b,.metric b,.bike-meta b{font-size:20px!important")||readableCss.includes("\
+ .meta"))throw new Error("Shared report typography must apply metadata font sizes without escaped CSS selector separators");
 if (/\bwolf\b|ذئب/i.test(app)) throw new Error('Printed DEEB reports must not contain a wolf icon or wolf branding');
 if (app.split('DEEB</div>').length - 1 < 2) throw new Error('Both printed report templates must retain DEEB branding');
 if (!app.includes('const coordinates=validCoordinatePair(lat,lng)?("خط العرض: "+lat+" | خط الطول: "+lng):(locationUrl||"—");') || !app.includes('const coordinates=validCoordinatePair(p.lat,p.lng)?("خط العرض: "+String(p.lat).trim()+" | خط الطول: "+String(p.lng).trim()):String(p.location_url||"").trim();')) throw new Error("Bike report and spreadsheet exports must prefer valid coordinates and fall back to map URL only when coordinates are invalid");
@@ -309,7 +319,8 @@ if (!app.includes('locationUrl=String(p.location_url??"").trim()') || !app.inclu
 if (!app.includes('const displayRows=visible.flatMap') || !app.includes('continuation:i>0,visits:g.visits.slice(i*5,(i+1)*5)') || !app.includes('g.branch+(g.continuation?" — استكمال":"")')) throw new Error('Branch patrol continuation rows beyond five visits are missing from the screen or reports');
 if (!app.includes('تقرير متابعة الفروع') || !app.includes('data:') && !app.includes('branchGroupsFor(d)')) throw new Error('Branch report matrix is missing');
 const branchPrintStart=app.indexOf('const groups=branchGroupsFor(d),slots=5,title=',app.indexOf('const printHtml='));
-const branchPrintEnd=app.indexOf('\n  }',branchPrintStart);
+const branchPrintEnd=app.indexOf('
+  }',branchPrintStart);
 const branchPrint=branchPrintStart>=0&&branchPrintEnd>branchPrintStart?app.slice(branchPrintStart,branchPrintEnd):'';
 if (!branchPrint.includes('const pageSize=10') || !branchPrint.includes('height:19mm!important') || !branchPrint.includes('break-inside:avoid!important;page-break-inside:avoid!important')) throw new Error('Branch follow-up PDF must use ten rows per page, preserve 19mm row height, and avoid row splits');
 if (!branchPrint.includes('<th>الموقع</th><th>المشرف</th>') || !branchPrint.includes("<th>متابعة ") || branchPrint.includes('<th>اليوم والتاريخ</th>')) throw new Error('Branch reports must show location, supervisor and five follow-ups without a duplicate date column');
@@ -354,7 +365,8 @@ if (!app.includes('function mapPage()') || !app.includes('function bikeMapsPage(
 if (!app.includes('function patrolTimeMinutes(value)') || !app.includes('comparePatrolTimes(a.payload?.patrol_time,b.payload?.patrol_time)')) throw new Error('Map and branch patrol lists must sort 24-hour, Arabic AM/PM, and Arabic-digit times chronologically');
 if (!app.includes('js.addEventListener("load",draw,{once:true})') || !app.includes('js.addEventListener("error",()=>{const current=document.getElementById(targetId)')) throw new Error("Bike map loader must handle both first load and an already-loading Leaflet script");
 if (!app.includes('raw.match(/^(\\d{4})[-/.](\\d{1,2})[-/.](\\d{1,2})/)') || !app.includes('raw.match(/^(\\d{1,2})[-/.](\\d{1,2})[-/.](\\d{4})/)')) throw new Error("Bike map date parser must recognize ISO and day-first dates");
-const timeParserSource=app.match(/function patrolTimeMinutes\(value\)\{[\s\S]*?\n\}/)?.[0];
+const timeParserSource=app.match(/function patrolTimeMinutes\(value\)\{[\s\S]*?
+\}/)?.[0];
 if(!timeParserSource)throw new Error("Patrol time parser could not be extracted for behavior tests");
 const parsePatrolTime=new Function(timeParserSource+";return patrolTimeMinutes;")();
 for(const [input,expected] of [["01:00 PM",780],["12:00 AM",0],["١:٠٥ م",785],["۲۳:۴۵",1425],["00:15",15]])if(parsePatrolTime(input)!==expected)throw new Error("Patrol time parser returned an incorrect chronological value for "+input);
@@ -397,7 +409,8 @@ if (!app.includes('document.addEventListener("click",event=>{const button=event.
 if (/(?<!\$)\$\([^)]*\)\.forEach/.test(app)) throw new Error('A single-element querySelector is being used as a NodeList');
 
 if (!app.includes('const normalize=v=>String(v||"").trim().toLocaleLowerCase("ar")') || !app.includes('normalize(row.name).includes(normalize(searchTerm))')) throw new Error('Global Arabic search normalization for branch patrol grid is missing');
-if (!app.includes('function render(p){\n currentPage=p;currentType=null;')) throw new Error('Navigation must clear stale entity context before rendering another page');
+if (!app.includes('function render(p){
+ currentPage=p;currentType=null;')) throw new Error('Navigation must clear stale entity context before rendering another page');
 if (!app.includes('id="saveStatus"') || !app.includes('const persisted=await DebooDB.getRecord(saved.id)') || !app.includes('type==="branches"&&!payload.name')) throw new Error('Branch save validation, visible feedback, or primary-key persistence verification is missing');
 if (!app.includes("$('[data-download-attachment]').forEach") || !app.includes('await DebooDB.downloadBlob(new Blob([JSON.stringify(b,null,2)],{type:"application/json"})') || !app.includes('await DebooDB.downloadBlob(new Blob([bytes],{type:"image/png"})')) throw new Error('Android attachment, backup, or QR download action is not wired');
 const employeeChecks = [
@@ -464,7 +477,9 @@ if (!app.includes('@page branch-followup{size:A4 portrait;margin:2mm 3mm 1mm 3mm
 if (branchPrint.includes('class="branch-page-number"') || branchPrint.includes("pageNumbering(269)")) throw new Error("Branch PDF must not show numbering at the bottom of any page");
 if (!app.includes('const pageNumber=""')) throw new Error("Bike patrol reports must omit page numbering entirely");
 const bikePrintStart=app.indexOf('if($("#reportType").value==="bike_patrols"){ '.trim(),app.indexOf("const printHtml="));
-const bikePrintEnd=app.indexOf('\n  }\n  const rows=rowsFor(d)',bikePrintStart);
+const bikePrintEnd=app.indexOf('
+  }
+  const rows=rowsFor(d)',bikePrintStart);
 const bikePrint=app.slice(bikePrintStart,bikePrintEnd);
 if (!bikePrint.includes('<th>الموقع</th><th>توقيت المرور</th><th>الإحداثيات</th>') || bikePrint.includes('<th>التاريخ</th>') || !bikePrint.includes('class="bike-meta-date"><span>التاريخ</span><b>') || !bikePrint.includes('class="bike-meta-total"')) throw new Error('Bike report must show the report date once in the header and keep the table to three columns');
 if (bikePrint.includes('<th>ملاحظات</th>') || bikePrint.includes('<td class="bike-notes">')) throw new Error('Bike patrol report must not render the removed notes column or cells');
@@ -537,7 +552,8 @@ if (!app.includes('deeb-map-details') || !app.includes('deebRouteStatus') || !ap
 if (app.includes('الخريطة مرسومة من إحداثيات نقاط المرور المحفوظة') || app.includes('فتح المسار على خرائط Google</a></p>') || !app.includes('.deeb-map-details li b,.deeb-map-details li span,.deeb-map-details li small{display:block;font-size:9px;line-height:1.25;overflow-wrap:anywhere}') || !app.includes('.deeb-map-details h3{margin:0 0 4px;color:#073b28;font-size:11px}')) throw new Error('Printed bike map must omit the two white-area lines and use the reclaimed space for larger, clearer point details');
 if (!app.includes('const detailPoints=visits.map((x,i)=>') || !app.includes('detailPoints.map((p,index)=>') || !app.includes('Math.floor(index/detailRowCount)+1') || !app.includes('index%detailRowCount+1') || !app.includes('الإحداثيات غير مسجلة') || !app.includes('const detailRowCount=Math.max(1,Math.ceil(detailPoints.length/3))') || !app.includes('.deeb-report-map{height:120mm;width:100%') || !app.includes('grid-auto-rows:min-content;grid-auto-flow:row;align-content:start') || app.includes('height:125mm;grid-template-rows:repeat(') || !app.includes('grid-template-columns:repeat(3,minmax(0,1fr))') || !app.includes('grid-auto-flow:row') || !app.includes('list-style:none') || !app.includes('height:289mm')) throw new Error('Bike map exports must fit every patrol visit, including visits without coordinates, with the map and all details on one A4 page in three ordered columns without duplicate list markers.');
 if (!app.includes('meta:{bike,data:reportVisits.map(x=>({id:x.id,created_at:x.created_at,payload:x.payload||{}}))}') || !app.includes('if(type==="bike_map"){') || !app.includes('var pts=\\[[\\s\\S]*?\\];function safe') || !app.includes('detailList=points.map')) throw new Error('Archived bike maps must rebuild their route and printed point details from the selected date\'s saved patrol coordinates');
-if (app.includes('reportVisits=visits;const located=visits.filter') || !app.includes('  reportVisits=visits;\n  const located=visits.filter')) throw new Error('Bike map visits must be scoped to the report builder and must not break the live bike maps page');
+if (app.includes('reportVisits=visits;const located=visits.filter') || !app.includes('  reportVisits=visits;
+  const located=visits.filter')) throw new Error('Bike map visits must be scoped to the report builder and must not break the live bike maps page');
 if (!app.includes('reportArchives.forEach(item=>') || !app.includes('const bike=String(meta.bike||"").trim()') || !app.includes('records=[...data,...archived]')) throw new Error('Legacy archived bike maps must recover patrol coordinates from active and archived records for the selected date');
 if (!app.includes('data-deeb-route-ready') || !app.includes('saveHtmlAsImages')) throw new Error('Bike map image export must preserve map and route readiness markers');
 const exporter = fs.readFileSync(path.join(root,'configure-android-share.js'),'utf8');
@@ -598,7 +614,8 @@ for (const page of menuEntries) {
   }
 }
 const dataPageStart = appSource.indexOf('function dataManagementPage()');
-const dataPageEnd = appSource.indexOf('\nfunction emergencyPage()', dataPageStart);
+const dataPageEnd = appSource.indexOf('
+function emergencyPage()', dataPageStart);
 const dataPageSource = dataPageStart >= 0 && dataPageEnd > dataPageStart ? appSource.slice(dataPageStart, dataPageEnd) : '';
 if (!dataPageSource.includes('pageHead("البيانات الأساسية"') || !/id=\\?"backSystem\\?"/.test(dataPageSource) || !dataPageSource.includes('رجوع للقائمة الرئيسية') || !dataPageSource.includes('render("landing")')) {
   throw new Error('Master-data page title or return-to-main-menu navigation is missing.');
