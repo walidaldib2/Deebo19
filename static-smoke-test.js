@@ -213,14 +213,11 @@ for (const route of ['follow','emergency','map','bikeMaps','bikeMapReports','bik
 const premiumCss = fs.readFileSync(path.join(root,'style.css'),'utf8');
 for (const required of ['--gold-metal','linear-gradient','drop-shadow','weather-compact','prefers-reduced-motion']) if (!premiumCss.includes(required)) throw new Error('Premium visual/accessible UI styling is missing: '+required);
 
-if (!androidSetup.includes('@PluginMethod
-    public void resolveSharedLocation') || !androidSetup.includes('setInstanceFollowRedirects(true)') || !androidSetup.includes('isGoogleMapsHost(finalUri.getHost())') || !androidSetup.includes('connection.setConnectTimeout(12000)')) throw new Error('Android ShareIntent must safely expand Google Maps short links and follow redirects');
+if (!androidSetup.includes('@PluginMethod\n    public void resolveSharedLocation') || !androidSetup.includes('setInstanceFollowRedirects(true)') || !androidSetup.includes('isGoogleMapsHost(finalUri.getHost())') || !androidSetup.includes('connection.setConnectTimeout(12000)')) throw new Error('Android ShareIntent must safely expand Google Maps short links and follow redirects');
 if (!appSource.includes('async function resolveBikePatrolLocation') || !appSource.includes('input.addEventListener("blur"') || !appSource.includes('setTimeout(resolve,700)') || !appSource.includes('resolved?.content')) throw new Error('Bike patrol must resolve pasted and shared Google Maps links into saved coordinates');
 if (!appSource.includes('// Exact dropped pin coordinates take precedence over the map\'s approximate camera center.')) throw new Error('Exact Google Maps pin coordinates must take precedence over approximate map-center coordinates');
 const bikeReportDateTemplateStart=appSource.indexOf('if($("#reportType").value==="bike_patrols"){',appSource.indexOf('const printHtml'));
-const bikeReportDateTemplateEnd=appSource.indexOf('
-  }
-  const rows=rowsFor(d),counts={};',bikeReportDateTemplateStart);
+const bikeReportDateTemplateEnd=appSource.indexOf('\n  }\n  const rows=rowsFor(d),counts={};',bikeReportDateTemplateStart);
 const bikeReportDateTemplate=bikeReportDateTemplateStart>=0&&bikeReportDateTemplateEnd>bikeReportDateTemplateStart?appSource.slice(bikeReportDateTemplateStart,bikeReportDateTemplateEnd):'';
 if (!bikeReportDateTemplate.includes('class="bike-meta-date"') || !bikeReportDateTemplate.includes('<th>الموقع</th><th>توقيت المرور</th><th>الإحداثيات</th>') || bikeReportDateTemplate.includes('<th>التاريخ</th>') || !bikeReportDateTemplate.includes('عدد مرات المرور') || !bikeReportDateTemplate.includes('نوع الدراجة') || !bikeReportDateTemplate.includes('رقم الدراجة') || !bikeReportDateTemplate.includes('كود الدراجة') || !bikeReportDateTemplate.includes('class="bike-coordinates"') || bikeReportDateTemplate.includes('class="bike-notes"')) throw new Error('Bike patrol report metadata must contain one date field and the table must contain site, time and coordinates only');
 const scannerBridgeSource = fs.readFileSync(path.join(root,'native-plugins-entry.js'),'utf8');
