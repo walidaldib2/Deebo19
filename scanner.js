@@ -32,11 +32,12 @@ function scannerMarkup(){
 async function ensureOcrEngine(){
  if(window.Tesseract?.createWorker)return window.Tesseract;
  if(window.__deebOcrLoading)return window.__deebOcrLoading;
- window.__deebOcrLoading=(async()=>{
-  const load=src=>new Promise((resolve,reject)=>{const script=document.createElement("script");script.src=src;script.async=true;script.onload=resolve;script.onerror=()=>{script.remove();reject(new Error("تعذر تحميل محرك OCR"))};document.head.appendChild(script)});
-  try{await load("./ocr/tesseract.min.js");window.DEebOcrAssetBase="./ocr/";return window.Tesseract;}
-  catch(_){await load("https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/tesseract.min.js");window.DEebOcrAssetBase="remote";return window.Tesseract;}
- })().finally(()=>{window.__deebOcrLoading=null});
+ window.__deebOcrLoading=new Promise((resolve,reject)=>{
+  const script=document.createElement("script");script.src="./ocr/tesseract.min.js";script.async=true;
+  script.onload=()=>window.Tesseract?.createWorker?resolve(window.Tesseract):reject(new Error("محرك OCR المحلي غير جاهز."));
+  script.onerror=()=>reject(new Error("ملفات OCR المحلية غير موجودة. أعد تثبيت نسخة Android المجهزة بمحرك القراءة."));
+  document.head.appendChild(script);
+ }).finally(()=>{window.__deebOcrLoading=null});
  return window.__deebOcrLoading;
 }
 window.DEebLoadOcrEngine=ensureOcrEngine;
@@ -46,7 +47,7 @@ async function recognizePages(){
  try{
   status("جارٍ تحميل محرك قراءة النص العربي والإنجليزي...");
   const engine=await ensureOcrEngine();
-  const remote=window.DEebOcrAssetBase==="remote";worker=await engine.createWorker(["ara","eng"],1,{workerPath:remote?"https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/worker.min.js":"./ocr/worker.min.js",langPath:remote?"https://tessdata.projectnaptha.com/4.0.0":"./ocr/lang",corePath:remote?"https://cdn.jsdelivr.net/npm/tesseract.js-core@7.0.0":"./ocr/core",gzip:!remote,logger:e=>{if(e?.status)status("قراءة النص: "+e.status+(e.progress!=null?" "+Math.round(e.progress*100)+"%":""));}});
+  worker=await engine.createWorker(["ara","eng"],1,{workerPath:"./ocr/worker.min.js",langPath:"./lang",corePath:"./core",gzip:false,logger:e=>{if(e?.status)status("قراءة النص: "+e.status+(e.progress!=null?" "+Math.round(e.progress*100)+"%":""));}});
   const results=[];
   for(let i=0;i<pages.length;i++){
    status("قراءة الصفحة "+(i+1)+" من "+pages.length+"...");
