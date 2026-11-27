@@ -360,8 +360,9 @@ async function main() {
     })),
     audit_logs: []
   };
+  const bikePatrolsBeforeRestore = (await db.all()).filter(x => x.entity_type === "bike_patrols").length;
   await db.restore(tenBikeBackup);
-  assert.equal((await db.all()).filter(x => x.entity_type === "bike_patrols").length, 10);
+  assert.equal((await db.all()).filter(x => x.entity_type === "bike_patrols").length, bikePatrolsBeforeRestore + 10, "Restoring a backup must add its historical bike visits without deleting local visits");
 
   // Daily shift formations must archive by their own work date and remain separate by shift.
   const masterPerson = await db.save("patrol_people", { name: "فرد أساسي للاختبار", employee_no: "ROSTER-01", status: "متاح" });
