@@ -7,7 +7,7 @@ function scannerMarkup(){
  const area=$("#contentArea");if(!area)return;
  area.innerHTML='<style id="deebScannerStyles">.scanner-card{display:grid;gap:14px}.scanner-preview{background:#050c19;border:1px solid #334155;border-radius:12px;padding:8px;text-align:center;overflow:auto}.scanner-preview canvas{max-width:100%;max-height:65vh;object-fit:contain;border-radius:8px}.scanner-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.scanner-pages{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}.scanner-page{background:#14243a;border:1px solid #334155;border-radius:10px;padding:8px;display:grid;gap:6px}.scanner-page img{width:100%;height:150px;object-fit:contain;background:#fff;border-radius:6px}.scanner-file-label{display:inline-flex;align-items:center;justify-content:center;cursor:pointer}.scanner-error{color:#ffb4b4}.scanner-note{line-height:1.8}#scannerOcrText{width:100%;min-height:180px;direction:auto;white-space:pre-wrap}</style><div class="page-head"><h1>ماسح المستندات</h1><button class="secondary" id="scannerBack">رجوع</button></div>'+
  '<div class="card scanner-card"><p class="muted">صوّر المستند أو اختر صورة، ثم اكشف حدود الورقة تلقائيًا أو حدد زواياها وصحح المنظور قبل الحفظ.</p>'+
- '<div class="actions"><button class="primary" id="scannerGoogleScan" type="button">فتح الماسح الاحترافي من Google</button><label class="primary scanner-file-label" for="scannerCamera">📷 تصوير مستند</label><input id="scannerCamera" class="hidden" type="file" accept="image/*" capture="environment"><label class="secondary scanner-file-label" for="scannerGallery">اختيار صورة</label><input id="scannerGallery" class="hidden" type="file" accept="image/*"></div>'+
+ '<div class="actions"><label class="primary scanner-file-label" for="scannerCamera">📷 تصوير مستند</label><input id="scannerCamera" class="hidden" type="file" accept="image/*" capture="environment"><label class="secondary scanner-file-label" for="scannerGallery">اختيار صورة</label><input id="scannerGallery" class="hidden" type="file" accept="image/*"></div>'+
  '<div id="scannerEditor" class="hidden"><div class="scanner-preview"><canvas id="scannerCanvas" aria-label="معاينة المستند"></canvas></div>'+
  '<div class="actions"><button class="primary" id="scannerAutoDetect">كشف حدود الورقة تلقائيًا</button><button class="secondary" id="scannerPickCorners">تحديد الزوايا يدويًا</button><button class="secondary" id="scannerClearCorners">إلغاء تحديد الزوايا</button></div>'+
  '<p id="scannerCornerHelp" class="muted">الكشف التلقائي مبدئي؛ راجع العلامات الأربع وعدّلها بالنقر على الصورة عند الحاجة.</p>'+
@@ -19,7 +19,7 @@ function scannerMarkup(){
  '<p id="scannerStatus" class="notice" aria-live="polite">ابدأ بتصوير المستند أو اختيار صورة.</p>'+
  '<div class="card"><h3>قراءة النص من المستند (OCR)</h3><p class="muted">تعرّف ضوئي على النص العربي والإنجليزي. يحتاج اتصال إنترنت في أول تشغيل لتحميل محرك القراءة وملفات اللغة.</p><div class="actions"><button class="primary" id="scannerRunOcr" type="button">قراءة النص من الصفحات</button><button class="secondary" id="scannerCopyOcr" type="button">نسخ النص</button></div><textarea id="scannerOcrText" rows="8" placeholder="سيظهر النص المستخرج هنا للمراجعة والتصحيح..."></textarea><div class="form"><div class="field"><label for="scannerReportTitle">عنوان التقرير الجديد</label><input id="scannerReportTitle" value="تقرير مستخرج من مستند"></div><div class="field"><label for="scannerReportShift">الشفت</label><select id="scannerReportShift"><option value="ليلي">ليلي</option><option value="صباحي">صباحي</option><option value="مسائي">مسائي</option></select></div><div class="field"><label for="scannerPreparedBy">معد التقرير (اختياري)</label><input id="scannerPreparedBy" placeholder="اسم معد التقرير"></div></div><div class="actions"><button class="primary" id="scannerCreateReport" type="button">نقل النص إلى تقرير جديد داخل DEEB</button></div></div><p class="muted scanner-note">راجع النص المستخرج وصحح الأسماء والأرقام قبل حفظ التقرير؛ دقة OCR تتأثر بجودة الصورة والخط.</p></div>';
  $("#scannerBack").onclick=()=>{if(typeof window.DEebRender==="function")window.DEebRender("home");else document.querySelector('[data-page="home"]')?.click();};
- $("#scannerCamera").onchange=loadFile;$("#scannerGallery").onchange=loadFile;$("#scannerGoogleScan").onclick=scanWithGoogle;$("#scannerRunOcr").onclick=recognizePages;$("#scannerCopyOcr").onclick=copyOcrText;$("#scannerCreateReport").onclick=createReportFromOcr;
+ $("#scannerCamera").onchange=loadFile;$("#scannerGallery").onchange=loadFile;$("#scannerRunOcr").onclick=recognizePages;$("#scannerCopyOcr").onclick=copyOcrText;$("#scannerCreateReport").onclick=createReportFromOcr;
  ["cropLeft","cropTop","cropRight","cropBottom"].forEach(id=>$("#"+id).addEventListener("input",()=>{crop[id.replace("crop","").toLowerCase()]=Number($("#"+id).value);quad=[];drawPreview();}));
  document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{filter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>x.classList.toggle("active",x===b));drawPreview();});
  $("#scannerRotate").onclick=()=>{rotation=(rotation+90)%360;quad=[];drawPreview();};
@@ -32,12 +32,11 @@ function scannerMarkup(){
 async function ensureOcrEngine(){
  if(window.Tesseract?.createWorker)return window.Tesseract;
  if(window.__deebOcrLoading)return window.__deebOcrLoading;
- window.__deebOcrLoading=new Promise((resolve,reject)=>{
-  const script=document.createElement("script");script.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";script.async=true;
-  script.onload=()=>window.Tesseract?.createWorker?resolve(window.Tesseract):reject(new Error("لم يتم تحميل محرك OCR."));
-  script.onerror=()=>reject(new Error("تعذر تحميل محرك OCR. تحقق من اتصال الإنترنت."));
-  document.head.appendChild(script);
- }).finally(()=>{window.__deebOcrLoading=null});
+ window.__deebOcrLoading=(async()=>{
+  const load=src=>new Promise((resolve,reject)=>{const script=document.createElement("script");script.src=src;script.async=true;script.onload=resolve;script.onerror=()=>{script.remove();reject(new Error("تعذر تحميل محرك OCR"))};document.head.appendChild(script)});
+  try{await load("./ocr/tesseract.min.js");window.DEebOcrAssetBase="./ocr/";return window.Tesseract;}
+  catch(_){await load("https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/tesseract.min.js");window.DEebOcrAssetBase="remote";return window.Tesseract;}
+ })().finally(()=>{window.__deebOcrLoading=null});
  return window.__deebOcrLoading;
 }
 window.DEebLoadOcrEngine=ensureOcrEngine;
@@ -47,7 +46,7 @@ async function recognizePages(){
  try{
   status("جارٍ تحميل محرك قراءة النص العربي والإنجليزي...");
   const engine=await ensureOcrEngine();
-  worker=await engine.createWorker(["ara","eng"],1,{workerPath:"https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js",langPath:"https://tessdata.projectnaptha.com/4.0.0",corePath:"https://cdn.jsdelivr.net/npm/tesseract.js-core@5.0.0/tesseract-core.wasm.js",logger:e=>{if(e?.status)status("قراءة النص: "+e.status+(e.progress!=null?" "+Math.round(e.progress*100)+"%":""));}});
+  const remote=window.DEebOcrAssetBase==="remote";worker=await engine.createWorker(["ara","eng"],1,{workerPath:remote?"https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/worker.min.js":"./ocr/worker.min.js",langPath:remote?"https://tessdata.projectnaptha.com/4.0.0":"./ocr/lang",corePath:remote?"https://cdn.jsdelivr.net/npm/tesseract.js-core@7.0.0":"./ocr/core",gzip:!remote,logger:e=>{if(e?.status)status("قراءة النص: "+e.status+(e.progress!=null?" "+Math.round(e.progress*100)+"%":""));}});
   const results=[];
   for(let i=0;i<pages.length;i++){
    status("قراءة الصفحة "+(i+1)+" من "+pages.length+"...");
@@ -78,19 +77,6 @@ async function createReportFromOcr(){
   if(typeof window.DEebRender==="function")window.DEebRender("reports");
  }catch(error){status(error?.message||"تعذر حفظ التقرير.",true)}
  finally{button.disabled=false}
-}
-function scanWithGoogle(){
- const plugin=window.DEEBNativePlugins?.DocumentScanner;
- if(!plugin?.scanDocument){status("الماسح الاحترافي من Google متاح في نسخة Android فقط. يمكنك استخدام الماسح اليدوي أدناه.",true);return;}
- const button=$("#scannerGoogleScan");button.disabled=true;status("جارٍ فتح الماسح الاحترافي. قد يحتاج أول استخدام إلى تنزيل مكونات Google Play Services.");
- try{
-  const stamp=new Date().toISOString().slice(0,10);
-  const result=await plugin.scanDocument({name:"DEEB-Scan-"+stamp});
-  if(result?.cancelled){status("تم إلغاء المسح دون حفظ ملفات.");return;}
-  if(result?.saved!==true||!result.name||!Number.isInteger(result.pages)||result.pages<1)throw new Error("لم يؤكد النظام حفظ ملف PDF صالح.");
-  status("تم إنشاء PDF بجودة الماسح الاحترافي: "+result.pages+" صفحة.\nPDF: "+result.location+"\nصور الصفحات: "+(result.imagesSaved||0)+" داخل Pictures/DEEB.");
- }catch(error){status(error?.message||"تعذر تشغيل الماسح الاحترافي.",true);}
- finally{button.disabled=false;}
 }
 function loadFile(event){
  const file=event.target.files?.[0];event.target.value="";if(!file)return;
@@ -179,15 +165,16 @@ function renderPages(){
  host.querySelectorAll("[data-remove-page]").forEach(b=>b.onclick=()=>{pages.splice(Number(b.dataset.removePage),1);renderPages();});
 }
 async function savePdf(){
- if(!pages.length)return;const native=window.DEEBNativePlugins?.FileExport;if(!native?.saveScannedPdf){status("حفظ PDF متعدد الصفحات يحتاج نسخة أندرويد من DEEB.",true);return;}
- const button=$("#scannerSavePdf");button.disabled=true;status("جارٍ تجهيز ملف PDF...");
- try{const result=await native.saveScannedPdf({name:"DEEB-Scan-"+new Date().toISOString().slice(0,10)+".pdf",pages:pages.map(p=>p.data.split(",")[1])});if(!result?.saved)throw new Error("لم يؤكد النظام حفظ الملف.");status("تم حفظ "+result.pages+" صفحة في Downloads/DEEB باسم "+result.name);}
- catch(error){status(error.message||"تعذر حفظ ملف PDF.",true);}finally{button.disabled=false;}
+ if(!pages.length)return;
+ const html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DEEB Scan</title><style>@page{size:A4;margin:0}*{box-sizing:border-box}body{margin:0;background:#fff}.scan-page{width:210mm;height:297mm;display:flex;align-items:center;justify-content:center;page-break-after:always;break-after:page;padding:8mm}.scan-page:last-child{page-break-after:auto;break-after:auto}.scan-page img{max-width:100%;max-height:100%;object-fit:contain}</style></head><body>'+pages.map(p=>'<section class="scan-page"><img src="'+p.data+'" alt="صفحة مستند"></section>').join("")+'</body></html>';
+ const native=window.DEEBNativePlugins?.FileExport;
+ if(native?.printHtml){const result=await native.printHtml({html});if(result?.started!==true)throw new Error("لم تبدأ خدمة الطباعة.");status("اختر «حفظ بتنسيق PDF» من نافذة الطباعة لحفظ كل الصفحات.");return;}
+ const win=window.open("","_blank");if(!win)throw new Error("اسمح بالنوافذ المنبثقة لفتح المستند.");win.document.open();win.document.write(html);win.document.close();setTimeout(()=>win.print(),500);status("اختر «حفظ بتنسيق PDF» من معاينة الطباعة.");
 }
 async function saveImages(){
- if(!pages.length)return;const native=window.DEEBNativePlugins?.FileExport;if(!native?.saveFile){status("حفظ الصور يحتاج نسخة أندرويد من DEEB.",true);return;}
+ if(!pages.length)return;
  const button=$("#scannerSaveImages");button.disabled=true;let saved=0;
- try{for(let i=0;i<pages.length;i++){const result=await native.saveFile({name:"DEEB-Scan-"+String(i+1).padStart(2,"0")+".jpg",mimeType:"image/jpeg",base64:pages[i].data.split(",")[1]});if(!result?.saved)throw new Error("تعذر حفظ الصورة رقم "+(i+1));saved++;}status("تم حفظ "+saved+" صورة داخل Downloads/DEEB.");}
+ try{for(let i=0;i<pages.length;i++){const a=document.createElement("a");a.href=pages[i].data;a.download="DEEB-Scan-"+String(i+1).padStart(2,"0")+".jpg";document.body.appendChild(a);a.click();a.remove();saved++;}status("تم إرسال "+saved+" صورة إلى التنزيلات.");}
  catch(error){status("تم حفظ "+saved+" صورة فقط. "+(error.message||""),true);}finally{button.disabled=false;}
 }
 function clearPages(){if(!confirm("هل تريد مسح جميع صفحات المستند؟"))return;pages=[];renderPages();status("تم مسح صفحات المستند.");}
