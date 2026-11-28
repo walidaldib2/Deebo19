@@ -15,6 +15,7 @@ on:
       - feature/deebo-team-sync-f378-2026-11-25
       - restore-0746-map-only-2026-11-27
       - fix/bike-report-rider-identity
+      - fix/peak-hours-a4-layout
 
 concurrency:
   group: deeb-android-apk-${{ github.event_name }}-${{ github.ref }}
