@@ -6,6 +6,8 @@ on:
   pull_request:
     branches:
       - feature/deboo-pro-upgrade
+      - fix/peak-hours-a4-layout
+      - fix/bike-analytics-report-brand
   push:
     branches:
       - feature/deboo-pro-upgrade
