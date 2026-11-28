@@ -1686,13 +1686,19 @@ async function bikeAnalyticsPage(){
    let html=data.html,name="DEEB-bike-custom-"+data.type+"-"+from+"-"+to;
    if(data.type==="heat"){
     const original=$("#bikeHourlyHeatmapTable");if(!original)throw new Error("جدول عدد مرات المرور حسب الساعات غير موجود على الشاشة.");
-    const capture=original.cloneNode(true),count=Math.max(1,Math.min(24,Number($("#bikeCustomReportHourCount")?.value)||5));
-    capture.removeAttribute("id");
-    capture.querySelectorAll("tr").forEach(row=>{const cells=[...row.children];cells.slice(count+1).forEach(cell=>cell.remove());});
+    const sourceCard=original.closest(".card");if(!sourceCard)throw new Error("قسم الخريطة الحرارية غير موجود.");
+    const capture=sourceCard.cloneNode(true),table=capture.querySelector("#bikeHourlyHeatmapTable"),count=Math.max(1,Math.min(24,Number($("#bikeCustomReportHourCount")?.value)||5));
+    capture.removeAttribute("id");if(!table)throw new Error("جدول الخريطة الحرارية غير موجود في نسخة الصورة.");table.removeAttribute("id");
+    table.querySelectorAll("tr").forEach(row=>{const cells=[...row.children];cells.slice(count+1).forEach(cell=>cell.remove());});
     const nodes=[capture,...capture.querySelectorAll("*")];nodes.forEach(el=>{const computed=getComputedStyle(el);let css="";for(let i=0;i<computed.length;i++){const property=computed[i];css+=property+":"+computed.getPropertyValue(property)+";";}el.setAttribute("style",css);});
-    capture.style.minWidth="0";capture.style.width="100%";capture.style.maxWidth="100%";capture.style.tableLayout="fixed";
-    html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>عدد مرات المرور حسب الساعات</title><style>*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}html,body{margin:0;padding:12px;width:100%;height:100%;min-height:100vh;background:#fff;direction:rtl;font-family:Tahoma,Arial,sans-serif}body{display:flex;align-items:stretch}table{border-collapse:separate;border-spacing:2px;width:100%!important;height:calc(100vh - 24px)!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important}thead,tbody{height:auto}tr{height:12.5%}th,td{vertical-align:middle}</style></head><body>'+capture.outerHTML+'</body></html>';
-    name="DEEB-عدد-مرور-الساعات-"+from+"-"+to;
+    const wrapper=table.parentElement,chartTitle=[...capture.querySelectorAll("h4")].find(el=>el.textContent.includes("حجم المرور حسب الساعة")),chart=chartTitle?.nextElementSibling;
+    capture.style.cssText+=";width:100%;height:100%;max-width:none;max-height:100%;margin:0;overflow:hidden;display:flex;flex-direction:column;gap:5px;box-sizing:border-box";
+    if(wrapper)wrapper.style.cssText+=";flex:1 1 auto;min-height:0;overflow:hidden;width:100%";
+    table.style.cssText+=";width:100%!important;height:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important";
+    if(chartTitle)chartTitle.style.cssText+=";flex:0 0 auto;margin:4px 0 2px!important";
+    if(chart)chart.style.cssText+=";flex:0 0 22%;height:22%;min-height:90px;max-height:22%;width:100%;overflow:hidden;justify-content:space-around;align-items:flex-end";
+    html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>الخريطة الحرارية وكثافة المرور خلال الشفت</title><style>*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}html,body{margin:0;padding:0;width:100%;height:100%;min-height:100vh;overflow:hidden;background:#fff;direction:rtl;font-family:Tahoma,Arial,sans-serif}body{padding:10px}.card{width:100%;height:calc(100vh - 20px);max-height:calc(100vh - 20px);overflow:hidden}table{border-collapse:separate;border-spacing:2px}tr{height:10%}th,td{vertical-align:middle}</style></head><body>'+capture.outerHTML+'</body></html>';
+    name="DEEB-الخريطة-الحرارية-وكثافة-الشفت-"+from+"-"+to;
    }
    const result=await native.saveHtmlAsImages({html,name});if(result?.saved!==true||!Number.isInteger(result.count)||result.count<1)throw new Error("لم يؤكد النظام حفظ الصورة.");
   });
