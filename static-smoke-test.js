@@ -93,6 +93,13 @@ if (!app.includes("const autoArchiveCurrentReport=async()=>") || !app.includes("
 if (!app.includes("const autoArchiveMap=") || !app.includes("archiveBikeMapReport().catch(error=>toast(") || !app.includes('dedupe_key:dedupeKey,meta:{bike,data:reportVisits')) throw new Error("Generated bike map reports must also be automatically saved to the general archive without duplicates.");
 if (!app.includes("meta:{record_count:d.length,data:d,selected_bike_report:selectedBikeReport}") || !app.includes("const buildArchivedReportHtml=item=>") || !app.includes("readableReportHtml(printHtml(source))") || !app.includes("const html=buildArchivedReportHtml(item)")) throw new Error("Archived reports must be rebuilt from saved report data using the exact current print template for print, PDF and image export.");
 if (!app.includes('id="archiveReportFilterSlot"') || !app.includes("archiveFilterSlot.replaceChildren(archiveFilter)")) throw new Error("Report archive category selector must be located in the archive header, not inside the archive records list");
+const nativeExportSource = fs.readFileSync(path.join(root,"configure-android-share.js"),"utf8");
+if (!nativeExportSource.includes('landscape?PrintAttributes.MediaSize.ISO_A4.asLandscape():PrintAttributes.MediaSize.ISO_A4.asPortrait()') ||
+    !nativeExportSource.includes('landscape?1123:794') ||
+    !nativeExportSource.includes('landscape?2246:1588') ||
+    !nativeExportSource.includes('result.put("orientation",landscape?"landscape":"portrait")')) {
+  throw new Error("Bike heatmap PDF, PNG and native print export must use landscape A4 dimensions while all other reports remain portrait.");
+}
 const nativeEntry = fs.readFileSync(path.join(root,"native-plugins-entry.js"),"utf8");
 if (!JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8")).scripts?.["build:native-plugins"] || !nativeEntry.includes("registerPlugin('FileExport')")) throw new Error("Android native print/export plugin bridge must be built and registered");
 if (!app.includes('d.map(x=>x.id+":"+x.updated_at).join("|")') || !app.includes('archivedReportPromise=null;}throw error;') || !app.includes('bikeMapArchivePromise=null;}throw error;')) throw new Error('Report archive snapshots must detect changed records and allow retry after a failed local save');
