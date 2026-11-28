@@ -1615,7 +1615,7 @@ async function bikeAnalyticsPage(){
    let hoursHeatmapHtml="",lowHourNumbers="";let hoursChartHtml="";
    customReportBuildStep="تجهيز أعمدة تقرير أقل ساعات المرور";
    if(type==="hours"){
-    const hourTableRows=lowHourRows.map(x=>/'<tr><td>'+String(x.hour).padStart(2,"0")+':00</td><td>'+x.count+'</td></tr>').join("");
+    const hourTableRows=lowHourRows.map(x=>'<tr><td>'+String(x.hour).padStart(2,"0")+':00</td><td>'+x.count+'</td></tr>').join("");
     lowHourNumbers='<section class="low-hours-numbers"><h2 class="section-title">أقل ساعات التسجيل</h2><div class="table-wrap"><table class="report-table"><thead><tr><th>الساعة</th><th>عدد الزيارات المسجلة</th></tr></thead><tbody>'+hourTableRows+'</tbody></table></div></section>';
    }
    if(type==="heat"){
