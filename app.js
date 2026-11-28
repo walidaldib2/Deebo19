@@ -1690,7 +1690,7 @@ async function bikeAnalyticsPage(){
     capture.removeAttribute("id");
     capture.querySelectorAll("tr").forEach(row=>{const cells=[...row.children];cells.slice(count+1).forEach(cell=>cell.remove());});
     const nodes=[capture,...capture.querySelectorAll("*")];nodes.forEach(el=>{const computed=getComputedStyle(el);let css="";for(let i=0;i<computed.length;i++){const property=computed[i];css+=property+":"+computed.getPropertyValue(property)+";";}el.setAttribute("style",css);});
-    capture.style.width="auto";capture.style.minWidth="0";capture.style.maxWidth="100%";capture.style.removeProperty("min-width");capture.style.width="max-content";
+    capture.style.minWidth="0";capture.style.width="max-content";capture.style.maxWidth="100%";
     html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>عدد مرات المرور حسب الساعات</title><style>*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}html,body{margin:0;padding:12px;background:#fff;direction:rtl;font-family:Tahoma,Arial,sans-serif}table{border-collapse:separate;border-spacing:2px}</style></head><body>'+capture.outerHTML+'</body></html>';
     name="DEEB-عدد-مرور-الساعات-"+from+"-"+to;
    }
