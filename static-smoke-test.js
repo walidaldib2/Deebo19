@@ -690,6 +690,22 @@ if(!customHoursSource.includes('title="تقرير أقل ساعات المرور
   throw new Error('Low-hours report must image exactly the requested number of rows in its two-column app-style table, while peak-hour heatmap remains separate.');
 }
 
+const shiftHoursStart=customHoursSource.indexOf('const shiftHours=[];');
+const shiftHoursEnd=customHoursSource.indexOf('const maxSelectedHeat=',shiftHoursStart);
+if(shiftHoursStart<0||shiftHoursEnd<=shiftHoursStart) throw new Error('Requested heatmap hour selection logic is missing.');
+const shiftHoursLogic=customHoursSource.slice(shiftHoursStart,shiftHoursEnd)+'shiftHours;';
+const requestedHourCases=[
+  {fromHour:8,toHour:18,requestedHourCount:5,expected:[8,9,10,11,12]},
+  {fromHour:22,toHour:4,requestedHourCount:4,expected:[22,23,0,1]},
+  {fromHour:22,toHour:4,requestedHourCount:24,expected:[22,23,0,1,2,3,4]},
+  {fromHour:9,toHour:9,requestedHourCount:1,expected:[9]},
+  {fromHour:9,toHour:9,requestedHourCount:5,expected:[9]}
+];
+for(const testCase of requestedHourCases){
+  const actual=vm.runInNewContext('(function(fromHour,toHour,requestedHourCount){'+shiftHoursLogic+'})',{})(testCase.fromHour,testCase.toHour,testCase.requestedHourCount);
+  if(JSON.stringify(actual)!==JSON.stringify(testCase.expected)) throw new Error('Printed heatmap hour selection failed: '+JSON.stringify(testCase));
+}
+
 const heatmapSourceStart=customHoursSource.indexOf('let hoursHeatmapHtml=""');
 const heatmapSourceEnd=customHoursSource.indexOf('const table=',heatmapSourceStart);
 const heatmapSource=heatmapSourceStart>=0&&heatmapSourceEnd>heatmapSourceStart?customHoursSource.slice(heatmapSourceStart,heatmapSourceEnd):'';
