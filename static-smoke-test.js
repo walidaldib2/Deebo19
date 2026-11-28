@@ -679,31 +679,44 @@ const customHoursSource=customHoursStart>=0&&customHoursEnd>customHoursStart?app
 if(!customHoursSource.includes('title="تقرير أقل ساعات المرور"') ||
    !customHoursSource.includes('columns=["الساعة","عدد الزيارات المسجلة"]') ||
    !customHoursSource.includes('rows=lowHourRows.map') ||
-   !customHoursSource.includes('const lowHourRows=hourRows.slice(0,requestedHourCount)') ||
+   !customHoursSource.includes('const lowHourRows=hourRows;') ||
    !customHoursSource.includes('const hourTableRows=lowHourRows.map') ||
-   !app.includes('id="bikeCustomReportHourCount"') ||
+   app.includes('bikeCustomReportHourCount') ||
+   customHoursSource.includes('requestedHourCount') ||
    !customHoursSource.includes('type==="hours"?lowHourNumbers') ||
    !customHoursSource.includes('<table class="report-table">') ||
    !customHoursSource.includes('if(type==="heat"){') ||
    !customHoursSource.includes('title="تقرير الخريطة الحرارية لساعات الذروة"') ||
    !app.includes('<option value="heat">الخريطة الحرارية لساعات الذروة</option>')) {
-  throw new Error('Low-hours report must image exactly the requested number of rows in its two-column app-style table, while peak-hour heatmap remains separate.');
+  throw new Error('Bike reports must use the user-selected start/end hours without a second count limit, and include every hour in the selected range.');
 }
 
 const shiftHoursStart=customHoursSource.indexOf('const shiftHours=[];');
-const shiftHoursEnd=customHoursSource.indexOf('const maxSelectedHeat=',shiftHoursStart);
+const shiftHoursEnd=customHoursSource.indexOf('const dayIndexes=',shiftHoursStart);
 if(shiftHoursStart<0||shiftHoursEnd<=shiftHoursStart) throw new Error('Requested heatmap hour selection logic is missing.');
 const shiftHoursLogic=customHoursSource.slice(shiftHoursStart,shiftHoursEnd)+'return shiftHours;';
 const requestedHourCases=[
-  {fromHour:8,toHour:18,requestedHourCount:5,expected:[8,9,10,11,12]},
-  {fromHour:22,toHour:4,requestedHourCount:4,expected:[22,23,0,1]},
-  {fromHour:22,toHour:4,requestedHourCount:24,expected:[22,23,0,1,2,3,4]},
-  {fromHour:9,toHour:9,requestedHourCount:1,expected:[9]},
-  {fromHour:9,toHour:9,requestedHourCount:5,expected:[9]}
+  {fromHour:8,toHour:18,expected:[8,9,10,11,12,13,14,15,16,17,18]},
+  {fromHour:22,toHour:4,expected:[22,23,0,1,2,3,4]},
+  {fromHour:12,toHour:7,expected:[12,13,14,15,16,17,18,19,20,21,22,23,0,1,2,3,4,5,6,7]},
+  {fromHour:9,toHour:9,expected:[9]}
 ];
 for(const testCase of requestedHourCases){
-  const actual=vm.runInNewContext('(function(fromHour,toHour,requestedHourCount,dayIndexes,selectedHeat,rows){'+shiftHoursLogic+'})',{})(testCase.fromHour,testCase.toHour,testCase.requestedHourCount,[],Array.from({length:7},()=>Array(24).fill(0)),[]);
-  if(JSON.stringify(actual)!==JSON.stringify(testCase.expected)) throw new Error('Printed heatmap hour selection failed: '+JSON.stringify(testCase));
+  const actual=vm.runInNewContext('(function(fromHour,toHour){'+shiftHoursLogic+'})',{})(testCase.fromHour,testCase.toHour);
+  if(JSON.stringify(actual)!==JSON.stringify(testCase.expected)) throw new Error('User-selected report hour range failed: '+JSON.stringify(testCase));
+}
+if(customHoursSource.includes('shiftHours.length=Math.min') ||
+   !customHoursSource.includes('rows=shiftHours.map(h=>[String(h).padStart(2,"0")') ||
+   !customHoursSource.includes('const printedHeatValues=dayIndexes.flatMap(day=>shiftHours.map(h=>selectedHeat[day][h]))') ||
+   !customHoursSource.includes('summary=[["الساعات المطبوعة",shiftHours.length]') ||
+   customHoursSource.indexOf('const dayIndexes=')>customHoursSource.indexOf('rows=shiftHours.map')) {
+  throw new Error('Heatmap rows, totals, and color intensity must be calculated from the complete selected hour range after dayIndexes is initialized.');
+}
+const imageHandlerStart=app.indexOf('$("#imageBikeCustomReport").onclick=');
+const imageHandlerEnd=app.indexOf('$("#archiveBikeCustomReport").onclick=',imageHandlerStart);
+const imageHandler=imageHandlerStart>=0&&imageHandlerEnd>imageHandlerStart?app.slice(imageHandlerStart,imageHandlerEnd):'';
+if(!imageHandler.includes('let html=data.html') || imageHandler.includes('bikeHourlyHeatmapTable') || imageHandler.includes('bikeCustomReportHourCount')) {
+  throw new Error('Heatmap image export must use the same selected-range report HTML as print and PDF, not crop the first N screen columns.');
 }
 
 const heatmapSourceStart=customHoursSource.indexOf('let hoursHeatmapHtml=""');
@@ -719,12 +732,8 @@ if (!heatmapSource.includes('if(type==="hours"){') ||
     !customHoursSource.includes('const dayIndexes=[...new Set([...weekDays.values()])].sort') ||
     !customHoursSource.includes('shiftHours.map(h=>') ||
     !customHoursSource.includes("'+count+'</td>'") ||
-    !customHoursSource.includes('if(type==="heat"){') ||
-   !customHoursSource.includes('summary=[["عدد الساعات المطبوعة",lowHourRows.length]') ||
-   !customHoursSource.includes('shiftHours.length=Math.min(shiftHours.length,requestedHourCount)') ||
-   !customHoursSource.includes('rows=shiftHours.map(h=>[String(h).padStart(2,"0")') ||
-   !customHoursSource.includes('const printedHeatValues=dayIndexes.flatMap(day=>shiftHours.map(h=>selectedHeat[day][h]))')) {
-  throw new Error('The standalone printed peak-hour heatmap must show the hourly count table and weekday/hour density map for selected days and shift hours, including zero-count days.');
+    !customHoursSource.includes('const hourTotals=shiftHours.map')) {
+  throw new Error('The printed peak-hour heatmap must show every selected day/hour, visit counts, and heat intensity for the full selected period.');
 }
 
 
