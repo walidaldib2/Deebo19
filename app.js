@@ -1612,7 +1612,7 @@ async function bikeAnalyticsPage(){
    if(!rows.length)rows=[["لا توجد بيانات مسجلة ضمن الفلاتر المحددة"]];
    const cell=v=>esc(String(v??"—"));
    const period=from+" إلى "+to,range=String(fromHour).padStart(2,"0")+":00 إلى "+String(toHour).padStart(2,"0")+":00";
-   let hoursHeatmapHtml="",hoursChartHtml="",lowHourNumbers="";
+   let hoursHeatmapHtml="",lowHourNumbers="";let hoursChartHtml="";
    customReportBuildStep="تجهيز أعمدة تقرير أقل ساعات المرور";
    if(type==="hours"){
     const hourTableRows=hourRows.map(x=>'<tr><td>'+String(x.hour).padStart(2,"0")+':00</td><td>'+x.count+'</td></tr>').join("");
