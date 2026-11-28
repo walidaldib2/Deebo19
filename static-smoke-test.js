@@ -702,7 +702,7 @@ const requestedHourCases=[
   {fromHour:9,toHour:9,requestedHourCount:5,expected:[9]}
 ];
 for(const testCase of requestedHourCases){
-  const actual=vm.runInNewContext('(function(fromHour,toHour,requestedHourCount){'+shiftHoursLogic+'})',{})(testCase.fromHour,testCase.toHour,testCase.requestedHourCount);
+  const actual=vm.runInNewContext('(function(fromHour,toHour,requestedHourCount,dayIndexes,selectedHeat,rows){'+shiftHoursLogic+'})',{})(testCase.fromHour,testCase.toHour,testCase.requestedHourCount,[],Array.from({length:7},()=>Array(24).fill(0)),[]);
   if(JSON.stringify(actual)!==JSON.stringify(testCase.expected)) throw new Error('Printed heatmap hour selection failed: '+JSON.stringify(testCase));
 }
 
