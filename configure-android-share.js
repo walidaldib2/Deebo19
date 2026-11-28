@@ -242,7 +242,9 @@ public class FileExportPlugin extends Plugin {
     getActivity().runOnUiThread(()->{
       final Handler handler=new Handler(Looper.getMainLooper());
       final float density=getContext().getResources().getDisplayMetrics().density;
-      final int webWidth=(int)Math.ceil(794.0*density);
+      final boolean landscape=html.contains("class=\"heatmap-print\"");
+      final int cssPageWidth=landscape?1123:794,cssPageHeight=landscape?794:1123;
+      final int webWidth=(int)Math.ceil(cssPageWidth*density);
       final FrameLayout root=(FrameLayout)getActivity().getWindow().getDecorView().findViewById(android.R.id.content);
       if(root==null){call.reject("تعذر تجهيز صفحة التقرير");return;}
       WebView.enableSlowWholeDocumentDraw();
@@ -282,7 +284,7 @@ public class FileExportPlugin extends Plugin {
       view.getSettings().setUseWideViewPort(true);
       view.getSettings().setLoadWithOverviewMode(false);
       view.setInitialScale(100);
-      root.addView(view,new FrameLayout.LayoutParams(webWidth,(int)Math.ceil(1123*density)));
+      root.addView(view,new FrameLayout.LayoutParams(webWidth,(int)Math.ceil(cssPageHeight*density)));
       view.setWebViewClient(new WebViewClient(){
         @Override public void onPageFinished(WebView v,String url){
           waitForReportResources(v, handler, 30000, state->{
@@ -297,7 +299,7 @@ public class FileExportPlugin extends Plugin {
           android.graphics.pdf.PdfDocument document=null;
           try{
             final int width=webWidth;
-            final int height=(int)Math.ceil(1123*density);
+            final int height=(int)Math.ceil(cssPageHeight*density);
             v.setLayerType(View.LAYER_TYPE_SOFTWARE,null);
             v.setLayoutParams(new FrameLayout.LayoutParams(width,height));
             v.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));
@@ -340,7 +342,7 @@ public class FileExportPlugin extends Plugin {
             renderer=new android.graphics.pdf.PdfRenderer(input);
             int pageCount=renderer.getPageCount();
             if(pageCount<1||pageCount>100)throw new Exception("عدد صفحات PDF الناتج غير صالح ("+pageCount+").");
-            final int width=1588,height=2246;
+            final int width=landscape?2246:1588,height=landscape?1588:2246;
             for(int index=0;index<pageCount;index++){
               if(finished.get())return;
               android.graphics.pdf.PdfRenderer.Page page=renderer.openPage(index);
@@ -401,7 +403,9 @@ public class FileExportPlugin extends Plugin {
     getActivity().runOnUiThread(()->{
       final Handler handler=new Handler(Looper.getMainLooper());
       final float density=getContext().getResources().getDisplayMetrics().density;
-      final int width=(int)Math.ceil(794.0*density),height=(int)Math.ceil(1123.0*density);
+      final boolean landscape=html.contains("class=\"heatmap-print\"");
+      final int cssPageWidth=landscape?1123:794,cssPageHeight=landscape?794:1123;
+      final int width=(int)Math.ceil(cssPageWidth*density),height=(int)Math.ceil(cssPageHeight*density);
       final FrameLayout root=(FrameLayout)getActivity().getWindow().getDecorView().findViewById(android.R.id.content);
       if(root==null){call.reject("تعذر تجهيز صفحة التقرير");return;}
       final WebView view=new WebView(getContext());
@@ -434,8 +438,8 @@ public class FileExportPlugin extends Plugin {
               for(int i=0;i<pages;i++){
                 if(finished.get())return;
                 v.scrollTo(0,Math.min(i*height,Math.max(0,contentHeight-height)));
-                android.graphics.pdf.PdfDocument.Page page=document.startPage(new android.graphics.pdf.PdfDocument.PageInfo.Builder(595,842,i+1).create());
-                page.getCanvas().drawColor(Color.WHITE);page.getCanvas().scale(595f/width,842f/height);v.draw(page.getCanvas());document.finishPage(page);
+                android.graphics.pdf.PdfDocument.Page page=document.startPage(new android.graphics.pdf.PdfDocument.PageInfo.Builder(landscape?842:595,landscape?595:842,i+1).create());
+                page.getCanvas().drawColor(Color.WHITE);page.getCanvas().scale((landscape?842f:595f)/width,(landscape?595f:842f)/height);v.draw(page.getCanvas());document.finishPage(page);
               }
               try(FileOutputStream out=new FileOutputStream(temp,false)){document.writeTo(out);out.flush();}
               document.close();document=null;
@@ -469,8 +473,9 @@ public class FileExportPlugin extends Plugin {
       final java.util.concurrent.atomic.AtomicBoolean pageReady=new java.util.concurrent.atomic.AtomicBoolean(false);
       final Handler handler=new Handler(Looper.getMainLooper());
       final float density=getContext().getResources().getDisplayMetrics().density;
-      final int cssPageWidth=794;
-      final int cssPageHeight=(int)Math.round(794.0*297.0/210.0);
+      final boolean landscape=html.contains("class=\"heatmap-print\"");
+      final int cssPageWidth=landscape?1123:794;
+      final int cssPageHeight=landscape?794:(int)Math.round(794.0*297.0/210.0);
       final int webWidth=(int)Math.ceil(cssPageWidth*density);
       final int webPageHeight=(int)Math.ceil(cssPageHeight*density);
       final FrameLayout root=(FrameLayout)getActivity().findViewById(android.R.id.content);
@@ -510,7 +515,7 @@ public class FileExportPlugin extends Plugin {
                 if(pm==null)throw new Exception("خدمة الطباعة غير متاحة على الجهاز");
                 String jobName="DEEB-"+System.currentTimeMillis();
                 PrintAttributes attributes=new PrintAttributes.Builder()
-                  .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrait())
+                  .setMediaSize(landscape?PrintAttributes.MediaSize.ISO_A4.asLandscape():PrintAttributes.MediaSize.ISO_A4.asPortrait())
                   .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
                   .setResolution(new PrintAttributes.Resolution("DEEB","DEEB",300,300))
                   .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
@@ -518,7 +523,7 @@ public class FileExportPlugin extends Plugin {
                 PrintJob job=pm.print(jobName,v.createPrintDocumentAdapter(jobName),attributes);
                 if(job==null)throw new Exception("لم يستطع أندرويد إنشاء مهمة الطباعة");
                 if(settled.compareAndSet(false,true)){
-                  JSObject result=new JSObject();result.put("started",true);result.put("orientation","portrait");result.put("jobName",jobName);call.resolve(result);
+                  JSObject result=new JSObject();result.put("started",true);result.put("orientation",landscape?"landscape":"portrait");result.put("jobName",jobName);call.resolve(result);
                   Runnable cleanup=new Runnable(){@Override public void run(){
                     if(job.isCompleted()||job.isCancelled()||job.isFailed()){dispose.run();}
                     else handler.postDelayed(this,1500);
