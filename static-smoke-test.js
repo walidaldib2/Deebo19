@@ -703,7 +703,11 @@ if (!heatmapSource.includes('if(type==="hours"){') ||
     !customHoursSource.includes('const dayIndexes=[...new Set([...weekDays.values()])].sort') ||
     !customHoursSource.includes('shiftHours.map(h=>') ||
     !customHoursSource.includes("'+count+'</td>'") ||
-    !customHoursSource.includes('if(type==="heat"){')) {
+    !customHoursSource.includes('if(type==="heat"){') ||
+   !customHoursSource.includes('summary=[["عدد الساعات المطبوعة",lowHourRows.length]') ||
+   !customHoursSource.includes('shiftHours.length=Math.min(shiftHours.length,requestedHourCount)') ||
+   !customHoursSource.includes('rows=shiftHours.map(h=>[String(h).padStart(2,"0")') ||
+   !customHoursSource.includes('const printedHeatValues=dayIndexes.flatMap(day=>shiftHours.map(h=>selectedHeat[day][h]))')) {
   throw new Error('The standalone printed peak-hour heatmap must show the hourly count table and weekday/hour density map for selected days and shift hours, including zero-count days.');
 }
 
