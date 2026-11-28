@@ -721,7 +721,7 @@ const rangeFilterEnd=customHoursSource.indexOf(';',rangeFilterStart)+1;
 if(rangeFilterStart<0||rangeFilterEnd<=rangeFilterStart) throw new Error('Selected hour range filter is missing.');
 const rangeFilterLogic='const startHour=fromHour===24?0:fromHour,endHour=toHour===24?0:toHour;'+customHoursSource.slice(rangeFilterStart,rangeFilterEnd)+'return [inHours({hour:0}),inHours({hour:6}),inHours({hour:7}),inHours({hour:23})];';
 const rangeFilterCases=[
-  {fromHour:8,toHour:18,expected:[false,false,false,true]},
+  {fromHour:8,toHour:18,expected:[false,false,false,false]},
   {fromHour:22,toHour:4,expected:[true,false,false,true]},
   {fromHour:0,toHour:7,expected:[true,true,false,false]},
   {fromHour:7,toHour:24,expected:[false,false,true,true]},
