@@ -1590,7 +1590,7 @@ async function bikeAnalyticsPage(){
     title="تقرير الخريطة الحرارية لساعات الذروة";sectionTitle="عدد الزيارات المسجلة حسب الساعة واليوم";
     columns=["الساعة","عدد الزيارات المسجلة"];
     rows=hourRows.map(x=>[String(x.hour).padStart(2,"0")+":00",x.count]);
-    summary=[["الساعات المشمولة",hourRows.length],["إجمالي الزيارات",hourRows.reduce((sum,x)=>sum+x.count,0)],["أعلى عدد زيارات في ساعة",hourRows.length?Math.max(...hourRows.map(x=>x.count)):"—"]];
+    summary=[["الساعات المطبوعة",shiftHours.length],["إجمالي الزيارات",shiftHours.reduce((sum,h)=>sum+dayIndexes.reduce((daySum,day)=>daySum+selectedHeat[day][h],0),0)],["أعلى عدد زيارات في ساعة",shiftHours.length?Math.max(...shiftHours.map(h=>dayIndexes.reduce((sum,day)=>sum+selectedHeat[day][h],0))):"—"]];
    }else if(type==="site"){
     title="تقرير متابعة موقع حسب الساعة";sectionTitle="تفاصيل المرور المسجل للموقع";
     const data=selected.filter(r=>!site||normalize(String(r.payload?.site||r.payload?.branch||r.payload?.location||""))===normalize(site)).sort((a,b)=>(dateTimeOf(a)||0)-(dateTimeOf(b)||0));
@@ -1625,8 +1625,9 @@ async function bikeAnalyticsPage(){
     const cursor=new Date(from+"T12:00:00"),lastDay=new Date(to+"T12:00:00");
     for(;cursor<=lastDay;cursor.setDate(cursor.getDate()+1)){const date=localISODate(cursor);weekDays.set(date,cursor.getDay());}
     selected.forEach(r=>{const p=r.payload||{},t=timeParts(p.patrol_time),date=String(p.patrol_date||"").slice(0,10);if(!t||!weekDays.has(date)||!inHours(t))return;selectedHeat[weekDays.get(date)][t.hour]++;});
-    const shiftHours=[];
-    if(fromHour<=toHour){for(let h=fromHour;h<=toHour;h++)shiftHours.push(h);}else{for(let h=fromHour;h<24;h++)shiftHours.push(h);for(let h=0;h<=toHour;h++)shiftHours.push(h);}
+    const shiftHoursInRange=[];
+    if(fromHour<=toHour){for(let h=fromHour;h<=toHour;h++)shiftHoursInRange.push(h);}else{for(let h=fromHour;h<24;h++)shiftHoursInRange.push(h);for(let h=0;h<=toHour;h++)shiftHoursInRange.push(h);}
+    const shiftHours=shiftHoursInRange.slice(0,requestedHourCount);
     const maxSelectedHeat=Math.max(1,...selectedHeat.flat());
     const dayIndexes=[...new Set([...weekDays.values()])].sort((x,y)=>x-y);
     const hourHead=shiftHours.map(h=>'<th style="min-width:9mm;padding:3px 2px;background:#073b28;color:#fff;font-size:8px">'+String(h).padStart(2,"0")+":00</th>").join("");
