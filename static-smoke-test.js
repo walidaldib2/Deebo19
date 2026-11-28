@@ -678,13 +678,16 @@ const customHoursEnd=app.indexOf('const archiveBikeCustomReport=async(reportData
 const customHoursSource=customHoursStart>=0&&customHoursEnd>customHoursStart?app.slice(customHoursStart,customHoursEnd):'';
 if(!customHoursSource.includes('title="تقرير أقل ساعات المرور"') ||
    !customHoursSource.includes('columns=["الساعة","عدد الزيارات المسجلة"]') ||
-   !customHoursSource.includes('rows=hourRows.map') ||
-   !customHoursSource.includes('const hourTableRows=hourRows.map') ||
+   !customHoursSource.includes('rows=lowHourRows.map') ||
+   !customHoursSource.includes('const lowHourRows=hourRows.slice(0,requestedHourCount)') ||
+   !customHoursSource.includes('const hourTableRows=lowHourRows.map') ||
+   !customHoursSource.includes('id="bikeCustomReportHourCount"') ||
+   !customHoursSource.includes('type==="hours"?lowHourNumbers') ||
    !customHoursSource.includes('<table class="report-table">') ||
    !customHoursSource.includes('if(type==="heat"){') ||
    !customHoursSource.includes('title="تقرير الخريطة الحرارية لساعات الذروة"') ||
    !app.includes('<option value="heat">الخريطة الحرارية لساعات الذروة</option>')) {
-  throw new Error('Low-hours report must use the app-style two-column table while peak-hour heatmap remains a separate report type.');
+  throw new Error('Low-hours report must image exactly the requested number of rows in its two-column app-style table, while peak-hour heatmap remains separate.');
 }
 
 const heatmapSourceStart=customHoursSource.indexOf('let hoursHeatmapHtml=""');
