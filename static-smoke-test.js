@@ -693,7 +693,7 @@ if(!customHoursSource.includes('title="تقرير أقل ساعات المرور
 const shiftHoursStart=customHoursSource.indexOf('const shiftHours=[];');
 const shiftHoursEnd=customHoursSource.indexOf('const maxSelectedHeat=',shiftHoursStart);
 if(shiftHoursStart<0||shiftHoursEnd<=shiftHoursStart) throw new Error('Requested heatmap hour selection logic is missing.');
-const shiftHoursLogic=customHoursSource.slice(shiftHoursStart,shiftHoursEnd)+'shiftHours;';
+const shiftHoursLogic=customHoursSource.slice(shiftHoursStart,shiftHoursEnd)+'return shiftHours;';
 const requestedHourCases=[
   {fromHour:8,toHour:18,requestedHourCount:5,expected:[8,9,10,11,12]},
   {fromHour:22,toHour:4,requestedHourCount:4,expected:[22,23,0,1]},
