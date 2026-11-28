@@ -1585,7 +1585,7 @@ async function bikeAnalyticsPage(){
     title="تقرير أقل ساعات المرور";sectionTitle="جميع الساعات حسب عدد الزيارات المسجلة";
     columns=["الساعة","عدد الزيارات المسجلة"];
     rows=lowHourRows.map(x=>[String(x.hour).padStart(2,"0")+":00",x.count]);
-    summary=[["عدد الساعات المطبوعة",hourRows.length],["أقل عدد زيارات",hourRows.length?Math.min(...hourRows.map(x=>x.count)):"—"],["أعلى عدد زيارات ضمن الساعات",hourRows.length?Math.max(...hourRows.map(x=>x.count)):"—"]];
+    summary=[["عدد الساعات المطبوعة",lowHourRows.length],["أقل عدد زيارات",lowHourRows.length?Math.min(...lowHourRows.map(x=>x.count)):"—"],["أعلى عدد زيارات ضمن الساعات المطبوعة",lowHourRows.length?Math.max(...lowHourRows.map(x=>x.count)):"—"]];
    }else if(type==="heat"){
     title="تقرير الخريطة الحرارية لساعات الذروة";sectionTitle="عدد الزيارات المسجلة حسب الساعة واليوم";
     columns=["الساعة","عدد الزيارات المسجلة"];
@@ -1628,7 +1628,9 @@ async function bikeAnalyticsPage(){
     const shiftHours=[];
     if(fromHour<=toHour){for(let h=fromHour;h<=toHour;h++)shiftHours.push(h);}else{for(let h=fromHour;h<24;h++)shiftHours.push(h);for(let h=0;h<=toHour;h++)shiftHours.push(h);}
     shiftHours.length=Math.min(shiftHours.length,requestedHourCount);
-    const maxSelectedHeat=Math.max(1,...selectedHeat.flat());
+    rows=shiftHours.map(h=>[String(h).padStart(2,"0")+":00",dayIndexes.reduce((sum,day)=>sum+selectedHeat[day][h],0)]);
+    const printedHeatValues=dayIndexes.flatMap(day=>shiftHours.map(h=>selectedHeat[day][h]));
+    const maxSelectedHeat=Math.max(1,...printedHeatValues);
     const dayIndexes=[...new Set([...weekDays.values()])].sort((x,y)=>x-y);
     const hourHead=shiftHours.map(h=>'<th style="min-width:9mm;padding:3px 2px;background:#073b28;color:#fff;font-size:8px">'+String(h).padStart(2,"0")+":00</th>").join("");
     const hourBody=dayIndexes.map(day=>'<tr><th style="white-space:nowrap;padding:4px 6px;background:#073b28;color:#fff;font-size:9px">'+cell(dayNames[day])+'</th>'+shiftHours.map(h=>{const count=selectedHeat[day][h];return '<td style="min-width:9mm;padding:4px 2px;text-align:center;border:1px solid #c99a32;font-size:9px;font-weight:800;background:rgba(139,20,41,'+(count?(.12+.78*count/maxSelectedHeat):.035)+');color:'+(count/maxSelectedHeat>.55?'#fff':'#10275b')+'">'+count+'</td>';}).join("")+'</tr>').join("");
