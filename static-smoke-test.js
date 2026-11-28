@@ -696,14 +696,28 @@ const shiftHoursEnd=customHoursSource.indexOf('const dayIndexes=',shiftHoursStar
 if(shiftHoursStart<0||shiftHoursEnd<=shiftHoursStart) throw new Error('Requested heatmap hour selection logic is missing.');
 const shiftHoursLogic=customHoursSource.slice(shiftHoursStart,shiftHoursEnd)+'return shiftHours;';
 const requestedHourCases=[
-  {fromHour:8,toHour:18,expected:[8,9,10,11,12,13,14,15,16,17,18]},
-  {fromHour:22,toHour:4,expected:[22,23,0,1,2,3,4]},
-  {fromHour:12,toHour:7,expected:[12,13,14,15,16,17,18,19,20,21,22,23,0,1,2,3,4,5,6,7]},
-  {fromHour:9,toHour:9,expected:[9]}
+  {fromHour:8,toHour:18,expected:[8,9,10,11,12,13,14,15,16,17]},
+  {fromHour:22,toHour:4,expected:[22,23,0,1,2,3]},
+  {fromHour:0,toHour:7,expected:[0,1,2,3,4,5,6]},
+  {fromHour:9,toHour:9,expected:[9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,0,1,2,3,4,5,6,7,8]}
 ];
 for(const testCase of requestedHourCases){
   const actual=vm.runInNewContext('(function(fromHour,toHour){'+shiftHoursLogic+'})',{})(testCase.fromHour,testCase.toHour);
   if(JSON.stringify(actual)!==JSON.stringify(testCase.expected)) throw new Error('User-selected report hour range failed: '+JSON.stringify(testCase));
+}
+const rangeFilterStart=customHoursSource.indexOf('const inHours=');
+const rangeFilterEnd=customHoursSource.indexOf(';',rangeFilterStart)+1;
+if(rangeFilterStart<0||rangeFilterEnd<=rangeFilterStart) throw new Error('Selected hour range filter is missing.');
+const rangeFilterLogic=customHoursSource.slice(rangeFilterStart,rangeFilterEnd)+'return [inHours({hour:fromHour}),inHours({hour:toHour}),inHours({hour:(toHour+23)%24})];';
+const rangeFilterCases=[
+  {fromHour:8,toHour:18,expected:[true,false,true]},
+  {fromHour:22,toHour:4,expected:[true,false,true]},
+  {fromHour:0,toHour:7,expected:[true,false,true]},
+  {fromHour:9,toHour:9,expected:[true,true,true]}
+];
+for(const testCase of rangeFilterCases){
+  const actual=vm.runInNewContext('(function(fromHour,toHour){'+rangeFilterLogic+'})',{})(testCase.fromHour,testCase.toHour);
+  if(JSON.stringify(actual)!==JSON.stringify(testCase.expected)) throw new Error('Selected hour filter boundary failed: '+JSON.stringify(testCase));
 }
 if(customHoursSource.includes('shiftHours.length=Math.min') ||
    !customHoursSource.includes('rows=shiftHours.map(h=>[String(h).padStart(2,"0")') ||
