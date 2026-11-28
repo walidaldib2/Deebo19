@@ -691,6 +691,7 @@ if(!customHoursSource.includes('title="تقرير أقل ساعات المرور
   throw new Error('Bike reports must use the user-selected start/end hours without a second count limit, and include every hour in the selected range.');
 }
 
+// Hour selector controls are rendered in the analytics-page markup, outside the report-builder closure.
 const hourSelectorMarkup=app.slice(app.indexOf('id="bikeCustomReportFromHour"')-100,app.indexOf('id="bikeCustomReportToHour"')+300);
 if ((hourSelectorMarkup.match(/Array\.from\(\{length:25\}/g)||[]).length!==2 ||
     !hourSelectorMarkup.includes('id="bikeCustomReportFromHour"') ||
