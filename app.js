@@ -1648,7 +1648,7 @@ async function bikeAnalyticsPage(){
   };
   const archiveBikeCustomReport=async(reportData=null)=>{
    const data=reportData||buildBikeCustomReport();
-   const key=[data.type,data.bike,data.site,from,to,data.fromHour,data.toHour,data.selected.map(r=>r.id+":"+r.updated_at).join("|")].join("::");
+   const key=[data.type,data.bike,data.site,from,to,data.fromHour,data.toHour,data.requestedHourCount,data.selected.map(r=>r.id+":"+r.updated_at).join("|")].join("::");
    if(key===customReportArchiveKey&&customReportArchivePromise)return customReportArchivePromise;
    let hash=2166136261;for(let i=0;i<key.length;i++){hash^=key.charCodeAt(i);hash=Math.imul(hash,16777619);}
    customReportArchiveKey=key;
