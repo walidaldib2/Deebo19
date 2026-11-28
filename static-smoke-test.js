@@ -681,7 +681,7 @@ if(!customHoursSource.includes('title="تقرير أقل ساعات المرور
    !customHoursSource.includes('rows=lowHourRows.map') ||
    !customHoursSource.includes('const lowHourRows=hourRows.slice(0,requestedHourCount)') ||
    !customHoursSource.includes('const hourTableRows=lowHourRows.map') ||
-   !customHoursSource.includes('id="bikeCustomReportHourCount"') ||
+   !app.includes('id="bikeCustomReportHourCount"') ||
    !customHoursSource.includes('type==="hours"?lowHourNumbers') ||
    !customHoursSource.includes('<table class="report-table">') ||
    !customHoursSource.includes('if(type==="heat"){') ||
