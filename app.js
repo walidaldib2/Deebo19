@@ -1562,7 +1562,7 @@ async function bikeAnalyticsPage(){
    customReportBuildStep="قراءة اختيارات التقرير";
    const type=$("#bikeCustomReportType").value,bike=$("#bikeCustomReportBike").value,site=$("#bikeCustomReportSite").value;
    const fromHour=Number($("#bikeCustomReportFromHour").value),toHour=Number($("#bikeCustomReportToHour").value);
-   const inHours=t=>t&&((fromHour<=toHour)?(t.hour>=fromHour&&t.hour<=toHour):(t.hour>=fromHour||t.hour<=toHour));
+   const inHours=t=>t&&(fromHour===toHour||(fromHour<toHour?(t.hour>=fromHour&&t.hour<toHour):(t.hour>=fromHour||t.hour<toHour)));
    const matchesFilters=r=>{const p=r.payload||{},t=timeParts(p.patrol_time),rowBike=String(p.bike||"").trim(),rowSite=String(p.site||p.branch||p.location||"موقع غير محدد").trim();return !!t&&inHours(t)&&(!bike||rowBike===bike)&&(!site||normalize(rowSite)===normalize(site));};
    customReportBuildStep="فلترة سجلات المرور المحفوظة";
    const selected=filtered.filter(matchesFilters);
@@ -1626,7 +1626,7 @@ async function bikeAnalyticsPage(){
     for(;cursor<=lastDay;cursor.setDate(cursor.getDate()+1)){const date=localISODate(cursor);weekDays.set(date,cursor.getDay());}
     selected.forEach(r=>{const p=r.payload||{},t=timeParts(p.patrol_time),date=String(p.patrol_date||"").slice(0,10);if(!t||!weekDays.has(date)||!inHours(t))return;selectedHeat[weekDays.get(date)][t.hour]++;});
     const shiftHours=[];
-    if(fromHour<=toHour){for(let h=fromHour;h<=toHour;h++)shiftHours.push(h);}else{for(let h=fromHour;h<24;h++)shiftHours.push(h);for(let h=0;h<=toHour;h++)shiftHours.push(h);}
+    if(fromHour===toHour){for(let offset=0;offset<24;offset++)shiftHours.push((fromHour+offset)%24);}else if(fromHour<toHour){for(let h=fromHour;h<toHour;h++)shiftHours.push(h);}else{for(let h=fromHour;h<24;h++)shiftHours.push(h);for(let h=0;h<toHour;h++)shiftHours.push(h);}
     const dayIndexes=[...new Set([...weekDays.values()])].sort((x,y)=>x-y);
     rows=shiftHours.map(h=>[String(h).padStart(2,"0")+":00",dayIndexes.reduce((sum,day)=>sum+selectedHeat[day][h],0)]);
     const printedHeatValues=dayIndexes.flatMap(day=>shiftHours.map(h=>selectedHeat[day][h]));
