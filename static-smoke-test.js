@@ -691,7 +691,7 @@ if(!customHoursSource.includes('title="تقرير أقل ساعات المرور
   throw new Error('Bike reports must use the user-selected start/end hours without a second count limit, and include every hour in the selected range.');
 }
 
-if ((customHoursSource.match(/Array\\.from\\(\\{length:25\\}/g)||[]).length!==2 ||
+if ((customHoursSource.match(/Array\.from\(\{length:25\}/g)||[]).length!==2 ||
     !customHoursSource.includes('id="bikeCustomReportFromHour"') ||
     !customHoursSource.includes('id="bikeCustomReportToHour"') ||
     !customHoursSource.includes('String(h).padStart(2,"0")+\':00</option>')) {
