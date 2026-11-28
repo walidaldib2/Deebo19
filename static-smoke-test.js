@@ -691,10 +691,11 @@ if(!customHoursSource.includes('title="تقرير أقل ساعات المرور
   throw new Error('Bike reports must use the user-selected start/end hours without a second count limit, and include every hour in the selected range.');
 }
 
-if ((customHoursSource.match(/Array\.from\(\{length:25\}/g)||[]).length!==2 ||
-    !customHoursSource.includes('id="bikeCustomReportFromHour"') ||
-    !customHoursSource.includes('id="bikeCustomReportToHour"') ||
-    !customHoursSource.includes('String(h).padStart(2,"0")+\':00</option>')) {
+const hourSelectorMarkup=app.slice(app.indexOf('id="bikeCustomReportFromHour"')-100,app.indexOf('id="bikeCustomReportToHour"')+300);
+if ((hourSelectorMarkup.match(/Array\.from\(\{length:25\}/g)||[]).length!==2 ||
+    !hourSelectorMarkup.includes('id="bikeCustomReportFromHour"') ||
+    !hourSelectorMarkup.includes('id="bikeCustomReportToHour"') ||
+    !hourSelectorMarkup.includes('String(h).padStart(2,"0")+\':00</option>')) {
   throw new Error('Both user-controlled hour selectors must offer every choice from 00:00 through 24:00.');
 }
 const shiftHoursStart=customHoursSource.indexOf('const shiftHours=[];');
