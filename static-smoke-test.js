@@ -691,15 +691,24 @@ if(!customHoursSource.includes('title="تقرير أقل ساعات المرور
   throw new Error('Bike reports must use the user-selected start/end hours without a second count limit, and include every hour in the selected range.');
 }
 
+if ((customHoursSource.match(/Array\\.from\\(\\{length:25\\}/g)||[]).length!==2 ||
+    !customHoursSource.includes('id="bikeCustomReportFromHour"') ||
+    !customHoursSource.includes('id="bikeCustomReportToHour"') ||
+    !customHoursSource.includes('String(h).padStart(2,"0")+\':00</option>')) {
+  throw new Error('Both user-controlled hour selectors must offer every choice from 00:00 through 24:00.');
+}
 const shiftHoursStart=customHoursSource.indexOf('const shiftHours=[];');
 const shiftHoursEnd=customHoursSource.indexOf('const dayIndexes=',shiftHoursStart);
 if(shiftHoursStart<0||shiftHoursEnd<=shiftHoursStart) throw new Error('Requested heatmap hour selection logic is missing.');
-const shiftHoursLogic=customHoursSource.slice(shiftHoursStart,shiftHoursEnd)+'return shiftHours;';
+const shiftHoursLogic='const startHour=fromHour===24?0:fromHour,endHour=toHour===24?0:toHour;'+customHoursSource.slice(shiftHoursStart,shiftHoursEnd)+'return shiftHours;';
 const requestedHourCases=[
   {fromHour:8,toHour:18,expected:[8,9,10,11,12,13,14,15,16,17]},
   {fromHour:22,toHour:4,expected:[22,23,0,1,2,3]},
   {fromHour:0,toHour:7,expected:[0,1,2,3,4,5,6]},
-  {fromHour:9,toHour:9,expected:[9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,0,1,2,3,4,5,6,7,8]}
+  {fromHour:7,toHour:24,expected:[7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]},
+  {fromHour:24,toHour:7,expected:[0,1,2,3,4,5,6]},
+  {fromHour:0,toHour:24,expected:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]},
+  {fromHour:24,toHour:24,expected:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]}
 ];
 for(const testCase of requestedHourCases){
   const actual=vm.runInNewContext('(function(fromHour,toHour){'+shiftHoursLogic+'})',{})(testCase.fromHour,testCase.toHour);
@@ -708,12 +717,15 @@ for(const testCase of requestedHourCases){
 const rangeFilterStart=customHoursSource.indexOf('const inHours=');
 const rangeFilterEnd=customHoursSource.indexOf(';',rangeFilterStart)+1;
 if(rangeFilterStart<0||rangeFilterEnd<=rangeFilterStart) throw new Error('Selected hour range filter is missing.');
-const rangeFilterLogic=customHoursSource.slice(rangeFilterStart,rangeFilterEnd)+'return [inHours({hour:fromHour}),inHours({hour:toHour}),inHours({hour:(toHour+23)%24})];';
+const rangeFilterLogic='const startHour=fromHour===24?0:fromHour,endHour=toHour===24?0:toHour;'+customHoursSource.slice(rangeFilterStart,rangeFilterEnd)+'return [inHours({hour:0}),inHours({hour:6}),inHours({hour:7}),inHours({hour:23})];';
 const rangeFilterCases=[
-  {fromHour:8,toHour:18,expected:[true,false,true]},
-  {fromHour:22,toHour:4,expected:[true,false,true]},
-  {fromHour:0,toHour:7,expected:[true,false,true]},
-  {fromHour:9,toHour:9,expected:[true,true,true]}
+  {fromHour:8,toHour:18,expected:[false,false,false,true]},
+  {fromHour:22,toHour:4,expected:[true,false,false,true]},
+  {fromHour:0,toHour:7,expected:[true,true,false,false]},
+  {fromHour:7,toHour:24,expected:[false,false,true,true]},
+  {fromHour:24,toHour:7,expected:[true,true,false,false]},
+  {fromHour:0,toHour:24,expected:[true,true,true,true]},
+  {fromHour:24,toHour:24,expected:[true,true,true,true]}
 ];
 for(const testCase of rangeFilterCases){
   const actual=vm.runInNewContext('(function(fromHour,toHour){'+rangeFilterLogic+'})',{})(testCase.fromHour,testCase.toHour);
@@ -742,7 +754,7 @@ if (!heatmapSource.includes('if(type==="hours"){') ||
     !customHoursSource.includes('const weekDays=new Map()') ||
     !customHoursSource.includes('const cursor=new Date(from+"T12:00:00"),lastDay=new Date(to+"T12:00:00")') ||
     !customHoursSource.includes('const shiftHours=[]') ||
-    !customHoursSource.includes('if(fromHour<=toHour){for(let h=fromHour;h<=toHour;h++)shiftHours.push(h);}else') ||
+    !customHoursSource.includes('if(startHour===endHour){for(let offset=0;offset<24;offset++)shiftHours.push((startHour+offset)%24);}else if(startHour<endHour){for(let h=startHour;h<endHour;h++)shiftHours.push(h);}else{for(let h=startHour;h<24;h++)shiftHours.push(h);for(let h=0;h<endHour;h++)shiftHours.push(h);}') ||
     !customHoursSource.includes('const dayIndexes=[...new Set([...weekDays.values()])].sort') ||
     !customHoursSource.includes('shiftHours.map(h=>') ||
     !customHoursSource.includes("'+count+'</td>'") ||
