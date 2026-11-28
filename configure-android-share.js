@@ -242,7 +242,7 @@ public class FileExportPlugin extends Plugin {
     getActivity().runOnUiThread(()->{
       final Handler handler=new Handler(Looper.getMainLooper());
       final float density=getContext().getResources().getDisplayMetrics().density;
-      final boolean landscape=html.contains("class=\"heatmap-print\"");
+      final boolean landscape=html.contains("class=\\"heatmap-print\\"");
       final int cssPageWidth=landscape?1123:794,cssPageHeight=landscape?794:1123;
       final int webWidth=(int)Math.ceil(cssPageWidth*density);
       final FrameLayout root=(FrameLayout)getActivity().getWindow().getDecorView().findViewById(android.R.id.content);
@@ -403,7 +403,7 @@ public class FileExportPlugin extends Plugin {
     getActivity().runOnUiThread(()->{
       final Handler handler=new Handler(Looper.getMainLooper());
       final float density=getContext().getResources().getDisplayMetrics().density;
-      final boolean landscape=html.contains("class=\"heatmap-print\"");
+      final boolean landscape=html.contains("class=\\"heatmap-print\\"");
       final int cssPageWidth=landscape?1123:794,cssPageHeight=landscape?794:1123;
       final int width=(int)Math.ceil(cssPageWidth*density),height=(int)Math.ceil(cssPageHeight*density);
       final FrameLayout root=(FrameLayout)getActivity().getWindow().getDecorView().findViewById(android.R.id.content);
@@ -473,7 +473,7 @@ public class FileExportPlugin extends Plugin {
       final java.util.concurrent.atomic.AtomicBoolean pageReady=new java.util.concurrent.atomic.AtomicBoolean(false);
       final Handler handler=new Handler(Looper.getMainLooper());
       final float density=getContext().getResources().getDisplayMetrics().density;
-      final boolean landscape=html.contains("class=\"heatmap-print\"");
+      final boolean landscape=html.contains("class=\\"heatmap-print\\"");
       final int cssPageWidth=landscape?1123:794;
       final int cssPageHeight=landscape?794:(int)Math.round(794.0*297.0/210.0);
       final int webWidth=(int)Math.ceil(cssPageWidth*density);
