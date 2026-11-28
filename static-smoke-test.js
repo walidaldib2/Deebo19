@@ -7,6 +7,23 @@ if (missing.length) throw new Error('Missing required files: '+missing.join(', '
 const html = fs.readFileSync(path.join(root,'index.html'),'utf8');
 const db = fs.readFileSync(path.join(root,'db.js'),'utf8');
 const app = fs.readFileSync(path.join(root,'app.js'),'utf8');
+const patrolDateResolver=app.match(/const dayOf=x=>\{const p=x\.payload\|\|\{\};const specific=([\s\S]*?)return String\(specific\|\|p\.work_date\|\|x\.created_at\|\|""\)\.slice\(0,10\);\};/);
+if(!patrolDateResolver || !patrolDateResolver[1].includes('p.patrol_date') || !patrolDateResolver[1].includes('p.incident_date') || !patrolDateResolver[1].includes('p.report_date')) throw new Error('Report date filtering must prioritize each patrol record\'s own patrol_date over a generic work_date so historical branch and bike follow-ups remain visible.');
+
+const bikeExportHandler=app.slice(app.indexOf('const withCustomReportButton=async'),app.indexOf('$("#printBikeCustomReport").onclick'));
+if(!bikeExportHandler.includes('let stage="بناء بيانات التقرير"') ||
+   !bikeExportHandler.includes('stage="تنفيذ التصدير"') ||
+   !bikeExportHandler.includes('تعذر التقرير في مرحلة')) {
+  throw new Error('Bike custom report export must identify whether report construction or native export failed.');
+}
+const customReportStart=app.indexOf('const buildBikeCustomReport=()=>{');
+const customReportEnd=app.indexOf('const archiveBikeCustomReport=',customReportStart);
+const customReportSource=customReportStart>=0&&customReportEnd>customReportStart?app.slice(customReportStart,customReportEnd):'';
+if(!customReportSource.includes('let hoursHeatmapHtml="",lowHourNumbers="";') ||
+   !customReportSource.includes('lowHourNumbers=\'<section class="low-hours-numbers"') ||
+   customReportSource.includes('const lowHourNumbers=')) {
+  throw new Error('Bike custom report must declare the low-hours HTML in the enclosing scope so the hours report can render without a ReferenceError.');
+}
 const vm = require('node:vm');
 for (const file of ['app.js','db.js','team-sync.js','preferences.js','sw.js','qrcode.js','biometric.bundle.js','native-plugins.bundle.js']) {
   const source = fs.readFileSync(path.join(root,file),'utf8');
@@ -35,9 +52,39 @@ if(!detailLayout.includes('Math.ceil(detailPoints.length/3)') ||
 }
 if (!app.includes('bikes:[["number","رقم الدراجة","text",1],["code","كود الدراجة","text"],["type","نوع الدراجة","text"],["description","الوصف","text"],["status","الحالة","select","جاهزة|بالمرور|صيانة|متوقفة"]]')) throw new Error("Bike registry must store bike details without a fixed responsible person");
 if (!app.includes('bike_patrols:[["bike","الدراجة","text",1],["person","اسم الفرد القائم بالمرور","text",1]')) throw new Error("The responsible patrol person must remain recorded on each daily bike patrol entry");
-if (!app.includes('bike_shift_assignments:[["work_date","تاريخ الشفت","date",1],["shift","الشفت","select","صباحي|مسائي|ليلي",1],["assignments","توزيع الأفراد على الدراجات","custom"]]') || !app.includes('["bikeShiftAssignments","توزيع شفت مرور الدراجات"]') || !app.includes('data-bike-assignment=') || !app.includes('اختَر الفرد الراكب لكل دراجة مسجلة قبل الحفظ')) throw new Error("Daily bike shift assignment screen must map each registered bike to a patrol rider and save by date and shift");
-if (!app.includes('const registry=data.filter(x=>x.entity_type==="bikes"&&!x.is_archived).slice().sort((a,b)=>String(a.created_at||"").localeCompare(String(b.created_at||"")))') || !app.includes('cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived).slice().sort((a,b)=>String(a.created_at||"").localeCompare(String(b.created_at||"")))')) throw new Error("Bike report numbering and shift assignment must follow original data-entry order, oldest registered bike first");
-if (!app.includes('const persons=[...new Set(g.visits.map(v=>String(v.payload?.person||v.payload?.responsible||"").trim()).filter(Boolean))]') || !app.includes('person:persons.join("، ")||"—"') || !app.includes('String(p.person||p.responsible||"—"),g.bike')) throw new Error("Bike reports must show the person recorded on each patrol, never a fixed bike-registry person");
+if (!app.includes('bike_shift_assignments:[["work_date","تاريخ الشفت","date",1],["shift","الشفت","select","صباحي|مسائي|ليلي",1],["assignments","توزيع الأفراد على الدراجات","custom"]]') || !app.includes('["bikeShiftAssignments","توزيع الدراجات والراكبين للشفت"]') || !app.includes('bikesGroup:{title:"الدراجات"') || !app.includes('data-bike-assignment=') || !app.includes('data-bike-active=') || !app.includes('[data-bike-active]:checked') || !app.includes('اختر دراجة واحدة على الأقل، وحدد الراكب لكل دراجة مشاركة فقط')) throw new Error("Shift assignment must require riders only for bikes explicitly selected for that shift");
+if (!app.includes('function sectionPage(key)') || !app.includes('section-tile-icon') || !app.includes('branch-row-icon') || !app.includes('bikeAnalytics:"📊"')) throw new Error("Section navigation and branch records must display their matching icons");
+if (!app.includes('function orderedBikes(list)') || !app.includes('payload?.sort_order') || !app.includes('async function moveBikeOrder(id,direction)') || !app.includes('data-move-bike=') || !app.includes('DebooDB.save("bikes"') || !app.includes('const registry=data.filter(x=>x.entity_type==="bikes"&&!x.is_archived)') || !app.includes('const orderedRegistry=orderedBikes(registry)')) throw new Error("Bike order must be user-controlled, persist in the bike records, and drive report numbering");
+if (!app.includes('const persons=[...new Set(g.visits.map(v=>String(v.payload?.person||v.payload?.responsible||"").trim()).filter(Boolean))]') || !app.includes('person:reportPerson') || !app.includes('const reportPerson=persons.length===1?persons[0]:persons.length>1?"الأسماء موضحة بجوار كل زيارة":"غير مسجل"') || !app.includes('person,coordinates,notes:') || !app.includes('times:[String(p.patrol_time||"—")+" | فرد المرور: "+person]')) throw new Error("Bike reports must retain and display each visit's individual rider rather than combine riders in one name");
+const bikeGroupStart=app.indexOf('const bikeGroupsFor=d=>{');
+const bikeGroupEnd=app.indexOf('const branchGroupsFor=d=>',bikeGroupStart);
+if(bikeGroupStart<0||bikeGroupEnd<=bikeGroupStart) throw new Error('Bike report grouping function could not be located for behavior tests');
+const bikeGroupSource=app.slice(bikeGroupStart+'const bikeGroupsFor='.length,bikeGroupEnd).replace(/;\s*$/, '');
+const bikeRegistry=[
+ {entity_type:'bikes',created_at:'2026-01-01',payload:{number:'1696',person:'اسم قديم',code:'7832',type:'بوكسر'}},
+ {entity_type:'bikes',created_at:'2026-01-02',payload:{number:'6327',person:'اسم قديم آخر',code:'7848',type:'بوكسر'}},
+ {entity_type:'bikes',created_at:'2026-01-03',payload:{number:'7011',code:'7850',type:'بوكسر'}},
+ {entity_type:'bikes',created_at:'2026-01-04',payload:{number:'8122',code:'7851',type:'بوكسر'}},
+ {entity_type:'bikes',created_at:'2026-01-05',payload:{number:'9233',code:'7852',type:'بوكسر'}}
+];
+const bikeTestVisits=[
+ {id:'v1',entity_type:'bike_patrols',created_at:'2026-11-27T21:10:00',payload:{bike:'1696',person:'أحمد',patrol_date:'2026-11-27',patrol_time:'09:10 م',site:'العباسية',lat:30.1,lng:31.2}},
+ {id:'v2',entity_type:'bike_patrols',created_at:'2026-11-27T22:05:00',payload:{bike:'1696',person:'محمد',patrol_date:'2026-11-27',patrol_time:'10:05 م',site:'مصر الجديدة',lat:30.2,lng:31.3}},
+ {id:'v3',entity_type:'bike_patrols',created_at:'2026-11-27T21:30:00',payload:{bike:'6327',person:'علي',patrol_date:'2026-11-27',patrol_time:'09:30 م',site:'وسط البلد',lat:30.0,lng:31.1}}
+];
+const bikeSandbox={data:bikeRegistry,orderedBikes:list=>[...list].sort((a,b)=>{const ao=Number(a.payload?.sort_order),bo=Number(b.payload?.sort_order),av=Number.isFinite(ao)&&ao>0?ao:Number.MAX_SAFE_INTEGER,bv=Number.isFinite(bo)&&bo>0?bo:Number.MAX_SAFE_INTEGER;return av-bv||String(a.created_at||"").localeCompare(String(b.created_at||""));}),normalize:value=>String(value??'').trim().toLowerCase(),dayOf:row=>String(row.payload?.patrol_date||row.created_at||'').slice(0,10),validCoordinatePair:(lat,lng)=>Number.isFinite(Number(lat))&&Number.isFinite(Number(lng))&&lat!==''&&lng!==''};
+const bikeGroups=vm.runInNewContext('('+bikeGroupSource+')',bikeSandbox)(bikeTestVisits);
+const firstBike=bikeGroups[0];
+if(firstBike.bike!=='1696'||firstBike.reportNumber!==1||firstBike.person!=='الأسماء موضحة بجوار كل زيارة') throw new Error('Bike report numbering or mixed-rider heading is incorrect');
+if(firstBike.sites.length!==2||firstBike.sites[0].entries[0].person!=='أحمد'||firstBike.sites[1].entries[0].person!=='محمد') throw new Error('Bike report mixed two riders or lost the rider attached to an individual visit');
+if(firstBike.sites[0].times[0].indexOf('أحمد')<0||firstBike.sites[1].times[0].indexOf('محمد')<0) throw new Error('Bike report visit times must carry their own rider identity');
+if(bikeGroups[1].bike!=='6327'||bikeGroups[1].reportNumber!==2||bikeGroups[1].sites[0].entries[0].person!=='علي') throw new Error('Second bike report must preserve registration order and its own rider');
+if(bikeGroups.length!==5||bikeGroups.map(g=>g.reportNumber).join(',')!=='1,2,3,4,5'||bikeGroups[4].bike!=='9233') throw new Error('The bike registry, shift assignment and individual reports must support five or more bikes with sequential report numbers and no fixed limit');
+bikeRegistry[4].payload.sort_order=1;bikeRegistry[0].payload.sort_order=2;bikeRegistry[1].payload.sort_order=3;bikeRegistry[2].payload.sort_order=4;bikeRegistry[3].payload.sort_order=5;
+const reorderedBikeGroups=vm.runInNewContext('('+bikeGroupSource+')',bikeSandbox)(bikeTestVisits);
+if(reorderedBikeGroups[0].bike!=='9233'||reorderedBikeGroups[0].reportNumber!==1||reorderedBikeGroups[1].bike!=='1696'||reorderedBikeGroups[1].reportNumber!==2||reorderedBikeGroups[2].bike!=='6327'||reorderedBikeGroups[2].reportNumber!==3) throw new Error('Manual bike reordering must immediately change sequential report numbers without changing the saved bike patrol visits');
+if(!app.includes('bikes.map((bike,index)=>')||!app.includes('orderedBikes(cache.filter(x=>x.entity_type==="bikes"&&!x.is_archived))')||!app.includes('data-move-bike=')||!app.includes('moveBikeOrder(button.dataset.moveBike')) throw new Error('Daily bike assignment and patrol selection must enumerate all bikes in the user-defined order');
+
 if (!app.includes('if(!$("#archiveReportFilter"))host.insertAdjacentHTML("afterbegin"') || !app.includes('لا توجد خرائط دراجات محفوظة حتى الآن')) throw new Error('Archive must always expose the bike-map category, including when no map reports have been saved yet');
 if (!app.includes('"bike_map","bike_patrols"') || !app.includes("window.DEebOpenArchive=showArchive;") || !app.includes("await window.DEebOpenArchive();") || !app.includes('openArchivePage().catch(error=>')) throw new Error("General archive navigation must await the shared archive renderer, expose bike patrol follow-up, and report async failures in the UI");
 if (!app.includes('all:"التقرير الشامل"') || !app.includes('archived_records:"السجلات المؤرشفة"') || !app.includes('"all","archived_records","bike_map","bike_patrols"') || !app.includes('type!=="bikes"')) throw new Error("The comprehensive report and archived operational records must have selectable archive categories.");
@@ -46,6 +93,13 @@ if (!app.includes("const autoArchiveCurrentReport=async()=>") || !app.includes("
 if (!app.includes("const autoArchiveMap=") || !app.includes("archiveBikeMapReport().catch(error=>toast(") || !app.includes('dedupe_key:dedupeKey,meta:{bike,data:reportVisits')) throw new Error("Generated bike map reports must also be automatically saved to the general archive without duplicates.");
 if (!app.includes("meta:{record_count:d.length,data:d,selected_bike_report:selectedBikeReport}") || !app.includes("const buildArchivedReportHtml=item=>") || !app.includes("readableReportHtml(printHtml(source))") || !app.includes("const html=buildArchivedReportHtml(item)")) throw new Error("Archived reports must be rebuilt from saved report data using the exact current print template for print, PDF and image export.");
 if (!app.includes('id="archiveReportFilterSlot"') || !app.includes("archiveFilterSlot.replaceChildren(archiveFilter)")) throw new Error("Report archive category selector must be located in the archive header, not inside the archive records list");
+const nativeExportSource = fs.readFileSync(path.join(root,"configure-android-share.js"),"utf8");
+if (!nativeExportSource.includes('landscape?PrintAttributes.MediaSize.ISO_A4.asLandscape():PrintAttributes.MediaSize.ISO_A4.asPortrait()') ||
+    !nativeExportSource.includes('landscape?1123:794') ||
+    !nativeExportSource.includes('landscape?2246:1588') ||
+    !nativeExportSource.includes('result.put("orientation",landscape?"landscape":"portrait")')) {
+  throw new Error("Bike heatmap PDF, PNG and native print export must use landscape A4 dimensions while all other reports remain portrait.");
+}
 const nativeEntry = fs.readFileSync(path.join(root,"native-plugins-entry.js"),"utf8");
 if (!JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8")).scripts?.["build:native-plugins"] || !nativeEntry.includes("registerPlugin('FileExport')")) throw new Error("Android native print/export plugin bridge must be built and registered");
 if (!app.includes('d.map(x=>x.id+":"+x.updated_at).join("|")') || !app.includes('archivedReportPromise=null;}throw error;') || !app.includes('bikeMapArchivePromise=null;}throw error;')) throw new Error('Report archive snapshots must detect changed records and allow retry after a failed local save');
@@ -53,7 +107,7 @@ const sw = fs.readFileSync(path.join(root,'sw.js'),'utf8');
 for (const f of ['index.html','style.css','app.js','db.js','team-sync.js','qrcode.js','manifest.json','icon.svg']) if (!sw.includes(`./${f}`)) throw new Error('Service worker core cache missing '+f);
 const pkg = JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
 const cap = JSON.parse(fs.readFileSync(path.join(root,'capacitor.config.json'),'utf8'));
-if (cap.appId !== 'com.deebo19.fieldops' || cap.appName !== 'DEEB19') throw new Error('DEEB19 must have a distinct Android package ID and app label so it installs beside Fareda');
+if (cap.appId !== 'com.deebo19.fieldops.bikereporttest' || cap.appName !== 'DEEB19 تجربة 2') throw new Error('The bike report test build must have its own Android package ID and label so it installs beside the approved Malek app');
 const androidPrep = fs.readFileSync(path.join(root,'prepare-android.js'),'utf8');
 if (!androidPrep.includes('"team-sync.js"')) throw new Error('Android preparation must package the DEEB19 team sync engine');
 if (!html.includes('<title>DEEB19') || !html.includes('class="wordmark">DEEB19')) throw new Error('DEEB19 app shell branding is missing');
@@ -71,7 +125,7 @@ if (!activityTemplate.includes('import android.webkit.WebView;') || earlyDrawIni
 const pdfExportStart=androidSetup.indexOf('@PluginMethod public void saveHtmlAsPdf');
 const pdfExportEnd=androidSetup.indexOf('@PluginMethod public void printHtml',pdfExportStart);
 const pdfExport=pdfExportStart>=0&&pdfExportEnd>pdfExportStart?androidSetup.slice(pdfExportStart,pdfExportEnd):'';
-for(const required of ['application/pdf','MediaStore.Downloads.EXTERNAL_CONTENT_URI','Environment.DIRECTORY_DOWNLOADS+"/DEEB"','document.writeTo(out)','PageInfo.Builder(595,842,i+1)','page.getCanvas().scale(595f/width,842f/height)','waitForReportResources(v,handler,30000']) if(!pdfExport.includes(required)) throw new Error('Direct PDF export must save a complete validated PDF in Downloads/DEEB: '+required);
+for(const required of ['application/pdf','MediaStore.Downloads.EXTERNAL_CONTENT_URI','Environment.DIRECTORY_DOWNLOADS+"/DEEB"','document.writeTo(out)','PageInfo.Builder(landscape?842:595,landscape?595:842,i+1)','page.getCanvas().scale((landscape?842f:595f)/width,(landscape?595f:842f)/height)','waitForReportResources(v,handler,30000']) if(!pdfExport.includes(required)) throw new Error('Direct PDF export must save a complete validated PDF in Downloads/DEEB: '+required);
 if(!app.includes('native.saveHtmlAsPdf({html,name:"DEEB-report"})') || !app.includes('native.saveHtmlAsPdf({html,name:"DEEB-archive-"+item.id})') || !app.includes('native.saveHtmlAsPdf({html:reportHtml,name:"DEEB-bike-map-"')) throw new Error('Current, archived and bike map reports must offer direct PDF file export');
 const printHandlerStart=androidSetup.indexOf('@PluginMethod public void printHtml');
 const printHandlerEnd=androidSetup.indexOf('\n  }\n}',printHandlerStart);
@@ -81,15 +135,15 @@ if (!printHandler.includes('int height=webPageHeight;') || !printHandler.include
 const imageExportStart=androidSetup.indexOf('@PluginMethod public void saveHtmlAsImages');
 const imageExportEnd=androidSetup.indexOf('@PluginMethod public void printHtml',imageExportStart);
 const imageExport=imageExportStart>=0&&imageExportEnd>imageExportStart?androidSetup.slice(imageExportStart,imageExportEnd):'';
-for (const required of ['writeWebViewToPdf(v)','WebView.enableSlowWholeDocumentDraw()','new android.graphics.pdf.PdfDocument()','new android.graphics.pdf.PdfDocument.PageInfo.Builder(width,height,index+1).create()','v.scrollTo(0,scrollY)','v.draw(canvas)','document.writeTo(output)','PdfRenderer','page.render(bitmap,new android.graphics.Rect(0,0,width,height),null,android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_PRINT)','final int width=1588,height=2246','bitmap.compress(Bitmap.CompressFormat.PNG,100,out)','Environment.DIRECTORY_PICTURES+"/DEEB"','removePartialImages.run()','tempPdf.delete()','nonWhite==0']) if (!imageExport.includes(required)) throw new Error('Image export must use Android native A4 pagination, render validated PNG pages, and clean partial files: '+required);
+for (const required of ['writeWebViewToPdf(v)','WebView.enableSlowWholeDocumentDraw()','new android.graphics.pdf.PdfDocument()','new android.graphics.pdf.PdfDocument.PageInfo.Builder(width,height,index+1).create()','v.scrollTo(0,scrollY)','v.draw(canvas)','document.writeTo(output)','PdfRenderer','page.render(bitmap,new android.graphics.Rect(0,0,width,height),null,android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_PRINT)','final int width=landscape?2246:1588,height=landscape?1588:2246','bitmap.compress(Bitmap.CompressFormat.PNG,100,out)','Environment.DIRECTORY_PICTURES+"/DEEB"','removePartialImages.run()','tempPdf.delete()','nonWhite==0']) if (!imageExport.includes(required)) throw new Error('Image export must use Android native A4 pagination, render validated PNG pages, and clean partial files: '+required);
 const compactReadyCalls=(androidSetup.match(/waitForReportResources\(v,handler,30000/g)||[]).length;
 const spacedReadyCalls=(androidSetup.match(/waitForReportResources\(v, handler, 30000/g)||[]).length;
 if (!androidSetup.includes('private void waitForReportResources(WebView view, Handler handler') || !androidSetup.includes('window.__DEEB_REPORT_READY') || !androidSetup.includes("handler.postDelayed(poll[0], 100)") || !androidSetup.includes("window.__DEEB_REPORT_READY='resource-error'") || compactReadyCalls!==1 || spacedReadyCalls!==2 || !printHandler.includes('waitForReportResources(v, handler, 30000')) throw new Error('Report image export and print must asynchronously wait for WebView images/fonts and poll readiness before rendering');
 if (!androidSetup.includes('document.fonts.ready') || !androidSetup.includes('document.images') || !androidSetup.includes('requestAnimationFrame')) throw new Error('WebView resource readiness must wait for document images, fonts, and layout frames');
-if (!imageExport.includes('writeWebViewToPdf(v)') || !imageExport.includes('WebView.enableSlowWholeDocumentDraw()') || !imageExport.includes('new android.graphics.pdf.PdfDocument()') || !imageExport.includes('v.scrollTo(0,scrollY)') || !imageExport.includes('v.draw(canvas)') || !imageExport.includes('document.writeTo(output)') || !imageExport.includes('PdfRenderer') || !imageExport.includes('page.render(bitmap') || !imageExport.includes('final int width=1588,height=2246')) throw new Error('A4 image export must draw the complete WebView report into paginated PDF pages and render fixed-size portrait PNGs');
+if (!imageExport.includes('writeWebViewToPdf(v)') || !imageExport.includes('WebView.enableSlowWholeDocumentDraw()') || !imageExport.includes('new android.graphics.pdf.PdfDocument()') || !imageExport.includes('v.scrollTo(0,scrollY)') || !imageExport.includes('v.draw(canvas)') || !imageExport.includes('document.writeTo(output)') || !imageExport.includes('PdfRenderer') || !imageExport.includes('page.render(bitmap') || !imageExport.includes('final int width=landscape?2246:1588,height=landscape?1588:2246')) throw new Error('A4 image export must draw the complete WebView report into paginated PDF pages and render fixed-size portrait PNGs');
 if (!imageExport.includes('pdfCaptureStarted.compareAndSet(false,true)') || !imageExport.includes('if(finished.get()||!pdfCaptureStarted.compareAndSet(false,true))return;')) throw new Error('Android image export must ignore duplicate WebView page-finished callbacks and start a single PDF/PNG capture per request');
 if (imageExport.includes('createPrintDocumentAdapter("DEEB-image-export")') || imageExport.includes('nativeAdapter.onLayout') || imageExport.includes('nativeAdapter.onWrite')) throw new Error('Image export must not invoke Android framework print callbacks directly');
-for (const required of ['setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrait())','setResolution(new PrintAttributes.Resolution("DEEB","DEEB",300,300))','setMinMargins(PrintAttributes.Margins.NO_MARGINS)','createPrintDocumentAdapter(jobName)','setJavaScriptEnabled(true)']) if (!printHandler.includes(required)) throw new Error('Android printing must use fixed A4 print attributes and the native print adapter: '+required);
+for (const required of ['setMediaSize(landscape?PrintAttributes.MediaSize.ISO_A4.asLandscape():PrintAttributes.MediaSize.ISO_A4.asPortrait())','setResolution(new PrintAttributes.Resolution("DEEB","DEEB",300,300))','setMinMargins(PrintAttributes.Margins.NO_MARGINS)','createPrintDocumentAdapter(jobName)','setJavaScriptEnabled(true)']) if (!printHandler.includes(required)) throw new Error('Android printing must use fixed A4 print attributes and the native print adapter: '+required);
 const durableSyncSql = fs.readFileSync(path.join(root,'supabase/migrations/202611250009_durable_pending_sync_pages.sql'),'utf8');
 for (const required of [
   'add column if not exists pending_page jsonb',
@@ -160,7 +214,7 @@ for (const label of ['لوحة التحكم','التشغيل الميداني','
   if (!navigationHtml.includes(label)) throw new Error('Main navigation label was lost: '+label);
 }
 for (const required of ['class="tile-icon"','viewBox="0 0 24 24"']) if (!navigationHtml.includes(required)) throw new Error('Premium vector navigation icon system is missing: '+required);
-if ((navigationHtml.match(/data-page=/g)||[]).length !== 7 || navigationHtml.includes('data-page="backup"')) throw new Error('Home must contain exactly seven primary navigation tiles, with backup and restore nested under Settings.');
+if ((navigationHtml.match(/data-page=/g)||[]).length !== 8 || navigationHtml.includes('data-page="backup"')) throw new Error('Home must contain exactly seven primary navigation tiles, with backup and restore nested under Settings.');
 if (navigationHtml.includes('data-page="system"')) throw new Error('Legacy combined data/settings section must not remain in main navigation.');
 const menuStart=appSource.indexOf('const sectionMenus=');
 const menuEnd=appSource.indexOf(';',menuStart);
@@ -202,7 +256,7 @@ if (html.includes('src="scanner.js"') || html.includes('data-page="scanner"') ||
 if (!androidSetup.includes('["android:allowBackup", "false"]') || !androidSetup.includes('["android:usesCleartextTraffic", "false"]')) throw new Error('Android backup/network hardening is missing');
 const iconBuilder = fs.readFileSync(path.join(root,'prepare-android-icons.js'),'utf8');
 if (!iconBuilder.includes('ic_launcher_foreground.png') || !iconBuilder.includes('icon-512.png')) throw new Error('DEEB Play Store and adaptive launcher icon generation is missing');
-if (cap.appName !== 'DEEB19') throw new Error('Android display name must be DEEB19');
+if (cap.appName !== 'DEEB19 تجربة 2') throw new Error('Bike report test Android display name must be DEEB19 تجربة 2');
 if (pkg.name !== 'deeb-field-operations') throw new Error('Project package name must be deebo-field-operations');
 if (cap.webDir !== 'www') throw new Error('Capacitor webDir must be the staged www directory');
 if (!app.includes('const rowHeight=(row,ri)=>') || !app.includes('Math.min(409.5') || !app.includes('rowHeight(row,ri)')) throw new Error('Excel rows must expand to fit wrapped multi-line report content instead of clipping at a fixed height');
@@ -262,7 +316,7 @@ const imageSaveHandler=imageSaveStart>=0&&imageSaveEnd>imageSaveStart?app.slice(
 if (!imageSaveHandler.includes('native.saveHtmlAsImages({html:reportCoordinatesOnly(readableReportHtml(printHtml(d)),d),name:"DEEB-report"})') || !imageSaveHandler.includes("result?.saved!==true") || !imageSaveHandler.includes("Number.isInteger(result.count)") || !imageSaveHandler.includes("result.count<1") || !imageSaveHandler.includes("finally{button.disabled=false;button.textContent=\"حفظ التقرير صورة\";")) throw new Error("Report image export must confirm at least one saved image and always restore the button state");
 
 const readableStart=app.indexOf("const readableReportHtml="),readableEnd=app.indexOf('$("#saveReportImage").onclick=',readableStart),readableCss=readableStart>=0&&readableEnd>readableStart?app.slice(readableStart,readableEnd):"";
-if(!readableCss.includes(".meta b,.overview-item span,.metric span,.bike-meta span{font-size:16px!important")||!readableCss.includes(".meta span,.overview-item b,.metric b,.bike-meta b{font-size:20px!important")||readableCss.includes("\\n .meta"))throw new Error("Shared report typography must apply metadata font sizes without escaped CSS selector separators");
+if(!readableCss.includes(".meta b,.overview-item span,.metric span,.bike-meta span{font-size:16px!important")||!readableCss.includes(".meta span,.overview-item b,.metric b,.bike-meta b{font-size:20px!important")||/\\\s+\.meta/.test(readableCss))throw new Error("Shared report typography must apply metadata font sizes without escaped CSS selector separators");
 if (/\bwolf\b|ذئب/i.test(app)) throw new Error('Printed DEEB reports must not contain a wolf icon or wolf branding');
 if (app.split('DEEB</div>').length - 1 < 2) throw new Error('Both printed report templates must retain DEEB branding');
 if (!app.includes('const coordinates=validCoordinatePair(lat,lng)?("خط العرض: "+lat+" | خط الطول: "+lng):(locationUrl||"—");') || !app.includes('const coordinates=validCoordinatePair(p.lat,p.lng)?("خط العرض: "+String(p.lat).trim()+" | خط الطول: "+String(p.lng).trim()):String(p.location_url||"").trim();')) throw new Error("Bike report and spreadsheet exports must prefer valid coordinates and fall back to map URL only when coordinates are invalid");
@@ -314,9 +368,9 @@ if (!bikeExcelBlock.includes('"مرور","الإحداثيات / رابط الم
 
 if (!app.includes('const sectionTitle="تقرير مرور دراجة "+g.reportNumber') || !app.includes('const pageTitle=continuation?"باقي "+sectionTitle:sectionTitle') || !app.includes('<h1 class="report-print-title">\'+pageTitle+\'</h1>') || !app.includes('groups=allGroups.filter(g=>selectedBikeReport==="all"||g.bike===selectedBikeReport)') || !app.includes('id="bikeReportSelect"') || !app.includes('id="bikeQuickReports"')) throw new Error('Each motorcycle report must have its own dynamic selector and print only the selected bike');
 if (!app.includes('reportDate=new Date().toLocaleDateString("ar-EG")') || !app.includes('weekday:"long"')) throw new Error('Bike patrol report must display the report date in its header and retain localized weekday date formatting where applicable');
-if (!app.includes('const registrationOrder=new Map(registry.map((row,index)=>[normalize(row.payload?.number),index+1]))') || !app.includes('reportNumber:registrationOrder.get(normalize(g.bike))||index+1')) throw new Error('Bike report numbering must follow the saved registration order, independently of bike codes or lexical sorting');
-if (!app.includes('const persons=[...new Set(g.visits.map(v=>String(v.payload?.person||v.payload?.responsible||"").trim()).filter(Boolean))]') || !app.includes('person:persons.join("، ")||"—"')) throw new Error('Printed bike patrol report must show the responsible person names saved on the patrol records');
-if (!app.includes('key=normalize(number);') || !app.includes('registry=data.filter(x=>x.entity_type===\"bikes\"&&!x.is_archived)') || !app.includes('bikeGroupsFor(data)') || !app.includes('data-bike-number=') || !app.includes('id="bikeQuickReports"') || app.includes('data-bike-index=') || app.includes('data-report-type="bike_patrols"') || !app.includes('showDate=type!=="bike_patrols"')) throw new Error('Motorcycle reports must have dynamically generated individual report actions for every registered bike, with no duplicate date column');
+if (!app.includes('const registrationOrder=new Map(orderedRegistry.map((row,index)=>[normalize(row.payload?.number),index+1]))') || !app.includes('reportNumber:registrationOrder.get(normalize(g.bike))||index+1')) throw new Error('Bike report numbering must follow the saved registration order, independently of bike codes or lexical sorting');
+if (!app.includes('const persons=[...new Set(g.visits.map(v=>String(v.payload?.person||v.payload?.responsible||"").trim()).filter(Boolean))]') || !app.includes('person:reportPerson') || !app.includes('const reportPerson=persons.length===1?persons[0]:persons.length>1?"الأسماء موضحة بجوار كل زيارة":"غير مسجل"') || !app.includes('person,coordinates,notes:') || !app.includes('times:[String(p.patrol_time||"—")+" | فرد المرور: "+person]')) throw new Error('Every motorcycle visit must retain its own rider; mixed riders must not be concatenated into one report heading');
+if (!app.includes('key=normalize(number);') || !app.includes('orderedRegistry=orderedBikes(registry)') || !app.includes('bikeGroupsFor(data)') || !app.includes('data-bike-number=') || !app.includes('id="bikeQuickReports"') || app.includes('data-bike-index=') || app.includes('data-report-type="bike_patrols"') || !app.includes('showDate=type!=="bike_patrols"')) throw new Error('Motorcycle reports must have dynamically generated individual report actions for every registered bike, with no duplicate date column');
 if (!app.includes('["patrol_date","تاريخ المرور","date",1]') || !app.includes('["bike_patrols","branch_patrols","manager_rounds"].includes(type)&&!isEditing&&f[0]==="patrol_date"')) throw new Error('Motorcycle follow-up form must include a required patrol date defaulting to today');
 if (!app.includes('esc(g.date?new Date(g.date+"T00:00:00").toLocaleDateString("ar-EG"):reportDate)')) throw new Error('Motorcycle report must show the patrol date in its header, outside the table');
 if (!app.includes('payload.patrol_date=oldDate||')) throw new Error('Motorcycle patrol date must still be stored automatically');
@@ -419,7 +473,7 @@ const bikeReportStart=app.indexOf('const bikeGroupsFor=d=>');
 const bikeReportEnd=app.indexOf('const branchGroupsFor=d=>',bikeReportStart);
 const bikeReportSource=app.slice(bikeReportStart,bikeReportEnd);
 if (bikeReportSource.includes('people:new Set()') || bikeReportSource.includes('group.people.add(') || bikeReportSource.includes('[...g.people]')) throw new Error('Bike report must not combine every patrol visitor into the assigned rider name');
-if (!bikeReportSource.includes('person:persons.join("، ")||"—"') || bikeReportSource.includes("person:String(bp.person")) throw new Error("Bike report must show rider names from daily patrol records, not fixed bike master data.");
+if (!bikeReportSource.includes('person:reportPerson') || !bikeReportSource.includes('times:[String(p.patrol_time||"—")+" | فرد المرور: "+person]') || bikeReportSource.includes('person:persons.join("، ")') || bikeReportSource.includes("person:String(bp.person")) throw new Error("Bike report must display each visit's saved rider individually, not combine riders or use the current bike master record.");
 if (!bikeReportSource.includes("replace(/[٠-٩]/g") || !bikeReportSource.includes("replace(/[۰-۹]/g") || !bikeReportSource.includes('suffix==="م"||suffix==="pm"') || !bikeReportSource.includes("compareVisitTime(a,b)")) throw new Error("Bike report must sort visits by real clock time, including Arabic digits and AM/PM formats");
 const bikeSectionStart=app.indexOf('const bikeGroupsFor=d=>');
 const bikeSectionEnd=app.indexOf('const branchGroupsFor=d=>',bikeSectionStart);
@@ -542,7 +596,7 @@ if (!exporter.includes('PdfRenderer.Page.RENDER_MODE_FOR_PRINT') ||
   throw new Error('Report image export must render print-quality pages, reject blank pages, and remove partial images on failure.');
 }
 
-if (!exporter.includes('final int width=1588,height=2246') ||
+if (!exporter.includes('final int width=landscape?2246:1588,height=landscape?1588:2246') ||
     !exporter.includes('Environment.DIRECTORY_PICTURES+"/DEEB"') ||
     !exporter.includes('baseName+"-"+String.format(java.util.Locale.US,"%02d",index+1)+".png"') ||
     !exporter.includes('MediaStore.Images.Media.IS_PENDING,1') ||
@@ -595,6 +649,132 @@ if (new Set(allGroupedTypes).size !== allGroupedTypes.length) {
 function pageGroupsDataTypes() {
   const match = groupsSource.match(/data:\[([^\]]*)\]/);
   return match ? [...match[1].matchAll(/"([^"]+)"/g)].map(item => item[1]) : [];
+}
+
+
+const liveHeatStart=app.indexOf('function renderBikeSiteHeatMap(');
+const liveHeatEnd=app.indexOf('function renderBikeFlyoverMap(',liveHeatStart);
+const liveHeatSource=liveHeatStart>=0&&liveHeatEnd>liveHeatStart?app.slice(liveHeatStart,liveHeatEnd):'';
+if(!liveHeatSource.includes('L.divIcon({className:"",html:') || !liveHeatSource.includes('"+c.count+"</span>') || !liveHeatSource.includes('width:34px;height:34px') || !liveHeatSource.includes('border:3px solid #f3d37a')) throw new Error('Live heatmap must show clear, high-contrast numbered visit-count markers at every 60m cluster.');
+const heatReportStart=app.indexOf('const buildHeatReport=()=>');
+const heatReportEnd=app.indexOf('const archiveHeatReport=async()=>',heatReportStart);
+const heatReportSource=heatReportStart>=0&&heatReportEnd>heatReportStart?app.slice(heatReportStart,heatReportEnd):'';
+if(!heatReportSource.includes('title>DEEB | خريطة كثافة المرور') || !heatReportSource.includes('id="deebReportMap"') || !heatReportSource.includes('"+p.count+"</span>')) throw new Error('Standalone heatmap report must include visible numbered markers.');
+if(!app.includes('id="printBikeHeatMapReport"') || !app.includes('id="saveBikeHeatMapPdf"') || !app.includes('id="saveBikeHeatMapImage"') || !app.includes('id="archiveBikeHeatMapReport"')) throw new Error('Heatmap must expose its own print, PDF, image, and archive actions, separate from the low-hours report.');
+
+
+const customActionStart=app.indexOf('const withCustomReportButton=async(buttonId,action)=>');
+const customActionEnd=app.indexOf('$("#printBikeCustomReport").onclick',customActionStart);
+const customActionSource=customActionStart>=0&&customActionEnd>customActionStart?app.slice(customActionStart,customActionEnd):'';
+if(!customActionSource.includes('try{await archiveBikeCustomReport(data);') ||
+   !customActionSource.includes('catch(archiveError)') ||
+   !customActionSource.includes('await action(data)') ||
+   customActionSource.indexOf('await action(data)')<customActionSource.indexOf('catch(archiveError)')) {
+  throw new Error('A custom report export must continue when its optional archive save fails.');
+}
+
+const customHoursStart=app.indexOf('const buildBikeCustomReport=()=>');
+const customHoursEnd=app.indexOf('const archiveBikeCustomReport=async(reportData=null)=>',customHoursStart);
+const customHoursSource=customHoursStart>=0&&customHoursEnd>customHoursStart?app.slice(customHoursStart,customHoursEnd):'';
+if(!customHoursSource.includes('title="تقرير أقل ساعات المرور"') ||
+   !customHoursSource.includes('columns=["الساعة","عدد الزيارات المسجلة"]') ||
+   !customHoursSource.includes('rows=lowHourRows.map') ||
+   !customHoursSource.includes('const lowHourRows=hourRows;') ||
+   !customHoursSource.includes('const hourTableRows=lowHourRows.map') ||
+   app.includes('bikeCustomReportHourCount') ||
+   customHoursSource.includes('requestedHourCount') ||
+   !customHoursSource.includes('type==="hours"?lowHourNumbers') ||
+   !customHoursSource.includes('<table class="report-table">') ||
+   !customHoursSource.includes('if(type==="heat"){') ||
+   !customHoursSource.includes('title="تقرير الخريطة الحرارية لساعات الذروة"') ||
+   !app.includes('<option value="heat">الخريطة الحرارية لساعات الذروة</option>')) {
+  throw new Error('Bike reports must use the user-selected start/end hours without a second count limit, and include every hour in the selected range.');
+}
+
+// Hour selector controls are rendered in the analytics-page markup, outside the report-builder closure.
+const hourSelectorMarkup=app.slice(app.indexOf('id="bikeCustomReportFromHour"')-100,app.indexOf('id="bikeCustomReportToHour"')+300);
+if ((hourSelectorMarkup.match(/Array\.from\(\{length:25\}/g)||[]).length!==2 ||
+    !hourSelectorMarkup.includes('id="bikeCustomReportFromHour"') ||
+    !hourSelectorMarkup.includes('id="bikeCustomReportToHour"') ||
+    !hourSelectorMarkup.includes('String(h).padStart(2,"0")+\':00</option>')) {
+  throw new Error('Both user-controlled hour selectors must offer every choice from 00:00 through 24:00.');
+}
+const shiftHoursStart=customHoursSource.indexOf('const shiftHours=[];');
+const shiftHoursEnd=customHoursSource.indexOf('const dayIndexes=',shiftHoursStart);
+if(shiftHoursStart<0||shiftHoursEnd<=shiftHoursStart) throw new Error('Requested heatmap hour selection logic is missing.');
+const shiftHoursLogic='const startHour=fromHour===24?0:fromHour,endHour=toHour===24?0:toHour;'+customHoursSource.slice(shiftHoursStart,shiftHoursEnd)+'return shiftHours;';
+const requestedHourCases=[
+  {fromHour:8,toHour:18,expected:[8,9,10,11,12,13,14,15,16,17]},
+  {fromHour:22,toHour:4,expected:[22,23,0,1,2,3]},
+  {fromHour:0,toHour:7,expected:[0,1,2,3,4,5,6]},
+  {fromHour:7,toHour:24,expected:[7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]},
+  {fromHour:24,toHour:7,expected:[0,1,2,3,4,5,6]},
+  {fromHour:0,toHour:24,expected:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]},
+  {fromHour:24,toHour:24,expected:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]}
+];
+for(const testCase of requestedHourCases){
+  const actual=vm.runInNewContext('(function(fromHour,toHour){'+shiftHoursLogic+'})',{})(testCase.fromHour,testCase.toHour);
+  if(JSON.stringify(actual)!==JSON.stringify(testCase.expected)) throw new Error('User-selected report hour range failed: '+JSON.stringify(testCase));
+}
+const rangeFilterStart=customHoursSource.indexOf('const inHours=');
+const rangeFilterEnd=customHoursSource.indexOf(';',rangeFilterStart)+1;
+if(rangeFilterStart<0||rangeFilterEnd<=rangeFilterStart) throw new Error('Selected hour range filter is missing.');
+const rangeFilterLogic='const startHour=fromHour===24?0:fromHour,endHour=toHour===24?0:toHour;'+customHoursSource.slice(rangeFilterStart,rangeFilterEnd)+'return [inHours({hour:0}),inHours({hour:6}),inHours({hour:7}),inHours({hour:23})];';
+const rangeFilterCases=[
+  {fromHour:8,toHour:18,expected:[false,false,false,false]},
+  {fromHour:22,toHour:4,expected:[true,false,false,true]},
+  {fromHour:0,toHour:7,expected:[true,true,false,false]},
+  {fromHour:7,toHour:24,expected:[false,false,true,true]},
+  {fromHour:24,toHour:7,expected:[true,true,false,false]},
+  {fromHour:0,toHour:24,expected:[true,true,true,true]},
+  {fromHour:24,toHour:24,expected:[true,true,true,true]}
+];
+for(const testCase of rangeFilterCases){
+  const actual=vm.runInNewContext('(function(fromHour,toHour){'+rangeFilterLogic+'})',{})(testCase.fromHour,testCase.toHour);
+  if(JSON.stringify(actual)!==JSON.stringify(testCase.expected)) throw new Error('Selected hour filter boundary failed: '+JSON.stringify(testCase));
+}
+if(customHoursSource.includes('shiftHours.length=Math.min') ||
+   !customHoursSource.includes('rows=shiftHours.map(h=>[String(h).padStart(2,"0")') ||
+   !customHoursSource.includes('const printedHeatValues=dayIndexes.flatMap(day=>shiftHours.map(h=>selectedHeat[day][h]))') ||
+   !customHoursSource.includes('summary=[["الساعات المطبوعة",shiftHours.length]') ||
+   customHoursSource.indexOf('const dayIndexes=')>customHoursSource.indexOf('rows=shiftHours.map')) {
+  throw new Error('Heatmap rows, totals, and color intensity must be calculated from the complete selected hour range after dayIndexes is initialized.');
+}
+const imageHandlerStart=app.indexOf('$("#imageBikeCustomReport").onclick=');
+const imageHandlerEnd=app.indexOf('$("#archiveBikeCustomReport").onclick=',imageHandlerStart);
+const imageHandler=imageHandlerStart>=0&&imageHandlerEnd>imageHandlerStart?app.slice(imageHandlerStart,imageHandlerEnd):'';
+if(!imageHandler.includes('let html=data.html') || imageHandler.includes('bikeHourlyHeatmapTable') || imageHandler.includes('bikeCustomReportHourCount')) {
+  throw new Error('Heatmap image export must use the same selected-range report HTML as print and PDF, not crop the first N screen columns.');
+}
+
+const heatmapSourceStart=customHoursSource.indexOf('let hoursHeatmapHtml=""');
+const heatmapSourceEnd=customHoursSource.indexOf('const table=',heatmapSourceStart);
+const heatmapSource=heatmapSourceStart>=0&&heatmapSourceEnd>heatmapSourceStart?customHoursSource.slice(heatmapSourceStart,heatmapSourceEnd):'';
+if (!heatmapSource.includes('if(type==="hours"){') ||
+    !heatmapSource.includes('if(type==="heat"){') ||
+    !customHoursSource.includes('const selectedHeat=Array.from({length:7},()=>Array(24).fill(0))') ||
+    !customHoursSource.includes('const weekDays=new Map()') ||
+    !customHoursSource.includes('const cursor=new Date(from+"T12:00:00"),lastDay=new Date(to+"T12:00:00")') ||
+    !customHoursSource.includes('const shiftHours=[]') ||
+    !customHoursSource.includes('if(startHour===endHour){for(let offset=0;offset<24;offset++)shiftHours.push((startHour+offset)%24);}else if(startHour<endHour){for(let h=startHour;h<endHour;h++)shiftHours.push(h);}else{for(let h=startHour;h<24;h++)shiftHours.push(h);for(let h=0;h<endHour;h++)shiftHours.push(h);}') ||
+    !customHoursSource.includes('const dayIndexes=[...new Set([...weekDays.values()])].sort') ||
+    !customHoursSource.includes('shiftHours.map(h=>') ||
+    !customHoursSource.includes("'+count+'</td>'") ||
+    !customHoursSource.includes('const hourTotals=shiftHours.map')) {
+  throw new Error('The printed peak-hour heatmap must show every selected day/hour, visit counts, and heat intensity for the full selected period.');
+}
+
+
+// Patrol gaps must use exact elapsed hours/minutes and include per-bike plus fleet-wide intervals.
+if (!app.includes('const fmt=m=>{if(m===null||m===undefined||!Number.isFinite(Number(m)))return "—";') ||
+    !app.includes('return hours+" "+hourLabel+(minutes?" و"+minutes+" دقيقة":"");') ||
+    app.includes('(m/60).toFixed(1)') ||
+    !app.includes('const fleetByDay=new Map()') ||
+    !app.includes('const fleetGaps=[]') ||
+    !customHoursSource.includes('columns=["النطاق","من","إلى","مدة عدم التسجيل"]') ||
+    !customHoursSource.includes('scope:"الأسطول"') ||
+    !customHoursSource.includes('summary=[["فواصل الدراجات",bikeCount],["فواصل الأسطول"')) {
+  throw new Error('Patrol gap reports must show exact hour/minute durations and separate per-bike from fleet-wide gaps.');
 }
 
 
