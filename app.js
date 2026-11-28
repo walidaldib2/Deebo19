@@ -1625,9 +1625,9 @@ async function bikeAnalyticsPage(){
     const cursor=new Date(from+"T12:00:00"),lastDay=new Date(to+"T12:00:00");
     for(;cursor<=lastDay;cursor.setDate(cursor.getDate()+1)){const date=localISODate(cursor);weekDays.set(date,cursor.getDay());}
     selected.forEach(r=>{const p=r.payload||{},t=timeParts(p.patrol_time),date=String(p.patrol_date||"").slice(0,10);if(!t||!weekDays.has(date)||!inHours(t))return;selectedHeat[weekDays.get(date)][t.hour]++;});
-    const shiftHoursInRange=[];
-    if(fromHour<=toHour){for(let h=fromHour;h<=toHour;h++)shiftHoursInRange.push(h);}else{for(let h=fromHour;h<24;h++)shiftHoursInRange.push(h);for(let h=0;h<=toHour;h++)shiftHoursInRange.push(h);}
-    const shiftHours=shiftHoursInRange.slice(0,requestedHourCount);
+    const shiftHours=[];
+    if(fromHour<=toHour){for(let h=fromHour;h<=toHour;h++)shiftHours.push(h);}else{for(let h=fromHour;h<24;h++)shiftHours.push(h);for(let h=0;h<=toHour;h++)shiftHours.push(h);}
+    shiftHours.length=Math.min(shiftHours.length,requestedHourCount);
     const maxSelectedHeat=Math.max(1,...selectedHeat.flat());
     const dayIndexes=[...new Set([...weekDays.values()])].sort((x,y)=>x-y);
     const hourHead=shiftHours.map(h=>'<th style="min-width:9mm;padding:3px 2px;background:#073b28;color:#fff;font-size:8px">'+String(h).padStart(2,"0")+":00</th>").join("");
